@@ -1,0 +1,66 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventori_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - mysql
+    networks:
+      - inventori_network
+
+  webserver:
+    image: nginx:1.27-alpine
+    container_name: inventori_webserver
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - inventori_network
+
+  mysql:
+    image: mysql:8.4
+    container_name: inventori_mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: inventori_toko
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: root
+      MYSQL_USER: inventori_user
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - inventori_network
+
+  phpmyadmin:
+    image: phpmyadmin:5.2-apache
+    container_name: inventori_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root
+    depends_on:
+      - mysql
+    networks:
+      - inventori_network
+
+networks:
+  inventori_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
