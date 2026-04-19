@@ -1,45 +1,105 @@
 @extends('layouts.auth')
 
-@section('content')
-    <div class="space-y-6">
+@php
+    $judulHalaman = 'Masuk Owner';
+    $authTab = 'MASUK';
+@endphp
+
+@section('auth_headline', 'Kontrol Toko.')
+
+@section('auth_copy')
+    Masuk ke ruang kerja owner untuk mengelola stok, transaksi, dan insight toko dalam satu dashboard yang rapi.
+@endsection
+
+@section('auth_features')
+    <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 12.75 10 16l8-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
         <div>
-            <h1 class="text-2xl font-bold">Login Aplikasi Inventori</h1>
-            <p class="mt-2 text-sm text-slate-300">Form autentikasi untuk Admin Pemilik, Admin Gudang, dan Kasir.</p>
+            <p class="font-semibold">Workspace khusus owner</p>
+            <p class="mt-1 text-sm leading-6 text-slate-300">Pantau performa toko, persediaan, dan aktivitas operasional dari satu tempat.</p>
+        </div>
+    </div>
+    <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M8 17V9m4 8V7m4 10v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M5 19h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <div>
+            <p class="font-semibold">Insight yang langsung terbaca</p>
+            <p class="mt-1 text-sm leading-6 text-slate-300">Akses metrik penjualan dan kondisi stok dengan visual yang cepat dipahami.</p>
+        </div>
+    </div>
+@endsection
+
+@section('content')
+    <div class="mx-auto flex h-full w-full max-w-[25rem] flex-col justify-center lg:max-w-[23rem]">
+        <div class="space-y-2">
+            <h2 class="text-3xl font-bold tracking-[-0.04em] text-slate-900 sm:text-[2.15rem]">Selamat datang kembali, Owner</h2>
+            <p class="text-sm leading-7 text-slate-500 sm:text-base">Masukkan kredensial owner untuk membuka dashboard Sitori.</p>
         </div>
 
         @if ($errors->any())
-            <div class="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            <div class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
                 {{ $errors->first() }}
             </div>
         @endif
 
-        <form action="{{ route('login.process') }}" method="POST" class="space-y-4">
+        <form action="{{ route('login.process') }}" method="POST" class="mt-8 space-y-5">
             @csrf
-            <div>
-                <label for="email" class="mb-2 block text-sm font-medium">Email</label>
-                <input id="email" name="email" type="email" value="{{ old('email') }}" class="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none" />
+
+            <div class="space-y-2">
+                <label for="email" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Email Owner</label>
+                <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value="{{ old('email') }}"
+                    placeholder="owner@sitori.app"
+                    class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
+                />
             </div>
 
-            <div>
-                <label for="password" class="mb-2 block text-sm font-medium">Password</label>
-                <input id="password" name="password" type="password" class="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none" />
+            <div class="space-y-2">
+                <label for="password" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Password</label>
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="........"
+                    class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-500 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
+                />
             </div>
 
-            <label class="flex items-center gap-2 text-sm text-slate-300">
-                <input type="checkbox" name="remember" value="1" class="rounded border-white/10 bg-slate-900" />
-                Ingat saya
-            </label>
+            <div class="flex flex-col gap-3 pt-1 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <label class="inline-flex items-center gap-2.5 text-slate-500">
+                    <input type="checkbox" name="remember" value="1" class="h-4 w-4 rounded border-slate-300 text-[#163760] focus:ring-[#163760]" />
+                    <span class="font-medium">Ingat saya</span>
+                </label>
 
-            <button type="submit" class="w-full rounded-xl bg-emerald-500 px-4 py-3 font-semibold text-slate-950">
-                Masuk
+                <span class="font-semibold text-[#163760]">Lupa password?</span>
+            </div>
+
+            <button type="submit" class="h-[3.25rem] w-full rounded-xl bg-[#12345c] px-4 text-base font-semibold text-white shadow-[0_16px_30px_rgba(18,52,92,0.22)] transition hover:bg-[#102f53] focus:outline-none focus:ring-4 focus:ring-[#163760]/15">
+                Masuk ke Dashboard
             </button>
-        </form>
 
-        <div class="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-            <p class="font-semibold">Akun admin demo</p>
-            <p>Email: admin@inventori.test</p>
-            <p>Password: admin12345</p>
-            <p>Role: owner</p>
-        </div>
+            <div class="relative pt-4 text-center">
+                <div class="absolute inset-x-0 top-1/2 border-t border-slate-200"></div>
+                <span class="relative bg-white px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-400">Belum punya akun owner?</span>
+            </div>
+
+            <a href="{{ route('register') }}" class="flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-[#163760] transition hover:border-[#163760]/30 hover:bg-slate-50">
+                Buat akun Sitori
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M4.167 10h11.666m0 0-4.166-4.167M15.833 10l-4.166 4.167" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
+        </form>
     </div>
 @endsection
