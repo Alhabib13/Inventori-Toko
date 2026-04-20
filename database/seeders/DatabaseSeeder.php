@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'owner@toko.local',
             'password' => Hash::make('password'),
             'role' => 'owner',
+            'mode_app' => 'toko',
             'email_verified_at' => now(),
         ]);
 
