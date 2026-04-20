@@ -15,22 +15,24 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-    Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
     Route::post('/login', [AuthController::class, 'login'])->name('login.process');
 });
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    Route::redirect('/', '/dashboard');
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('/', [AuthController::class, 'redirectAuthenticatedUser'])->name('home');
 
     Route::middleware('role:owner')->group(function (): void {
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+        Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
+        Route::post('/register', [AuthController::class, 'register'])->name('register.process');
         Route::resource('users', UserController::class);
         Route::resource('reports', ReportController::class)->only(['index']);
         Route::resource('forecasts', ForecastController::class);
     });
 
     Route::middleware('role:owner,gudang')->group(function (): void {
+        Route::get('/stok', [StockController::class, 'index'])->name('stocks.role-home');
         Route::resource('categories', CategoryController::class);
         Route::resource('products', ProductController::class);
         Route::resource('stocks', StockController::class);

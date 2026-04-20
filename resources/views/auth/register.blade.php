@@ -44,7 +44,15 @@
             <p class="text-sm leading-7 text-slate-500 sm:text-base">Isi data dasar toko dan owner untuk memulai workspace Sitori.</p>
         </div>
 
-        <form class="mt-8 space-y-5">
+        @if ($errors->any())
+            <div class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                {{ $errors->first() }}
+            </div>
+        @endif
+
+        <form action="{{ route('register.process') }}" method="POST" class="mt-8 space-y-5">
+            @csrf
+
             <div class="grid gap-5 sm:grid-cols-2">
                 <div class="space-y-2">
                     <label for="store_name" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Nama Toko</label>
@@ -58,26 +66,41 @@
                 </div>
 
                 <div class="space-y-2">
-                    <label for="owner_name" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Nama Owner</label>
+                    <label for="name" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Nama Pengguna</label>
                     <input
-                        id="owner_name"
-                        name="owner_name"
+                        id="name"
+                        name="name"
                         type="text"
-                        placeholder="nama pemilik toko"
+                        value="{{ old('name') }}"
+                        placeholder="nama pengguna"
                         class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
                     />
                 </div>
             </div>
 
             <div class="space-y-2">
-                <label for="register_email" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Email Administrator</label>
+                <label for="register_username" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Username</label>
                 <input
-                    id="register_email"
-                    name="email"
-                    type="email"
-                    placeholder="owner@sitori.app"
+                    id="register_username"
+                    name="username"
+                    type="text"
+                    value="{{ old('username') }}"
+                    placeholder="contoh: kasir01"
                     class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
                 />
+            </div>
+
+            <div class="space-y-2">
+                <label for="role" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Role</label>
+                <select
+                    id="role"
+                    name="role"
+                    class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
+                >
+                    <option value="kasir" @selected(old('role') === 'kasir')>Kasir</option>
+                    <option value="gudang" @selected(old('role') === 'gudang')>Gudang</option>
+                    <option value="owner" @selected(old('role') === 'owner')>Owner</option>
+                </select>
             </div>
 
             <div class="grid gap-5 sm:grid-cols-2">
@@ -104,8 +127,8 @@
                 </div>
             </div>
 
-            <button type="button" class="h-[3.25rem] w-full rounded-xl bg-[#12345c] px-4 text-base font-semibold text-white shadow-[0_16px_30px_rgba(18,52,92,0.22)] transition hover:bg-[#102f53] focus:outline-none focus:ring-4 focus:ring-[#163760]/15">
-                Daftarkan Akun Owner
+            <button type="submit" class="h-[3.25rem] w-full rounded-xl bg-[#12345c] px-4 text-base font-semibold text-white shadow-[0_16px_30px_rgba(18,52,92,0.22)] transition hover:bg-[#102f53] focus:outline-none focus:ring-4 focus:ring-[#163760]/15">
+                Daftarkan Akun
             </button>
 
             <div class="relative pt-6 text-center">

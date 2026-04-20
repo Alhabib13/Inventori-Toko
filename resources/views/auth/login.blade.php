@@ -54,13 +54,13 @@
             @csrf
 
             <div class="space-y-2">
-                <label for="email" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Email Owner</label>
+                <label for="username" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Username</label>
                 <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value="{{ old('email') }}"
-                    placeholder="owner@sitori.app"
+                    id="username"
+                    name="username"
+                    type="text"
+                    value="{{ old('username') }}"
+                    placeholder="owner"
                     class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
                 />
             </div>
@@ -91,15 +91,12 @@
 
             <div class="relative pt-4 text-center">
                 <div class="absolute inset-x-0 top-1/2 border-t border-slate-200"></div>
-                <span class="relative bg-white px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-400">Belum punya akun owner?</span>
+                <span class="relative bg-white px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-400">Belum punya akun?</span>
             </div>
 
-            <a href="{{ route('register') }}" class="flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-[#163760] transition hover:border-[#163760]/30 hover:bg-slate-50">
-                Buat akun Sitori
-                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                    <path d="M4.167 10h11.666m0 0-4.166-4.167M15.833 10l-4.166 4.167" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </a>
+            <p class="text-center text-sm font-semibold text-[#163760]">
+                Minta owner toko membuatkan akun dari menu pengguna.
+            </p>
         </form>
     </div>
 @endsection

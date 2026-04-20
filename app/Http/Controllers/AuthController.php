@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -22,21 +24,44 @@ class AuthController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $dataLogin = $request->validate([
-            'email' => ['required', 'email'],
+            'username' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
         if (! Auth::attempt($dataLogin, $request->boolean('remember'))) {
             return back()
-                ->withInput($request->only('email'))
+                ->withInput($request->only('username'))
                 ->withErrors([
-                    'email' => 'Email atau password tidak valid.',
+                    'username' => 'Username atau password tidak valid.',
                 ]);
         }
 
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard.index');
+        return $this->redirectToRoleHome();
+    }
+
+    public function register(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:50', 'alpha_dash:ascii', 'unique:users,username'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', Rule::in(['owner', 'gudang', 'kasir'])],
+        ]);
+
+        $data['email'] = $data['username'].'@toko.local';
+
+        User::create($data);
+
+        return redirect()
+            ->route('users.index')
+            ->with('status', 'Pengguna berhasil dibuat.');
+    }
+
+    public function redirectAuthenticatedUser(): RedirectResponse
+    {
+        return $this->redirectToRoleHome();
     }
 
     public function logout(Request $request): RedirectResponse
@@ -47,5 +72,15 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    private function redirectToRoleHome(): RedirectResponse
+    {
+        return match (Auth::user()?->role) {
+            'owner' => redirect()->route('dashboard.index'),
+            'gudang' => redirect()->route('stocks.role-home'),
+            'kasir' => redirect()->route('transactions.pos'),
+            default => redirect()->route('login'),
+        };
     }
 }
