@@ -14,16 +14,26 @@
                 <p class="mt-2 text-sm text-slate-300">Skeleton Laravel 12</p>
             </div>
 
+            @php($role = auth()->user()?->role)
             <nav class="space-y-2 text-sm">
-                <a href="{{ route('dashboard.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Dashboard</a>
-                <a href="{{ route('products.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Produk</a>
-                <a href="{{ route('stocks.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Stok</a>
-                <a href="{{ route('transactions.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Penjualan</a>
-                <a href="{{ route('purchases.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Pembelian</a>
-                <a href="{{ route('suppliers.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Supplier</a>
-                <a href="{{ route('reports.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Laporan</a>
-                <a href="{{ route('forecasts.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Prediksi</a>
-                <a href="{{ route('users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Pengguna</a>
+                @if ($role === 'owner')
+                    <a href="{{ route('dashboard.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Dashboard</a>
+                @endif
+                @if (in_array($role, ['owner', 'gudang'], true))
+                    <a href="{{ route('products.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Produk</a>
+                    <a href="{{ route('stocks.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Stok</a>
+                    <a href="{{ route('purchases.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Pembelian</a>
+                    <a href="{{ route('suppliers.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Supplier</a>
+                @endif
+                @if (in_array($role, ['owner', 'kasir'], true))
+                    <a href="{{ route('transactions.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Penjualan</a>
+                @endif
+                @if ($role === 'owner')
+                    <a href="{{ route('reports.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Laporan</a>
+                    <a href="{{ route('forecasts.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Prediksi</a>
+                    <a href="{{ route('users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Pengguna</a>
+                    <a href="{{ route('register') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Register User</a>
+                @endif
             </nav>
         </aside>
 

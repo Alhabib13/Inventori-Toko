@@ -10,14 +10,20 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::updateOrCreate(
-            ['email' => 'admin@inventori.test'],
-            [
-                'name' => 'Admin Utama',
-                'password' => Hash::make('admin12345'),
-                'role' => 'owner',
-                'email_verified_at' => now(),
-            ]
-        );
+        $owner = User::query()
+            ->where('username', 'owner')
+            ->orWhereIn('email', ['owner@toko.com', 'owner@toko.local'])
+            ->firstOrNew();
+
+        $owner->fill([
+            'name' => 'Owner Toko',
+            'username' => 'owner',
+            'email' => 'owner@toko.local',
+            'password' => Hash::make('password'),
+            'role' => 'owner',
+            'email_verified_at' => now(),
+        ]);
+
+        $owner->save();
     }
 }
