@@ -28,11 +28,16 @@ class AuthRoleTest extends TestCase
         $response->assertRedirect(route('transactions.pos'));
     }
 
-    public function test_register_page_is_only_available_for_owner(): void
+    public function test_owner_self_registration_page_is_available_for_guest(): void
     {
-        $this->get('/register')->assertRedirect('/login');
-        $this->actingAs($this->userWithRole('kasir'))->get('/register')->assertForbidden();
-        $this->actingAs($this->userWithRole('owner'))->get('/register')->assertOk();
+        $this->get('/register')->assertOk();
+    }
+
+    public function test_user_register_page_is_only_available_for_owner(): void
+    {
+        $this->get('/register-user')->assertRedirect('/login');
+        $this->actingAs($this->userWithRole('kasir'))->get('/register-user')->assertForbidden();
+        $this->actingAs($this->userWithRole('owner'))->get('/register-user')->assertOk();
     }
 
     private function userWithRole(string $role): User

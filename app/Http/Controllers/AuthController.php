@@ -21,6 +21,11 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
+    public function showUserRegisterForm(): View
+    {
+        return view('auth.register-user');
+    }
+
     public function login(Request $request): RedirectResponse
     {
         $dataLogin = $request->validate([
@@ -41,13 +46,37 @@ class AuthController extends Controller
         return $this->redirectToRoleHome();
     }
 
-    public function register(Request $request): RedirectResponse
+    public function registerOwner(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:50', 'alpha_dash:ascii', 'unique:users,username'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', Rule::in(['owner', 'gudang', 'kasir'])],
+        ]);
+
+        $user = User::create([
+            'name' => $data['name'],
+            'username' => $data['username'],
+            'email' => $data['username'].'@toko.local',
+            'password' => $data['password'],
+            'role' => 'owner',
+            'mode_app' => 'toko',
+        ]);
+
+        Auth::login($user);
+
+        $request->session()->regenerate();
+
+        return $this->redirectToRoleHome();
+    }
+
+    public function registerUser(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:50', 'alpha_dash:ascii', 'unique:users,username'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', Rule::in(['gudang', 'kasir'])],
         ]);
 
         $data['email'] = $data['username'].'@toko.local';
