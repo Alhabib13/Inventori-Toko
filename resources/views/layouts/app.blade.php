@@ -32,7 +32,7 @@
                     <a href="{{ route('reports.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Laporan</a>
                     <a href="{{ route('forecasts.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Prediksi</a>
                     <a href="{{ route('users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Pengguna</a>
-                    <a href="{{ route('register') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Register User</a>
+                    <a href="{{ route('users.register') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Register User</a>
                 @endif
             </nav>
         </aside>

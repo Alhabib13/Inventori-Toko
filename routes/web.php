@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.process');
+    Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
+    Route::post('/register', [AuthController::class, 'registerOwner'])->name('register.process');
 });
 
 Route::middleware('auth')->group(function (): void {
@@ -24,8 +26,8 @@ Route::middleware('auth')->group(function (): void {
 
     Route::middleware('role:owner')->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
-        Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
-        Route::post('/register', [AuthController::class, 'register'])->name('register.process');
+        Route::get('/register-user', [AuthController::class, 'showUserRegisterForm'])->name('users.register');
+        Route::post('/register-user', [AuthController::class, 'registerUser'])->name('users.register.process');
         Route::resource('users', UserController::class);
         Route::resource('reports', ReportController::class)->only(['index']);
         Route::resource('forecasts', ForecastController::class);

@@ -60,6 +60,7 @@
                         id="store_name"
                         name="store_name"
                         type="text"
+                        value="{{ old('store_name') }}"
                         placeholder="contoh: Toko Sentosa"
                         class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
                     />
@@ -90,19 +91,6 @@
                 />
             </div>
 
-            <div class="space-y-2">
-                <label for="role" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Role</label>
-                <select
-                    id="role"
-                    name="role"
-                    class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
-                >
-                    <option value="kasir" @selected(old('role') === 'kasir')>Kasir</option>
-                    <option value="gudang" @selected(old('role') === 'gudang')>Gudang</option>
-                    <option value="owner" @selected(old('role') === 'owner')>Owner</option>
-                </select>
-            </div>
-
             <div class="grid gap-5 sm:grid-cols-2">
                 <div class="space-y-2">
                     <label for="register_password" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Password</label>
@@ -128,7 +116,7 @@
             </div>
 
             <button type="submit" class="h-[3.25rem] w-full rounded-xl bg-[#12345c] px-4 text-base font-semibold text-white shadow-[0_16px_30px_rgba(18,52,92,0.22)] transition hover:bg-[#102f53] focus:outline-none focus:ring-4 focus:ring-[#163760]/15">
-                Daftarkan Akun
+                Daftarkan Akun Owner
             </button>
 
             <div class="relative pt-6 text-center">
