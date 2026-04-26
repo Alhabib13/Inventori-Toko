@@ -21,6 +21,11 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
+    public function showModeSelectionForm(): View
+    {
+        return view('auth.select-mode');
+    }
+
     public function login(Request $request): RedirectResponse
     {
         $dataLogin = $request->validate([
@@ -59,6 +64,27 @@ class AuthController extends Controller
             ->with('status', 'Pengguna berhasil dibuat.');
     }
 
+    public function storeModeSelection(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'mode_app' => ['required', Rule::in(['sederhana', 'lengkap'])],
+        ]);
+
+        $pengguna = $request->user();
+
+        if (! $pengguna || $pengguna->role !== 'owner') {
+            abort(403, 'Hanya owner yang dapat memilih mode toko.');
+        }
+
+        $pengguna->forceFill([
+            'mode_app' => $data['mode_app'],
+        ])->save();
+
+        return redirect()
+            ->route('dashboard.index')
+            ->with('status', 'Mode toko berhasil disimpan.');
+    }
+
     public function redirectAuthenticatedUser(): RedirectResponse
     {
         return $this->redirectToRoleHome();
@@ -77,7 +103,9 @@ class AuthController extends Controller
     private function redirectToRoleHome(): RedirectResponse
     {
         return match (Auth::user()?->role) {
-            'owner' => redirect()->route('dashboard.index'),
+            'owner' => blank(Auth::user()?->mode_app)
+                ? redirect()->route('mode-selection.show')
+                : redirect()->route('dashboard.index'),
             'gudang' => redirect()->route('stocks.role-home'),
             'kasir' => redirect()->route('transactions.pos'),
             default => redirect()->route('login'),
