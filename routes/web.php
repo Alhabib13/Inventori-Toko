@@ -23,8 +23,10 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/', [AuthController::class, 'redirectAuthenticatedUser'])->name('home');
+    Route::get('/pilih-mode-toko', [AuthController::class, 'showModeSelectionForm'])->name('mode-selection.show');
+    Route::post('/pilih-mode-toko', [AuthController::class, 'storeModeSelection'])->name('mode-selection.store');
 
-    Route::middleware('role:owner')->group(function (): void {
+    Route::middleware(['role:owner', 'mode.selected'])->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
         Route::get('/register-user', [AuthController::class, 'showUserRegisterForm'])->name('users.register');
         Route::post('/register-user', [AuthController::class, 'registerUser'])->name('users.register.process');
@@ -33,7 +35,7 @@ Route::middleware('auth')->group(function (): void {
         Route::resource('forecasts', ForecastController::class);
     });
 
-    Route::middleware('role:owner,gudang')->group(function (): void {
+    Route::middleware(['role:owner,gudang', 'mode.selected'])->group(function (): void {
         Route::get('/stok', [StockController::class, 'index'])->name('stocks.role-home');
         Route::resource('categories', CategoryController::class);
         Route::resource('products', ProductController::class);
@@ -42,7 +44,7 @@ Route::middleware('auth')->group(function (): void {
         Route::resource('suppliers', SupplierController::class);
     });
 
-    Route::middleware('role:owner,kasir')->group(function (): void {
+    Route::middleware(['role:owner,kasir', 'mode.selected'])->group(function (): void {
         Route::resource('transactions', TransactionController::class);
     });
 
