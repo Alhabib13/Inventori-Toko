@@ -54,6 +54,7 @@ class AuthController extends Controller
     public function registerOwner(Request $request): RedirectResponse
     {
         $data = $request->validate([
+            'store_name' => ['required', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:50', 'alpha_dash:ascii', 'unique:users,username'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
@@ -61,6 +62,7 @@ class AuthController extends Controller
 
         $user = User::create([
             'name' => $data['name'],
+            'store_name' => $data['store_name'],
             'username' => $data['username'],
             'email' => $data['username'].'@toko.local',
             'password' => $data['password'],

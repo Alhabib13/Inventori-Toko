@@ -94,9 +94,12 @@
                 <span class="relative bg-white px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-400">Belum punya akun?</span>
             </div>
 
-            <p class="text-center text-sm font-semibold text-[#163760]">
-                Minta owner toko membuatkan akun dari menu pengguna.
-            </p>
+            <a href="{{ route('register') }}" class="flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-[#163760] transition hover:border-[#163760]/30 hover:bg-slate-50">
+                Daftar akun owner
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M4.167 10h11.666m0 0-4.166-4.167M15.833 10l-4.166 4.167" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
         </form>
     </div>
 @endsection
