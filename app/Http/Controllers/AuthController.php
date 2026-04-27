@@ -23,11 +23,17 @@ class AuthController extends Controller
 
     public function showUserRegisterForm(): View
     {
-        return view('auth.register-user');
+        return view('auth.register-user', [
+            'allowedRoles' => $this->allowedUserRolesForMode(Auth::user()?->mode_app),
+        ]);
     }
 
     public function showModeSelectionForm(): View
     {
+        if (filled(Auth::user()?->mode_app)) {
+            abort(403, 'Mode toko sudah dipilih.');
+        }
+
         return view('auth.select-mode');
     }
 
@@ -79,14 +85,18 @@ class AuthController extends Controller
 
     public function registerUser(Request $request): RedirectResponse
     {
+        $allowedRoles = $this->allowedUserRolesForMode($request->user()?->mode_app);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:50', 'alpha_dash:ascii', 'unique:users,username'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', Rule::in(['gudang', 'kasir'])],
+            'role' => ['required', Rule::in(array_keys($allowedRoles))],
         ]);
 
         $data['email'] = $data['username'].'@toko.local';
+        $data['store_name'] = $request->user()?->store_name;
+        $data['mode_app'] = $request->user()?->mode_app;
 
         User::create($data);
 
@@ -140,6 +150,18 @@ class AuthController extends Controller
             'gudang' => redirect()->route('stocks.role-home'),
             'kasir' => redirect()->route('transactions.pos'),
             default => redirect()->route('login'),
+        };
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function allowedUserRolesForMode(?string $modeApp): array
+    {
+        return match ($modeApp) {
+            'sederhana' => ['kasir' => 'Kasir'],
+            'lengkap' => ['kasir' => 'Kasir', 'gudang' => 'Gudang'],
+            default => [],
         };
     }
 }
