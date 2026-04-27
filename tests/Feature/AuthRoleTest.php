@@ -102,6 +102,31 @@ class AuthRoleTest extends TestCase
             ->assertRedirect(route('mode-selection.show'));
     }
 
+    public function test_mode_selection_page_is_only_available_for_owner_without_mode(): void
+    {
+        $this->get('/pilih-mode-toko')->assertRedirect('/login');
+        $this->actingAs($this->userWithRole('kasir'))->get('/pilih-mode-toko')->assertForbidden();
+        $this->actingAs($this->userWithRole('owner'))->get('/pilih-mode-toko')->assertOk();
+        $this->actingAs($this->userWithRole('owner', 'lengkap'))->get('/pilih-mode-toko')->assertForbidden();
+    }
+
+    public function test_owner_can_save_store_mode_selection(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => null,
+        ]);
+
+        $this->actingAs($owner)
+            ->post('/pilih-mode-toko', ['mode_app' => 'sederhana'])
+            ->assertRedirect(route('dashboard.index'));
+
+        $this->assertDatabaseHas('users', [
+            'id' => $owner->id,
+            'mode_app' => 'sederhana',
+        ]);
+    }
+
     private function userWithRole(string $role, ?string $modeApp = null): User
     {
         return new User([
