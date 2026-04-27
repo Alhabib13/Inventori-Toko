@@ -23,8 +23,10 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/', [AuthController::class, 'redirectAuthenticatedUser'])->name('home');
-    Route::get('/pilih-mode-toko', [AuthController::class, 'showModeSelectionForm'])->name('mode-selection.show');
-    Route::post('/pilih-mode-toko', [AuthController::class, 'storeModeSelection'])->name('mode-selection.store');
+    Route::middleware('role:owner')->group(function (): void {
+        Route::get('/pilih-mode-toko', [AuthController::class, 'showModeSelectionForm'])->name('mode-selection.show');
+        Route::post('/pilih-mode-toko', [AuthController::class, 'storeModeSelection'])->name('mode-selection.store');
+    });
 
     Route::middleware(['role:owner', 'mode.selected'])->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');

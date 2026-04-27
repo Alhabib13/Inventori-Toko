@@ -8,7 +8,7 @@
 @section('auth_headline', 'Kelola Tim Toko.')
 
 @section('auth_copy')
-    Owner dapat membuat akun operasional untuk kasir dan admin gudang sesuai kebutuhan toko.
+    Owner dapat membuat akun operasional sesuai mode toko yang dipilih.
 @endsection
 
 @section('auth_features')
@@ -31,7 +31,7 @@
         </div>
         <div>
             <p class="font-semibold">Role operasional</p>
-            <p class="mt-1 text-sm leading-6 text-slate-300">Gunakan role kasir untuk transaksi dan gudang untuk pengelolaan stok.</p>
+            <p class="mt-1 text-sm leading-6 text-slate-300">Opsi role mengikuti mode toko aktif.</p>
         </div>
     </div>
 @endsection
@@ -40,7 +40,7 @@
     <div class="mx-auto flex h-full w-full max-w-[30rem] flex-col justify-center">
         <div class="space-y-2">
             <h2 class="text-3xl font-bold tracking-[-0.04em] text-slate-900 sm:text-[2.15rem]">Daftarkan pengguna toko</h2>
-            <p class="text-sm leading-7 text-slate-500 sm:text-base">Buat akun untuk kasir atau admin gudang agar operasional toko bisa dibagi sesuai role.</p>
+            <p class="text-sm leading-7 text-slate-500 sm:text-base">Buat akun operasional dengan role yang tersedia untuk mode toko saat ini.</p>
         </div>
 
         @if ($errors->any())
@@ -84,8 +84,9 @@
                         name="role"
                         class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
                     >
-                        <option value="kasir" @selected(old('role') === 'kasir')>Kasir</option>
-                        <option value="gudang" @selected(old('role') === 'gudang')>Gudang</option>
+                        @foreach ($allowedRoles as $roleValue => $roleLabel)
+                            <option value="{{ $roleValue }}" @selected(old('role') === $roleValue)>{{ $roleLabel }}</option>
+                        @endforeach
                     </select>
                 </div>
             </div>

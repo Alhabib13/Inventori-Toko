@@ -53,25 +53,23 @@
         <form action="{{ route('mode-selection.store') }}" method="POST" class="mt-8 space-y-5">
             @csrf
 
-            <label class="block cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-[#163760]/35">
-                <input type="radio" name="mode_app" value="sederhana" class="sr-only" @checked(old('mode_app') === 'sederhana')>
+            <label class="block cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-[#163760]/35 has-[:checked]:border-[#163760] has-[:checked]:bg-[#f4f7fb]">
                 <div class="flex items-start justify-between gap-4">
                     <div class="space-y-2">
                         <p class="text-lg font-semibold text-slate-900">Mode Sederhana</p>
                         <p class="text-sm leading-6 text-slate-500">Untuk toko kecil dengan fokus owner dan kasir agar alur operasional lebih ringkas.</p>
                     </div>
-                    <span class="mt-1 h-5 w-5 rounded-full border border-slate-300"></span>
+                    <input type="radio" name="mode_app" value="sederhana" class="mt-1 h-5 w-5 shrink-0 accent-[#163760]" @checked(old('mode_app') === 'sederhana')>
                 </div>
             </label>
 
-            <label class="block cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-[#163760]/35">
-                <input type="radio" name="mode_app" value="lengkap" class="sr-only" @checked(old('mode_app') === 'lengkap')>
+            <label class="block cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-[#163760]/35 has-[:checked]:border-[#163760] has-[:checked]:bg-[#f4f7fb]">
                 <div class="flex items-start justify-between gap-4">
                     <div class="space-y-2">
                         <p class="text-lg font-semibold text-slate-900">Mode Lengkap</p>
                         <p class="text-sm leading-6 text-slate-500">Untuk toko dengan pengelolaan stok lebih detail dan struktur operasional yang lebih besar.</p>
                     </div>
-                    <span class="mt-1 h-5 w-5 rounded-full border border-slate-300"></span>
+                    <input type="radio" name="mode_app" value="lengkap" class="mt-1 h-5 w-5 shrink-0 accent-[#163760]" @checked(old('mode_app') === 'lengkap')>
                 </div>
             </label>
 

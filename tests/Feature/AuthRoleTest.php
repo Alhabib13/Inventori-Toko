@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AuthRoleTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_owner_is_redirected_to_dashboard(): void
     {
         $response = $this->actingAs($this->userWithRole('owner', 'lengkap'))->get('/');
@@ -40,6 +43,51 @@ class AuthRoleTest extends TestCase
         $this->get('/register')->assertOk();
     }
 
+    public function test_owner_self_registration_creates_owner_and_logs_in(): void
+    {
+        $response = $this->post('/register', [
+            'store_name' => 'Toko Sentosa',
+            'name' => 'Owner Baru',
+            'username' => 'ownerbaru',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertRedirect(route('mode-selection.show'));
+
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', [
+            'name' => 'Owner Baru',
+            'store_name' => 'Toko Sentosa',
+            'username' => 'ownerbaru',
+            'email' => 'ownerbaru@toko.local',
+            'role' => 'owner',
+            'mode_app' => null,
+        ]);
+    }
+
+    public function test_owner_self_registration_shows_translated_validation_message(): void
+    {
+        $this->from('/register')->post('/register', [
+            'store_name' => 'Toko Sentosa',
+            'name' => 'Owner Baru',
+            'username' => 'ownerbaru',
+            'password' => 'pendek',
+            'password_confirmation' => 'pendek',
+        ])->assertRedirect('/register');
+
+        $this->get('/register')
+            ->assertSee('password minimal 8 karakter.')
+            ->assertDontSee('validation.min.string');
+    }
+
+    public function test_login_page_has_owner_registration_link(): void
+    {
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('href="'.route('register').'"', false);
+    }
+
     public function test_user_register_page_is_only_available_for_owner(): void
     {
         $this->get('/register-user')->assertRedirect('/login');
@@ -52,6 +100,31 @@ class AuthRoleTest extends TestCase
         $this->actingAs($this->userWithRole('owner'))
             ->get('/dashboard')
             ->assertRedirect(route('mode-selection.show'));
+    }
+
+    public function test_mode_selection_page_is_only_available_for_owner_without_mode(): void
+    {
+        $this->get('/pilih-mode-toko')->assertRedirect('/login');
+        $this->actingAs($this->userWithRole('kasir'))->get('/pilih-mode-toko')->assertForbidden();
+        $this->actingAs($this->userWithRole('owner'))->get('/pilih-mode-toko')->assertOk();
+        $this->actingAs($this->userWithRole('owner', 'lengkap'))->get('/pilih-mode-toko')->assertForbidden();
+    }
+
+    public function test_owner_can_save_store_mode_selection(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => null,
+        ]);
+
+        $this->actingAs($owner)
+            ->post('/pilih-mode-toko', ['mode_app' => 'sederhana'])
+            ->assertRedirect(route('dashboard.index'));
+
+        $this->assertDatabaseHas('users', [
+            'id' => $owner->id,
+            'mode_app' => 'sederhana',
+        ]);
     }
 
     private function userWithRole(string $role, ?string $modeApp = null): User

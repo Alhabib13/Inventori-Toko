@@ -62,6 +62,7 @@
                         type="text"
                         value="{{ old('store_name') }}"
                         placeholder="contoh: Toko Sentosa"
+                        required
                         class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
                     />
                 </div>
@@ -74,6 +75,7 @@
                         type="text"
                         value="{{ old('name') }}"
                         placeholder="nama pengguna"
+                        required
                         class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
                     />
                 </div>
@@ -87,6 +89,7 @@
                     type="text"
                     value="{{ old('username') }}"
                     placeholder="contoh: kasir01"
+                    required
                     class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
                 />
             </div>
@@ -99,6 +102,7 @@
                         name="password"
                         type="password"
                         placeholder="........"
+                        required
                         class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-500 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
                     />
                 </div>
@@ -110,6 +114,7 @@
                         name="password_confirmation"
                         type="password"
                         placeholder="........"
+                        required
                         class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-500 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
                     />
                 </div>
