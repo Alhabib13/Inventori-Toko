@@ -14,26 +14,55 @@
                 <p class="mt-2 text-sm text-slate-300">Skeleton Laravel 12</p>
             </div>
 
-            @php($role = auth()->user()?->role)
+            @php
+                $user = auth()->user();
+                $role = $user?->role;
+                $modeApp = $user?->mode_app;
+                $sidebarLinks = match ($role) {
+                    'owner' => $modeApp === 'sederhana'
+                        ? [
+                            ['label' => 'Dashboard', 'route' => 'dashboard.index'],
+                            ['label' => 'Produk', 'route' => 'products.index'],
+                            ['label' => 'Kategori', 'route' => 'categories.index'],
+                            ['label' => 'Stok', 'route' => 'stocks.role-home'],
+                            ['label' => 'Laporan', 'route' => 'reports.index'],
+                            ['label' => 'Prediksi Stok', 'route' => 'forecasts.index'],
+                            ['label' => 'Manajemen User', 'route' => 'users.index'],
+                            ['label' => 'Register User', 'route' => 'users.register'],
+                        ]
+                        : [
+                            ['label' => 'Dashboard', 'route' => 'dashboard.index'],
+                            ['label' => 'Laporan', 'route' => 'reports.index'],
+                            ['label' => 'Prediksi Stok', 'route' => 'forecasts.index'],
+                            ['label' => 'Manajemen User', 'route' => 'users.index'],
+                            ['label' => 'Register User', 'route' => 'users.register'],
+                            ['label' => 'Produk', 'route' => 'products.index'],
+                            ['label' => 'Kategori', 'route' => 'categories.index'],
+                            ['label' => 'Stok', 'route' => 'stocks.role-home'],
+                        ],
+                    'gudang' => $modeApp === 'lengkap'
+                        ? [
+                            ['label' => 'Stok', 'route' => 'stocks.role-home'],
+                            ['label' => 'Produk', 'route' => 'products.index'],
+                            ['label' => 'Kategori', 'route' => 'categories.index'],
+                            ['label' => 'Supplier', 'route' => 'suppliers.index'],
+                            ['label' => 'Pembelian', 'route' => 'purchases.index'],
+                            ['label' => 'Notifikasi Stok', 'route' => 'stocks.notifications'],
+                            ['label' => 'Prediksi Stok', 'route' => 'forecasts.index'],
+                        ]
+                        : [],
+                    'kasir' => [
+                        ['label' => 'POS', 'route' => 'transactions.pos'],
+                        ['label' => 'Riwayat Transaksi', 'route' => 'transactions.index'],
+                        ['label' => 'Stok Barang', 'route' => 'stocks.role-home'],
+                    ],
+                    default => [],
+                };
+            @endphp
             <nav class="space-y-2 text-sm">
-                @if ($role === 'owner')
-                    <a href="{{ route('dashboard.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Dashboard</a>
-                @endif
-                @if (in_array($role, ['owner', 'gudang'], true))
-                    <a href="{{ route('products.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Produk</a>
-                    <a href="{{ route('stocks.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Stok</a>
-                    <a href="{{ route('purchases.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Pembelian</a>
-                    <a href="{{ route('suppliers.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Supplier</a>
-                @endif
-                @if (in_array($role, ['owner', 'kasir'], true))
-                    <a href="{{ route('transactions.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Penjualan</a>
-                @endif
-                @if ($role === 'owner')
-                    <a href="{{ route('reports.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Laporan</a>
-                    <a href="{{ route('forecasts.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Prediksi</a>
-                    <a href="{{ route('users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Pengguna</a>
-                    <a href="{{ route('users.register') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Register User</a>
-                @endif
+                @foreach ($sidebarLinks as $link)
+                    <a href="{{ route($link['route']) }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">{{ $link['label'] }}</a>
+                @endforeach
             </nav>
         </aside>
 

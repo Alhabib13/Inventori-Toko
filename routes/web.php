@@ -34,16 +34,19 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/register-user', [AuthController::class, 'registerUser'])->name('users.register.process');
         Route::resource('users', UserController::class);
         Route::resource('reports', ReportController::class)->only(['index']);
-        Route::resource('forecasts', ForecastController::class);
+    });
+
+    Route::middleware(['role:owner,gudang,kasir', 'mode.selected'])->group(function (): void {
+        Route::get('/stok', [StockController::class, 'index'])->name('stocks.role-home');
     });
 
     Route::middleware(['role:owner,gudang', 'mode.selected'])->group(function (): void {
-        Route::get('/stok', [StockController::class, 'index'])->name('stocks.role-home');
         Route::resource('categories', CategoryController::class);
         Route::resource('products', ProductController::class);
         Route::resource('stocks', StockController::class);
         Route::resource('purchases', PurchaseController::class);
         Route::resource('suppliers', SupplierController::class);
+        Route::resource('forecasts', ForecastController::class);
     });
 
     Route::middleware(['role:owner,kasir', 'mode.selected'])->group(function (): void {
