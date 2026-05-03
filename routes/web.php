@@ -28,7 +28,7 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/pilih-mode-toko', [AuthController::class, 'storeModeSelection'])->name('mode-selection.store');
     });
 
-    Route::middleware(['role:owner', 'mode.selected'])->group(function (): void {
+    Route::middleware('mode.access:owner')->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
         Route::get('/register-user', [AuthController::class, 'showUserRegisterForm'])->name('users.register');
         Route::post('/register-user', [AuthController::class, 'registerUser'])->name('users.register.process');
@@ -36,28 +36,33 @@ Route::middleware('auth')->group(function (): void {
         Route::resource('reports', ReportController::class)->only(['index']);
     });
 
-    Route::middleware(['role:owner,gudang,kasir', 'mode.selected'])->group(function (): void {
+    Route::middleware('mode.access:stock-read')->group(function (): void {
         Route::get('/stok', [StockController::class, 'index'])->name('stocks.role-home');
     });
 
-    Route::middleware(['role:owner,gudang', 'mode.selected'])->group(function (): void {
+    Route::middleware('mode.access:inventory')->group(function (): void {
         Route::resource('categories', CategoryController::class);
         Route::resource('products', ProductController::class);
         Route::resource('stocks', StockController::class);
-        Route::resource('purchases', PurchaseController::class);
-        Route::resource('suppliers', SupplierController::class);
         Route::resource('forecasts', ForecastController::class);
     });
 
-    Route::middleware(['role:owner,kasir', 'mode.selected'])->group(function (): void {
-        Route::resource('transactions', TransactionController::class);
-    });
-
-    Route::middleware('role:gudang')->group(function (): void {
+    Route::middleware('mode.access:warehouse')->group(function (): void {
+        Route::resource('purchases', PurchaseController::class);
+        Route::resource('suppliers', SupplierController::class);
         Route::get('/stok/notifikasi', [StockController::class, 'index'])->name('stocks.notifications');
     });
 
-    Route::middleware('role:kasir')->group(function (): void {
+    Route::middleware('mode.access:owner')->group(function (): void {
+        Route::resource('transactions', TransactionController::class)->only(['create']);
+    });
+
+    Route::middleware('mode.access:sales')->group(function (): void {
         Route::get('/pos', [TransactionController::class, 'create'])->name('transactions.pos');
+        Route::resource('transactions', TransactionController::class)->only(['index', 'show', 'store']);
+    });
+
+    Route::middleware('mode.access:owner')->group(function (): void {
+        Route::resource('transactions', TransactionController::class)->only(['edit', 'update', 'destroy']);
     });
 });
