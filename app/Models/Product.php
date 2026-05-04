@@ -13,6 +13,7 @@ class Product extends Model
 
     protected $fillable = [
         'category_id',
+        'supplier_id',
         'kode_produk',
         'nama_produk',
         'slug',
@@ -39,6 +40,11 @@ class Product extends Model
     public function kategori(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
     }
 
     public function itemTransaksi(): HasMany
