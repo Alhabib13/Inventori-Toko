@@ -38,13 +38,18 @@ Route::middleware('auth')->group(function (): void {
 
     Route::middleware('mode.access:stock-read')->group(function (): void {
         Route::get('/stok', [StockController::class, 'index'])->name('stocks.role-home');
+        Route::resource('products', ProductController::class)->only(['index']);
     });
 
     Route::middleware('mode.access:inventory')->group(function (): void {
         Route::resource('categories', CategoryController::class);
-        Route::resource('products', ProductController::class);
+        Route::resource('products', ProductController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
         Route::resource('stocks', StockController::class);
         Route::resource('forecasts', ForecastController::class);
+    });
+
+    Route::middleware('mode.access:stock-read')->group(function (): void {
+        Route::resource('products', ProductController::class)->only(['show']);
     });
 
     Route::middleware('mode.access:warehouse')->group(function (): void {
