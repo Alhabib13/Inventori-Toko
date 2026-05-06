@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function (): void {
 
     Route::middleware('mode.access:inventory')->group(function (): void {
         Route::resource('categories', CategoryController::class);
+        Route::resource('suppliers', SupplierController::class);
         Route::resource('products', ProductController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
         Route::resource('stocks', StockController::class);
         Route::resource('forecasts', ForecastController::class);
@@ -54,7 +55,6 @@ Route::middleware('auth')->group(function (): void {
 
     Route::middleware('mode.access:warehouse')->group(function (): void {
         Route::resource('purchases', PurchaseController::class);
-        Route::resource('suppliers', SupplierController::class);
         Route::get('/stok/notifikasi', [StockController::class, 'index'])->name('stocks.notifications');
     });
 

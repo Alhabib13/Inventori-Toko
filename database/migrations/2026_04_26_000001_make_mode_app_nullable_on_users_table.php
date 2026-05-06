@@ -1,13 +1,18 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('ALTER TABLE users MODIFY mode_app VARCHAR(50) NULL DEFAULT NULL');
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('mode_app', 50)->nullable()->default(null)->change();
+        });
+
         DB::table('users')
             ->where('mode_app', 'toko')
             ->update(['mode_app' => null]);
@@ -15,6 +20,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE users MODIFY mode_app VARCHAR(50) NOT NULL DEFAULT 'toko'");
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('mode_app', 50)->nullable(false)->default('toko')->change();
+        });
     }
 };
+
