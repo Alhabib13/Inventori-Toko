@@ -45,7 +45,7 @@ Route::middleware('auth')->group(function (): void {
         Route::resource('categories', CategoryController::class);
         Route::resource('suppliers', SupplierController::class);
         Route::resource('products', ProductController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
-        Route::resource('stocks', StockController::class);
+        Route::resource('stocks', StockController::class)->only(['index', 'create', 'store', 'show']);
         Route::resource('forecasts', ForecastController::class);
     });
 
