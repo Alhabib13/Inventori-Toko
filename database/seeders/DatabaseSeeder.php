@@ -10,6 +10,9 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(DemoUserSeeder::class);
+        $this->call(DemoMasterDataSeeder::class);
+
         $owner = User::query()
             ->where('username', 'owner')
             ->orWhereIn('email', ['owner@toko.com', 'owner@toko.local'])
