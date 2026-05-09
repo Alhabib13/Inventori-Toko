@@ -72,7 +72,7 @@ class RouteRoleModeAccessTest extends TestCase
         $this->actingAs($ownerSederhana)->get('/dashboard')->assertOk();
         $this->actingAs($ownerSederhana)->get('/products')->assertOk();
         $this->actingAs($ownerSederhana)->get('/stok')->assertOk();
-        $this->actingAs($ownerSederhana)->get('/suppliers')->assertForbidden();
+        $this->actingAs($ownerSederhana)->get('/suppliers')->assertOk();
         $this->actingAs($ownerSederhana)->get('/purchases')->assertForbidden();
 
         $ownerLengkap = User::factory()->create([
