@@ -1,88 +1,87 @@
 @extends('layouts.auth')
 
 @php
-    $judulHalaman = 'Daftar Pengguna';
-    $authTab = 'PENGGUNA';
+    $judulHalaman = 'Daftarkan Pengguna Baru';
 @endphp
 
-@section('auth_headline', 'Kelola Tim Toko.')
-
-@section('auth_copy')
-    Owner dapat membuat akun operasional sesuai mode toko yang dipilih.
-@endsection
-
-@section('auth_features')
-    <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
-        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-        </div>
-        <div>
-            <p class="font-semibold">Akun dibuat oleh owner</p>
-            <p class="mt-1 text-sm leading-6 text-slate-300">Halaman ini hanya bisa diakses owner yang sudah login.</p>
-        </div>
-    </div>
-    <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
-        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M6 12.75 10 16l8-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </div>
-        <div>
-            <p class="font-semibold">Role operasional</p>
-            <p class="mt-1 text-sm leading-6 text-slate-300">Opsi role mengikuti mode toko aktif.</p>
-        </div>
-    </div>
-@endsection
-
 @section('content')
-    <div class="mx-auto flex h-full w-full max-w-[30rem] flex-col justify-center">
-        <div class="space-y-2">
-            <h2 class="text-3xl font-bold tracking-[-0.04em] text-slate-900 sm:text-[2.15rem]">Daftarkan pengguna toko</h2>
-            <p class="text-sm leading-7 text-slate-500 sm:text-base">Buat akun operasional dengan role yang tersedia untuk mode toko saat ini.</p>
-        </div>
+    <div class="text-center mb-8">
+        <h2 class="text-2xl font-bold text-slate-900">Daftarkan Pengguna</h2>
+        <p class="text-sm text-slate-500 mt-2">Buat akun operasional untuk tim toko Anda</p>
+    </div>
 
-        @if ($errors->any())
-            <div class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                {{ $errors->first() }}
+    @if ($errors->any())
+        <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3">
+            <div class="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
             </div>
-        @endif
+            <div>
+                <h3 class="text-sm font-semibold text-red-800">Gagal Mendaftarkan</h3>
+                <p class="text-xs text-red-600 mt-1 leading-relaxed">
+                    {{ $errors->first() }}
+                </p>
+            </div>
+        </div>
+    @endif
 
-        <form action="{{ route('users.register.process') }}" method="POST" class="mt-8 space-y-5">
-            @csrf
+    <form action="{{ route('users.register.process') }}" method="POST" class="space-y-4">
+        @csrf
 
-            <div class="space-y-2">
-                <label for="name" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Nama Pengguna</label>
+        <div class="space-y-1.5">
+            <label for="name" class="text-sm font-semibold text-slate-700 ml-1">Nama Pengguna (Tampilan)</label>
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#00303F] transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                </div>
                 <input
                     id="name"
                     name="name"
                     type="text"
                     value="{{ old('name') }}"
-                    placeholder="nama pengguna"
-                    class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
+                    placeholder="Masukkan nama pengguna"
+                    required
+                    class="block w-full h-11 pl-11 pr-4 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-700 transition-all outline-none focus:bg-white focus:border-[#00303F] focus:ring-4 focus:ring-[#00303F]/5 placeholder:text-slate-400"
                 />
             </div>
+        </div>
 
-            <div class="grid gap-5 sm:grid-cols-2">
-                <div class="space-y-2">
-                    <label for="register_username" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Username</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+                <label for="register_username" class="text-sm font-semibold text-slate-700 ml-1">Username (Login)</label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#00303F] transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
                     <input
                         id="register_username"
                         name="username"
                         type="text"
                         value="{{ old('username') }}"
                         placeholder="contoh: kasir01"
-                        class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
+                        required
+                        class="block w-full h-11 pl-11 pr-4 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-700 transition-all outline-none focus:bg-white focus:border-[#00303F] focus:ring-4 focus:ring-[#00303F]/5 placeholder:text-slate-400"
                     />
                 </div>
+            </div>
 
-                <div class="space-y-2">
-                    <label for="role" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Role</label>
+            <div class="space-y-1.5">
+                <label for="role" class="text-sm font-semibold text-slate-700 ml-1">Role / Jabatan</label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#00303F] transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
                     <select
                         id="role"
                         name="role"
-                        class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
+                        class="block w-full h-11 pl-11 pr-4 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-700 transition-all outline-none focus:bg-white focus:border-[#00303F] focus:ring-4 focus:ring-[#00303F]/5 appearance-none cursor-pointer"
                     >
                         @foreach ($allowedRoles as $roleValue => $roleLabel)
                             <option value="{{ $roleValue }}" @selected(old('role') === $roleValue)>{{ $roleLabel }}</option>
@@ -90,38 +89,56 @@
                     </select>
                 </div>
             </div>
+        </div>
 
-            <div class="grid gap-5 sm:grid-cols-2">
-                <div class="space-y-2">
-                    <label for="register_password" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Password</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+                <label for="register_password" class="text-sm font-semibold text-slate-700 ml-1">Kata Sandi</label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#00303F] transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
                     <input
                         id="register_password"
                         name="password"
                         type="password"
-                        placeholder="........"
-                        class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-500 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
-                    />
-                </div>
-
-                <div class="space-y-2">
-                    <label for="register_password_confirmation" class="block text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">Konfirmasi Password</label>
-                    <input
-                        id="register_password_confirmation"
-                        name="password_confirmation"
-                        type="password"
-                        placeholder="........"
-                        class="h-[3.25rem] w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-500 focus:border-[#163760] focus:bg-white focus:ring-4 focus:ring-[#163760]/10"
+                        placeholder="••••••••••••"
+                        required
+                        class="block w-full h-11 pl-11 pr-4 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-700 transition-all outline-none focus:bg-white focus:border-[#00303F] focus:ring-4 focus:ring-[#00303F]/5 placeholder:text-slate-400"
                     />
                 </div>
             </div>
 
-            <button type="submit" class="h-[3.25rem] w-full rounded-xl bg-[#12345c] px-4 text-base font-semibold text-white shadow-[0_16px_30px_rgba(18,52,92,0.22)] transition hover:bg-[#102f53] focus:outline-none focus:ring-4 focus:ring-[#163760]/15">
-                Daftarkan Pengguna
-            </button>
+            <div class="space-y-1.5">
+                <label for="register_password_confirmation" class="text-sm font-semibold text-slate-700 ml-1">Konfirmasi</label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#00303F] transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <input
+                        id="register_password_confirmation"
+                        name="password_confirmation"
+                        type="password"
+                        placeholder="••••••••••••"
+                        required
+                        class="block w-full h-11 pl-11 pr-4 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-700 transition-all outline-none focus:bg-white focus:border-[#00303F] focus:ring-4 focus:ring-[#00303F]/5 placeholder:text-slate-400"
+                    />
+                </div>
+            </div>
+        </div>
 
-            <a href="{{ route('users.index') }}" class="flex h-[3.25rem] w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-[#163760] transition hover:border-[#163760]/30 hover:bg-slate-50">
-                Kembali ke pengguna
+        <button type="submit" class="w-full h-12 bg-[#00303F] text-white rounded-xl font-bold text-sm shadow-lg shadow-[#00303F]/20 hover:bg-[#002530] active:scale-[0.98] transition-all duration-200 mt-2">
+            Daftarkan Pengguna
+        </button>
+
+        <div class="pt-4 text-center">
+            <a href="{{ route('users.index') }}" class="text-xs font-bold text-slate-500 hover:text-[#00303F] transition-colors">
+                Kembali ke Daftar Pengguna
             </a>
-        </form>
-    </div>
+        </div>
+    </form>
 @endsection
