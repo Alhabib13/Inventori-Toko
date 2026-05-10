@@ -2,80 +2,112 @@
 
 @php
     $judulHalaman = 'Pilih Mode Toko';
-    $authTab = 'MODE TOKO';
 @endphp
 
-@section('auth_headline', 'Mulai Dengan Mode Toko.')
-
-@section('auth_copy')
-    Sebelum masuk dashboard, pilih mode operasional yang paling sesuai dengan kebutuhan toko Anda saat ini.
-@endsection
-
-@section('auth_features')
-    <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
-        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M7 12h10M7 8h10M7 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-        </div>
-        <div>
-            <p class="font-semibold">Mode Sederhana</p>
-            <p class="mt-1 text-sm leading-6 text-slate-300">Cocok untuk toko kecil dengan alur operasional yang cepat dan struktur tim yang ringkas.</p>
-        </div>
-    </div>
-    <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
-        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M6 16.5V9.75A2.75 2.75 0 0 1 8.75 7h6.5A2.75 2.75 0 0 1 18 9.75v6.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M4.5 16.5h15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-        </div>
-        <div>
-            <p class="font-semibold">Mode Lengkap</p>
-            <p class="mt-1 text-sm leading-6 text-slate-300">Cocok untuk toko dengan kebutuhan stok dan operasional yang lebih lengkap.</p>
-        </div>
-    </div>
-@endsection
+@section('auth_container_class', 'w-full max-w-4xl')
 
 @section('content')
-    <div class="mx-auto flex h-full w-full max-w-[34rem] flex-col justify-center">
-        <div class="space-y-2">
-            <h2 class="text-3xl font-bold tracking-[-0.04em] text-slate-900 sm:text-[2.15rem]">Pilih mode toko Anda</h2>
-            <p class="text-sm leading-7 text-slate-500 sm:text-base">Owner wajib memilih mode toko terlebih dahulu sebelum mengakses dashboard dan fitur utama aplikasi.</p>
+    <div class="mb-8 text-center">
+        <h2 class="text-[2rem] leading-tight font-extrabold tracking-tight text-slate-800">Pilih Mode Operasional Toko</h2>
+        <p class="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
+            Sesuaikan pengalaman Sitori dengan skala dan kebutuhan manajemen inventaris bisnis Anda saat ini.
+            Anda dapat mengubahnya nanti.
+        </p>
+    </div>
+
+    @if ($errors->any())
+        <div class="mx-auto mb-6 flex max-w-2xl items-start gap-3 rounded-md border border-red-300 bg-red-50 px-4 py-3">
+            <div class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-red-700">Pilihan Diperlukan</h3>
+                <p class="mt-1 text-xs leading-relaxed text-red-600">{{ $errors->first() }}</p>
+            </div>
+        </div>
+    @endif
+
+    <form action="{{ route('mode-selection.store') }}" method="POST" class="space-y-8">
+        @csrf
+
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <label class="group relative block cursor-pointer">
+                <input type="radio" name="mode_app" value="sederhana" class="peer sr-only" @checked(old('mode_app', 'sederhana') === 'sederhana')>
+                <div class="pointer-events-none absolute right-4 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 bg-white text-transparent transition peer-checked:border-[#0b4a5a] peer-checked:bg-[#0b4a5a] peer-checked:text-white">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <div class="h-full rounded-2xl border border-slate-300 bg-white p-5 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-[#0b4a5a]/50 group-hover:shadow-md peer-checked:-translate-y-1 peer-checked:border-2 peer-checked:border-[#0b4a5a] peer-checked:bg-[#0b4a5a]/[0.03] peer-checked:shadow-[0_14px_34px_rgba(11,74,90,0.14)]">
+                    <div class="mb-4 flex items-start justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-[#123b4a]">Mode Sederhana</h3>
+                            <p class="mt-2 pr-10 text-sm leading-relaxed text-slate-500">
+                                Cocok untuk toko kecil dengan manajemen stok dasar. Tampilan ringkas untuk transaksi cepat dan pencatatan sederhana.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="border-t border-slate-100 pt-4">
+                        <ul class="space-y-2 text-sm text-slate-600">
+                            <li class="flex items-start gap-2">
+                                <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0b4a5a]"></span>
+                                <span>Pencatatan barang masuk/keluar dasar</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0b4a5a]"></span>
+                                <span>Peringatan stok menipis</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0b4a5a]"></span>
+                                <span>Dashboard kasir yang dipercepat</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </label>
+
+            <label class="group relative block cursor-pointer">
+                <input type="radio" name="mode_app" value="lengkap" class="peer sr-only" @checked(old('mode_app') === 'lengkap')>
+                <div class="pointer-events-none absolute right-4 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 bg-white text-transparent transition peer-checked:border-[#0b4a5a] peer-checked:bg-[#0b4a5a] peer-checked:text-white">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <div class="h-full rounded-2xl border border-slate-300 bg-white p-5 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-[#0b4a5a]/50 group-hover:shadow-md peer-checked:-translate-y-1 peer-checked:border-2 peer-checked:border-[#0b4a5a] peer-checked:bg-[#0b4a5a]/[0.03] peer-checked:shadow-[0_14px_34px_rgba(11,74,90,0.14)]">
+                    <div class="mb-4 flex items-start justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">Mode Lengkap</h3>
+                            <p class="mt-2 pr-10 text-sm leading-relaxed text-slate-500">
+                                Ideal untuk bisnis skala besar dengan fitur gudang, manajemen supplier, dan laporan analitik mendalam.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="border-t border-slate-100 pt-4">
+                        <ul class="space-y-2 text-sm text-slate-600">
+                            <li class="flex items-start gap-2">
+                                <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400"></span>
+                                <span>Manajemen multi-gudang</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400"></span>
+                                <span>Pelacakan batch dan kedaluwarsa</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400"></span>
+                                <span>Laporan audit stok dan profitabilitas</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </label>
         </div>
 
-        @if ($errors->any())
-            <div class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                {{ $errors->first() }}
-            </div>
-        @endif
-
-        <form action="{{ route('mode-selection.store') }}" method="POST" class="mt-8 space-y-5">
-            @csrf
-
-            <label class="block cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-[#163760]/35 has-[:checked]:border-[#163760] has-[:checked]:bg-[#f4f7fb]">
-                <div class="flex items-start justify-between gap-4">
-                    <div class="space-y-2">
-                        <p class="text-lg font-semibold text-slate-900">Mode Sederhana</p>
-                        <p class="text-sm leading-6 text-slate-500">Untuk toko kecil dengan fokus owner dan kasir agar alur operasional lebih ringkas.</p>
-                    </div>
-                    <input type="radio" name="mode_app" value="sederhana" class="mt-1 h-5 w-5 shrink-0 accent-[#163760]" @checked(old('mode_app') === 'sederhana')>
-                </div>
-            </label>
-
-            <label class="block cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-[#163760]/35 has-[:checked]:border-[#163760] has-[:checked]:bg-[#f4f7fb]">
-                <div class="flex items-start justify-between gap-4">
-                    <div class="space-y-2">
-                        <p class="text-lg font-semibold text-slate-900">Mode Lengkap</p>
-                        <p class="text-sm leading-6 text-slate-500">Untuk toko dengan pengelolaan stok lebih detail dan struktur operasional yang lebih besar.</p>
-                    </div>
-                    <input type="radio" name="mode_app" value="lengkap" class="mt-1 h-5 w-5 shrink-0 accent-[#163760]" @checked(old('mode_app') === 'lengkap')>
-                </div>
-            </label>
-
-            <button type="submit" class="h-[3.25rem] w-full rounded-xl bg-[#12345c] px-4 text-base font-semibold text-white shadow-[0_16px_30px_rgba(18,52,92,0.22)] transition hover:bg-[#102f53] focus:outline-none focus:ring-4 focus:ring-[#163760]/15">
-                Simpan dan Lanjutkan
+        <div class="border-t border-slate-200 pt-6 text-center">
+            <button type="submit" class="inline-flex h-11 items-center justify-center rounded-md bg-[#083d4b] px-6 text-sm font-bold text-white transition hover:bg-[#062f39]">
+                Lanjutkan dengan Mode Terpilih
             </button>
-        </form>
-    </div>
+        </div>
+    </form>
 @endsection
