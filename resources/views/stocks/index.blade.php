@@ -1,11 +1,14 @@
 @extends('layouts.app')
 
 @php
+    $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
     $lowStockCount = $products->filter(fn ($product) => $product->stok <= $product->stok_minimum)->count();
 @endphp
 
 @section('page_title', 'Stok')
-@section('page_subtitle', 'Pantau data stok utama, stok minimum, histori pergerakan stok, dan kontrol stok lebih detail untuk owner mode lengkap.')
+@section('page_subtitle', $isSimpleMode
+    ? 'Pantau ringkasan stok barang, stok masuk/keluar, stok minimum, dan histori pergerakan stok sederhana.'
+    : 'Pantau data stok utama, stok minimum, histori pergerakan stok, dan kontrol stok lebih detail untuk owner mode lengkap.')
 
 @section('page_actions')
     @if ($canManageStock)
@@ -37,14 +40,14 @@
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
                 <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Kontrol Stok Detail</p>
                 <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $movements->total() }}</h2>
-                <p class="mt-2 text-sm text-slate-500">Riwayat pergerakan stok yang tercatat di sistem.</p>
+                <p class="mt-2 text-sm text-slate-500">{{ $isSimpleMode ? 'Riwayat stok masuk dan keluar yang tercatat secara sederhana.' : 'Riwayat pergerakan stok yang tercatat di sistem.' }}</p>
             </article>
         </section>
 
         <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
             <div class="border-b border-[#c0c8cb] px-6 py-4">
                 <h2 class="text-lg font-semibold text-slate-900">Data Stok Utama</h2>
-                <p class="mt-1 text-sm text-slate-500">Tabel stok aktif, stok minimum, supplier terkait, dan indikator produk yang perlu perhatian.</p>
+                <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Ringkasan stok barang dan stok minimum untuk pemantauan owner sehari-hari.' : 'Tabel stok aktif, stok minimum, supplier terkait, dan indikator produk yang perlu perhatian.' }}</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-[920px] w-full text-left text-sm">
@@ -52,7 +55,9 @@
                         <tr>
                             <th class="px-6 py-3">Produk</th>
                             <th class="px-6 py-3">Kategori</th>
-                            <th class="px-6 py-3">Supplier</th>
+                            @unless($isSimpleMode)
+                                <th class="px-6 py-3">Supplier</th>
+                            @endunless
                             <th class="px-6 py-3">Stok Saat Ini</th>
                             <th class="px-6 py-3">Stok Minimum</th>
                             <th class="px-6 py-3">Status</th>
@@ -66,7 +71,9 @@
                                     <p class="mt-1 text-xs text-slate-500">{{ $product->kode_produk }}</p>
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">{{ $product->kategori?->nama_kategori ?? '-' }}</td>
-                                <td class="px-6 py-4 text-slate-600">{{ $product->supplier?->nama_supplier ?? '-' }}</td>
+                                @unless($isSimpleMode)
+                                    <td class="px-6 py-4 text-slate-600">{{ $product->supplier?->nama_supplier ?? '-' }}</td>
+                                @endunless
                                 <td class="px-6 py-4 font-semibold text-slate-900">{{ $product->stok }} {{ $product->satuan }}</td>
                                 <td class="px-6 py-4 text-slate-600">{{ $product->stok_minimum }} {{ $product->satuan }}</td>
                                 <td class="px-6 py-4">
@@ -78,7 +85,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-8 text-center text-slate-500">Belum ada produk.</td>
+                                <td colspan="{{ $isSimpleMode ? '5' : '6' }}" class="px-6 py-8 text-center text-slate-500">Belum ada produk.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -88,8 +95,8 @@
 
         <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
             <div class="border-b border-[#c0c8cb] px-6 py-4">
-                <h2 class="text-lg font-semibold text-slate-900">Histori Pergerakan Stok</h2>
-                <p class="mt-1 text-sm text-slate-500">Riwayat perubahan stok untuk kontrol yang lebih detail terhadap barang masuk dan keluar.</p>
+                <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Histori Pergerakan Stok Sederhana' : 'Histori Pergerakan Stok' }}</h2>
+                <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Riwayat perubahan stok masuk dan keluar yang mudah dipantau owner.' : 'Riwayat perubahan stok untuk kontrol yang lebih detail terhadap barang masuk dan keluar.' }}</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-[1040px] w-full text-left text-sm">

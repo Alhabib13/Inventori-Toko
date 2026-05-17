@@ -1,16 +1,20 @@
 @extends('layouts.app')
 
 @php
+    $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
     $salesTotal = (float) \App\Models\Transaction::query()->sum('total_bayar');
     $purchaseTotal = (float) \App\Models\Purchase::query()->sum('total_bayar');
     $stockTotal = (int) \App\Models\Product::query()->sum('stok');
+    $productCount = \App\Models\Product::query()->count();
     $activeSuppliers = \App\Models\Supplier::query()->where('is_active', true)->count();
     $criticalProducts = \App\Models\Product::query()->whereColumn('stok', '<=', 'stok_minimum')->count();
     $operationalUsers = \App\Models\User::query()->whereIn('role', ['owner', 'kasir', 'gudang'])->latest()->take(5)->get();
 @endphp
 
 @section('page_title', 'Dashboard Overview')
-@section('page_subtitle', 'Ringkasan penjualan, pembelian, stok, supplier, user operasional, dan notifikasi stok kritis untuk owner mode lengkap.')
+@section('page_subtitle', $isSimpleMode
+    ? 'Ringkasan penjualan, jumlah produk, stok menipis, dan aktivitas terbaru untuk owner mode sederhana.'
+    : 'Ringkasan penjualan, pembelian, stok, supplier, user operasional, dan notifikasi stok kritis untuk owner mode lengkap.')
 
 @section('page_actions')
     <a href="{{ route('reports.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
@@ -32,7 +36,11 @@
             <div class="min-w-0 flex-1">
                 <h2 class="text-lg font-semibold text-[#93000a]">Notifikasi Stok Kritis</h2>
                 <p class="mt-1 text-sm leading-6 text-[#93000a]/80">
-                    Saat ini ada {{ $criticalProducts }} produk yang telah mencapai batas minimum stok. Prioritaskan restock pada item dengan penjualan tertinggi.
+                    @if ($isSimpleMode)
+                        Saat ini ada {{ $criticalProducts }} produk dengan stok menipis. Prioritaskan restock untuk menjaga transaksi tetap lancar.
+                    @else
+                        Saat ini ada {{ $criticalProducts }} produk yang telah mencapai batas minimum stok. Prioritaskan restock pada item dengan penjualan tertinggi.
+                    @endif
                 </p>
             </div>
             <a href="{{ route('stocks.role-home') }}" class="inline-flex h-10 shrink-0 items-center rounded-lg bg-[#ba1a1a] px-4 text-sm font-semibold text-white transition hover:opacity-90">
@@ -56,26 +64,43 @@
                 <p class="mt-4 text-sm text-slate-500">Akumulasi total transaksi penjualan yang sudah tercatat di sistem.</p>
             </article>
 
-            <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Pembelian</p>
-                        <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">Rp{{ number_format($purchaseTotal, 0, ',', '.') }}</h3>
+            @if ($isSimpleMode)
+                <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Jumlah Produk</p>
+                            <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ number_format($productCount, 0, ',', '.') }}</h3>
+                        </div>
+                        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#d0e1fb]/40 text-[#505f76]">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m4.75 7.75 7.25-3 7.25 3M4.75 7.75 12 11l7.25-3M4.75 7.75v8.5L12 19.5l7.25-3.25v-8.5M12 11v8.5" />
+                            </svg>
+                        </div>
                     </div>
-                    <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#d0e1fb]/40 text-[#505f76]">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 6.5h14l-1.25 7H6.25L5 6.5Zm0 0-.5-2H3M8 18.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm9 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-                        </svg>
+                    <p class="mt-4 text-sm text-slate-500">Jumlah produk aktif yang tersedia untuk operasional harian.</p>
+                </article>
+            @else
+                <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Pembelian</p>
+                            <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">Rp{{ number_format($purchaseTotal, 0, ',', '.') }}</h3>
+                        </div>
+                        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#d0e1fb]/40 text-[#505f76]">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 6.5h14l-1.25 7H6.25L5 6.5Zm0 0-.5-2H3M8 18.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm9 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                            </svg>
+                        </div>
                     </div>
-                </div>
-                <p class="mt-4 text-sm text-slate-500">Belanja supplier yang telah diproses dan masuk ke sistem inventori.</p>
-            </article>
+                    <p class="mt-4 text-sm text-slate-500">Belanja supplier yang telah diproses dan masuk ke sistem inventori.</p>
+                </article>
+            @endif
 
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Stok Barang</p>
-                        <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ number_format($stockTotal, 0, ',', '.') }}</h3>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isSimpleMode ? 'Stok Menipis' : 'Total Stok Barang' }}</p>
+                        <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $isSimpleMode ? number_format($criticalProducts, 0, ',', '.') : number_format($stockTotal, 0, ',', '.') }}</h3>
                     </div>
                     <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#ffdcbe]/40 text-[#623d13]">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,14 +108,16 @@
                         </svg>
                     </div>
                 </div>
-                <p class="mt-4 text-sm text-slate-500">Total unit barang aktif yang sedang tersimpan di seluruh inventori.</p>
+                <p class="mt-4 text-sm text-slate-500">
+                    {{ $isSimpleMode ? 'Produk yang perlu diprioritaskan untuk restock sederhana.' : 'Total unit barang aktif yang sedang tersimpan di seluruh inventori.' }}
+                </p>
             </article>
 
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Supplier Aktif</p>
-                        <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $activeSuppliers }}</h3>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isSimpleMode ? 'Aktivitas Terbaru' : 'Supplier Aktif' }}</p>
+                        <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $isSimpleMode ? $operationalUsers->count() : $activeSuppliers }}</h3>
                     </div>
                     <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#003441]/10 text-[#003441]">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +125,9 @@
                         </svg>
                     </div>
                 </div>
-                <p class="mt-4 text-sm text-slate-500">Jumlah supplier yang masih aktif mendukung pembelian operasional.</p>
+                <p class="mt-4 text-sm text-slate-500">
+                    {{ $isSimpleMode ? 'Ringkasan aktivitas user terakhir yang terlibat di workspace toko.' : 'Jumlah supplier yang masih aktif mendukung pembelian operasional.' }}
+                </p>
             </article>
         </section>
 
@@ -107,7 +136,7 @@
                 <div class="flex items-center justify-between border-b border-[#c0c8cb] px-6 py-4">
                     <div>
                         <h2 class="text-lg font-semibold text-slate-900">User Operasional</h2>
-                        <p class="mt-1 text-sm text-slate-500">Owner, kasir, dan gudang yang aktif dalam workspace toko.</p>
+                        <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Aktivitas terbaru dari owner dan kasir untuk mode sederhana.' : 'Owner, kasir, dan gudang yang aktif dalam workspace toko.' }}</p>
                     </div>
                     <a href="{{ route('users.index') }}" class="text-sm font-semibold text-[#003441] transition hover:text-[#0f4c5c]">Lihat Semua</a>
                 </div>
@@ -117,7 +146,7 @@
                         <thead class="bg-[#f3f4f5] text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                             <tr>
                                 <th class="px-6 py-3">Nama User</th>
-                                <th class="px-6 py-3">Role</th>
+                                <th class="px-6 py-3">{{ $isSimpleMode ? 'Role User' : 'Role' }}</th>
                                 <th class="px-6 py-3">Username</th>
                                 <th class="px-6 py-3 text-right">Status</th>
                             </tr>
@@ -156,17 +185,19 @@
             </article>
 
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-                <h2 class="text-lg font-semibold text-slate-900">Prioritas Hari Ini</h2>
+                <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Ringkasan Operasional' : 'Prioritas Hari Ini' }}</h2>
                 <div class="mt-5 space-y-4">
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
-                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Stok Kritis</p>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isSimpleMode ? 'Stok Menipis' : 'Stok Kritis' }}</p>
                         <p class="mt-2 text-2xl font-bold text-slate-900">{{ $criticalProducts }} Produk</p>
-                        <p class="mt-2 text-sm text-slate-500">Butuh tindakan restock atau penyesuaian supplier segera.</p>
+                        <p class="mt-2 text-sm text-slate-500">{{ $isSimpleMode ? 'Pantau produk dengan stok menipis agar transaksi tetap aman.' : 'Butuh tindakan restock atau penyesuaian supplier segera.' }}</p>
                     </div>
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
-                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Performa Bisnis</p>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isSimpleMode ? 'Aktivitas Owner' : 'Performa Bisnis' }}</p>
                         <p class="mt-2 text-sm leading-6 text-slate-600">
-                            Gunakan halaman laporan untuk membandingkan penjualan dan pembelian per periode, lalu lanjutkan ke prediksi stok untuk menyiapkan restock mingguan.
+                            {{ $isSimpleMode
+                                ? 'Gunakan laporan sederhana dan prediksi stok untuk melihat produk terlaris serta kebutuhan restock harian.'
+                                : 'Gunakan halaman laporan untuk membandingkan penjualan dan pembelian per periode, lalu lanjutkan ke prediksi stok untuk menyiapkan restock mingguan.' }}
                         </p>
                     </div>
                 </div>

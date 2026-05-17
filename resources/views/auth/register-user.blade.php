@@ -1,7 +1,9 @@
 @extends('layouts.app')
 
 @section('page_title', 'Register User')
-@section('page_subtitle', 'Form tambah user kasir atau gudang untuk mendukung operasional owner mode lengkap.')
+@section('page_subtitle', auth()->user()?->mode_app === 'sederhana'
+    ? 'Form tambah user kasir untuk mendukung operasional owner mode sederhana.'
+    : 'Form tambah user kasir atau gudang untuk mendukung operasional owner mode lengkap.')
 
 @section('content')
     <div class="mx-auto max-w-3xl">

@@ -1,7 +1,13 @@
 @extends('layouts.app')
 
+@php
+    $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
+@endphp
+
 @section('page_title', 'Produk')
-@section('page_subtitle', 'Kelola daftar produk, detail stok, harga jual dan beli, serta supplier terkait untuk owner mode lengkap.')
+@section('page_subtitle', $isSimpleMode
+    ? 'Kelola daftar produk, tambah/edit/hapus produk, harga beli dan jual, serta stok per produk untuk owner mode sederhana.'
+    : 'Kelola daftar produk, detail stok, harga jual dan beli, serta supplier terkait untuk owner mode lengkap.')
 
 @section('page_actions')
     @if ($canManageProducts)
@@ -23,7 +29,7 @@
             <div class="flex items-center justify-between border-b border-[#c0c8cb] px-6 py-4">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900">Daftar Produk</h2>
-                    <p class="mt-1 text-sm text-slate-500">Tampilkan harga, stok minimum, supplier terkait, dan status produk aktif.</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Tampilkan daftar produk, harga jual beli, stok per produk, dan aksi pengelolaan sederhana.' : 'Tampilkan harga, stok minimum, supplier terkait, dan status produk aktif.' }}</p>
                 </div>
                 <span class="rounded-full bg-[#d0e1fb]/35 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f4c5c]">
                     {{ $products->total() }} Produk
@@ -36,9 +42,11 @@
                         <tr>
                             <th class="px-6 py-3">Produk</th>
                             <th class="px-6 py-3">Kategori</th>
-                            <th class="px-6 py-3">Supplier</th>
+                            @unless($isSimpleMode)
+                                <th class="px-6 py-3">Supplier</th>
+                            @endunless
                             <th class="px-6 py-3">Harga</th>
-                            <th class="px-6 py-3">Detail Stok</th>
+                            <th class="px-6 py-3">{{ $isSimpleMode ? 'Stok per Produk' : 'Detail Stok' }}</th>
                             <th class="px-6 py-3">Status</th>
                             <th class="px-6 py-3 text-right">Aksi</th>
                         </tr>
@@ -51,7 +59,9 @@
                                     <p class="mt-1 font-mono text-xs text-slate-500">{{ $product->kode_produk }}</p>
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">{{ $product->kategori?->nama_kategori ?? '-' }}</td>
-                                <td class="px-6 py-4 text-slate-600">{{ $product->supplier?->nama_supplier ?? '-' }}</td>
+                                @unless($isSimpleMode)
+                                    <td class="px-6 py-4 text-slate-600">{{ $product->supplier?->nama_supplier ?? '-' }}</td>
+                                @endunless
                                 <td class="px-6 py-4 text-slate-600">
                                     <div>Beli: <span class="font-semibold text-slate-900">Rp{{ number_format((float) $product->harga_beli, 0, ',', '.') }}</span></div>
                                     <div class="mt-1">Jual: <span class="font-semibold text-slate-900">Rp{{ number_format((float) $product->harga_jual, 0, ',', '.') }}</span></div>
@@ -88,7 +98,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-8 text-center text-slate-500">Belum ada produk.</td>
+                                <td colspan="{{ $isSimpleMode ? '6' : '7' }}" class="px-6 py-8 text-center text-slate-500">Belum ada produk.</td>
                             </tr>
                         @endforelse
                     </tbody>

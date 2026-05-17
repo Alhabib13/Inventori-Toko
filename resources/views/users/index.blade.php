@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @php
+    $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
     $users = \App\Models\User::query()->orderBy('role')->orderBy('name')->get();
     $ownerCount = $users->where('role', 'owner')->count();
     $cashierCount = $users->where('role', 'kasir')->count();
@@ -8,7 +9,9 @@
 @endphp
 
 @section('page_title', 'Manajemen User')
-@section('page_subtitle', 'Kelola daftar user owner, kasir, dan gudang, termasuk role user, status user, dan aksi edit/hapus.')
+@section('page_subtitle', $isSimpleMode
+    ? 'Kelola daftar user, lihat role user, serta aksi edit dan hapus untuk owner mode sederhana.'
+    : 'Kelola daftar user owner, kasir, dan gudang, termasuk role user, status user, dan aksi edit/hapus.')
 
 @section('page_actions')
     <a href="{{ route('users.register') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
@@ -35,8 +38,8 @@
                         <span class="text-sm font-semibold text-slate-900">{{ $cashierCount }}</span>
                     </div>
                     <div class="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
-                        <span class="text-sm text-slate-600">Gudang</span>
-                        <span class="text-sm font-semibold text-slate-900">{{ $warehouseCount }}</span>
+                        <span class="text-sm text-slate-600">{{ $isSimpleMode ? 'Kasir Aktif' : 'Gudang' }}</span>
+                        <span class="text-sm font-semibold text-slate-900">{{ $isSimpleMode ? $cashierCount : $warehouseCount }}</span>
                     </div>
                 </div>
             </div>
@@ -46,7 +49,7 @@
             <div class="flex items-center justify-between border-b border-[#c0c8cb] px-6 py-4">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900">Daftar User</h2>
-                    <p class="mt-1 text-sm text-slate-500">Status akun ditampilkan untuk memastikan user operasional siap digunakan.</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Mode sederhana fokus pada owner dan kasir agar pengelolaan user lebih ringkas.' : 'Status akun ditampilkan untuk memastikan user operasional siap digunakan.' }}</p>
                 </div>
                 <span class="rounded-full bg-[#d0e1fb]/35 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f4c5c]">
                     {{ $users->count() }} User

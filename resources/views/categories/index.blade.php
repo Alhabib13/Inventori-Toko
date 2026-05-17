@@ -1,11 +1,14 @@
 @extends('layouts.app')
 
 @php
+    $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
     $activeCount = $categories->where('is_active', true)->count();
 @endphp
 
 @section('page_title', 'Kategori')
-@section('page_subtitle', 'Kelola klasifikasi produk dan CRUD kategori untuk owner mode lengkap.')
+@section('page_subtitle', $isSimpleMode
+    ? 'Kelola daftar kategori produk dan proses tambah/edit/hapus kategori untuk owner mode sederhana.'
+    : 'Kelola klasifikasi produk dan CRUD kategori untuk owner mode lengkap.')
 
 @section('page_actions')
     <a href="{{ route('categories.create') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
@@ -32,7 +35,7 @@
         <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
             <div class="border-b border-[#c0c8cb] px-6 py-4">
                 <h2 class="text-lg font-semibold text-slate-900">Klasifikasi Produk</h2>
-                <p class="mt-1 text-sm text-slate-500">Gunakan kategori untuk mempermudah analisis stok, produk, dan laporan bisnis.</p>
+                <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Kategori membantu owner memisahkan produk agar pencatatan dan laporan tetap rapi.' : 'Gunakan kategori untuk mempermudah analisis stok, produk, dan laporan bisnis.' }}</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-sm">
