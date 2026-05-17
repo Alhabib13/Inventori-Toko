@@ -2,6 +2,7 @@
 
 @php
     $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
+    $showImportButton = $isSimpleMode || (auth()->user()?->role === 'gudang' && auth()->user()?->mode_app === 'lengkap');
 @endphp
 
 @section('page_title', 'Produk')
@@ -11,9 +12,18 @@
 
 @section('page_actions')
     @if ($canManageProducts)
-        <a href="{{ route('products.create') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-            Tambah Produk
-        </a>
+        <div class="flex flex-wrap items-center justify-end gap-3">
+            @if ($showImportButton)
+                <label class="inline-flex h-11 cursor-pointer items-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
+                    <input type="file" accept=".csv,text/csv" class="sr-only">
+                    Import Data .CSV
+                </label>
+            @endif
+
+            <a href="{{ route('products.create') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                Tambah Produk
+            </a>
+        </div>
     @endif
 @endsection
 

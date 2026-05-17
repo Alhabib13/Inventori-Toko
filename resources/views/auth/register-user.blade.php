@@ -39,9 +39,9 @@
                         @foreach ($allowedRoles as $roleValue => $roleLabel)
                             <label class="relative cursor-pointer">
                                 <input type="radio" name="role" value="{{ $roleValue }}" class="peer sr-only" @checked(old('role', array_key_first($allowedRoles)) === $roleValue)>
-                                <div class="rounded-xl border border-[#c0c8cb] bg-white p-4 transition peer-checked:border-[#003441] peer-checked:bg-[#d0e1fb]/25 hover:bg-[#f9f9fa]">
+                                <div class="flex h-full min-h-[116px] rounded-xl border border-[#c0c8cb] bg-white p-3.5 transition peer-checked:border-[#003441] peer-checked:bg-[#d0e1fb]/25 hover:bg-[#f9f9fa]">
                                     <div class="flex items-start gap-3">
-                                        <div class="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-[#d0e1fb]/45 text-[#003441]">
+                                        <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#d0e1fb]/45 text-[#003441]">
                                             @if ($roleValue === 'kasir')
                                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6.75h12a1 1 0 0 1 1 1v8.5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8.5a1 1 0 0 1 1-1Zm2.25 7.5h3.5m4.25 0h.01M8.75 10.25h6.5" />
@@ -52,7 +52,7 @@
                                                 </svg>
                                             @endif
                                         </div>
-                                        <div class="min-w-0">
+                                        <div class="flex min-h-[72px] min-w-0 flex-col justify-between">
                                             <p class="font-semibold text-slate-900">{{ $roleLabel }}</p>
                                             <p class="mt-1 text-sm text-slate-500">
                                                 {{ $roleValue === 'kasir' ? 'Akses transaksi dan operasional kasir harian.' : 'Akses kontrol stok dan pergerakan barang.' }}

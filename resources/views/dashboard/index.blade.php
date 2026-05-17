@@ -27,27 +27,6 @@
 
 @section('content')
     <div class="space-y-6">
-        <section class="flex items-start gap-4 rounded-2xl border border-red-100 bg-[#ffdad6] p-5 shadow-sm">
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-[#ba1a1a]">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8.25v4.5m0 3h.01M10.04 4.72 3.56 15.53A1.5 1.5 0 0 0 4.85 17.8h14.3a1.5 1.5 0 0 0 1.29-2.27L13.96 4.72a1.5 1.5 0 0 0-2.92 0Z" />
-                </svg>
-            </div>
-            <div class="min-w-0 flex-1">
-                <h2 class="text-lg font-semibold text-[#93000a]">Notifikasi Stok Kritis</h2>
-                <p class="mt-1 text-sm leading-6 text-[#93000a]/80">
-                    @if ($isSimpleMode)
-                        Saat ini ada {{ $criticalProducts }} produk dengan stok menipis. Prioritaskan restock untuk menjaga transaksi tetap lancar.
-                    @else
-                        Saat ini ada {{ $criticalProducts }} produk yang telah mencapai batas minimum stok. Prioritaskan restock pada item dengan penjualan tertinggi.
-                    @endif
-                </p>
-            </div>
-            <a href="{{ route('stocks.role-home') }}" class="inline-flex h-10 shrink-0 items-center rounded-lg bg-[#ba1a1a] px-4 text-sm font-semibold text-white transition hover:opacity-90">
-                Lihat Detail
-            </a>
-        </section>
-
         <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
                 <div class="flex items-start justify-between gap-4">

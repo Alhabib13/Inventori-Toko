@@ -11,6 +11,16 @@
         $user = auth()->user();
         $role = $user?->role;
         $modeApp = $user?->mode_app;
+        $criticalProductsCount = in_array($role, ['owner', 'gudang'], true)
+            ? \App\Models\Product::query()->whereColumn('stok', '<=', 'stok_minimum')->count()
+            : 0;
+        $criticalProductsPreview = $criticalProductsCount > 0
+            ? \App\Models\Product::query()
+                ->whereColumn('stok', '<=', 'stok_minimum')
+                ->orderByRaw('(stok_minimum - stok) DESC')
+                ->take(5)
+                ->get(['id', 'nama_produk', 'stok', 'stok_minimum', 'satuan'])
+            : collect();
 
         $sidebarLinks = match ($role) {
             'owner' => $modeApp === 'sederhana'
@@ -26,13 +36,12 @@
                 ]
                 : [
                     ['label' => 'Dashboard', 'route' => 'dashboard.index', 'icon' => 'dashboard'],
+                    ['label' => 'Kategori', 'route' => 'categories.index', 'icon' => 'categories'],
+                    ['label' => 'Stok', 'route' => 'stocks.role-home', 'icon' => 'stocks'],
                     ['label' => 'Laporan', 'route' => 'reports.index', 'icon' => 'reports'],
                     ['label' => 'Prediksi Stok', 'route' => 'forecasts.index', 'icon' => 'forecast'],
                     ['label' => 'Manajemen User', 'route' => 'users.index', 'icon' => 'users'],
                     ['label' => 'Register User', 'route' => 'users.register', 'icon' => 'user-add'],
-                    ['label' => 'Produk', 'route' => 'products.index', 'icon' => 'products'],
-                    ['label' => 'Kategori', 'route' => 'categories.index', 'icon' => 'categories'],
-                    ['label' => 'Stok', 'route' => 'stocks.role-home', 'icon' => 'stocks'],
                 ],
             'gudang' => $modeApp === 'lengkap'
                 ? [
@@ -135,16 +144,60 @@
                     </div>
 
                     <div class="flex items-center gap-3">
-                        <button type="button" class="rounded-full p-2 text-slate-500 transition hover:bg-[#f3f4f5] hover:text-slate-800">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14.5 17.5h5m-2.5-2.5v5M12 4.75a6 6 0 0 1 6 6v1.37c0 .5.17.98.49 1.37l1 1.2a1 1 0 0 1-.77 1.64H5.28a1 1 0 0 1-.77-1.64l1-1.2c.32-.39.49-.87.49-1.37V10.75a6 6 0 0 1 6-6Zm0 14.5a2.75 2.75 0 0 1-2.58-1.75h5.16A2.75 2.75 0 0 1 12 19.25Z" />
-                            </svg>
-                        </button>
-                        <button type="button" class="rounded-full p-2 text-slate-500 transition hover:bg-[#f3f4f5] hover:text-slate-800">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.09 9a3 3 0 1 1 5.82 0c0 1.5-1 2.23-1.91 2.91-.76.56-1.41 1.05-1.41 1.84M12 17h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                            </svg>
-                        </button>
+                        <details class="relative">
+                            <summary
+                                class="relative flex cursor-pointer list-none rounded-full p-2 text-slate-500 transition hover:bg-[#f3f4f5] hover:text-slate-800"
+                                aria-label="Notifikasi stok"
+                                title="{{ $criticalProductsCount > 0 ? $criticalProductsCount . ' stok perlu perhatian' : 'Tidak ada notifikasi stok kritis' }}"
+                            >
+                                @if ($criticalProductsCount > 0)
+                                    <span class="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ba1a1a] px-1 text-[10px] font-bold leading-none text-white">
+                                        {{ $criticalProductsCount > 99 ? '99+' : $criticalProductsCount }}
+                                    </span>
+                                @endif
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14.5 17.5h5m-2.5-2.5v5M12 4.75a6 6 0 0 1 6 6v1.37c0 .5.17.98.49 1.37l1 1.2a1 1 0 0 1-.77 1.64H5.28a1 1 0 0 1-.77-1.64l1-1.2c.32-.39.49-.87.49-1.37V10.75a6 6 0 0 1 6-6Zm0 14.5a2.75 2.75 0 0 1-2.58-1.75h5.16A2.75 2.75 0 0 1 12 19.25Z" />
+                                </svg>
+                            </summary>
+                            <div class="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-[320px] overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-xl">
+                                <div class="border-b border-slate-200 px-4 py-3">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <div>
+                                            <p class="text-sm font-semibold text-slate-900">Notifikasi Stok</p>
+                                            <p class="mt-1 text-xs text-slate-500">
+                                                {{ $criticalProductsCount > 0 ? $criticalProductsCount . ' produk perlu perhatian' : 'Tidak ada stok kritis saat ini' }}
+                                            </p>
+                                        </div>
+                                        <a href="{{ route('stocks.role-home') }}" class="text-xs font-semibold text-[#003441] transition hover:text-[#0f4c5c]">
+                                            Lihat semua
+                                        </a>
+                                    </div>
+                                </div>
+                                @if ($criticalProductsPreview->isNotEmpty())
+                                    <div class="max-h-80 overflow-y-auto py-2">
+                                        @foreach ($criticalProductsPreview as $criticalProduct)
+                                            <a href="{{ route('stocks.role-home') }}" class="flex items-start gap-3 px-4 py-3 transition hover:bg-[#f9f9fa]">
+                                                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ffdad6] text-[#ba1a1a]">
+                                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8.25v4.5m0 3h.01M10.04 4.72 3.56 15.53A1.5 1.5 0 0 0 4.85 17.8h14.3a1.5 1.5 0 0 0 1.29-2.27L13.96 4.72a1.5 1.5 0 0 0-2.92 0Z" />
+                                                    </svg>
+                                                </span>
+                                                <div class="min-w-0 flex-1">
+                                                    <p class="truncate text-sm font-semibold text-slate-900">{{ $criticalProduct->nama_produk }}</p>
+                                                    <p class="mt-1 text-xs text-slate-500">
+                                                        Sisa {{ $criticalProduct->stok }} {{ $criticalProduct->satuan }} dari minimum {{ $criticalProduct->stok_minimum }} {{ $criticalProduct->satuan }}
+                                                    </p>
+                                                </div>
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="px-4 py-5 text-sm text-slate-500">
+                                        Semua stok masih aman.
+                                    </div>
+                                @endif
+                            </div>
+                        </details>
                         <div class="hidden h-8 w-px bg-[#c0c8cb] sm:block"></div>
                         <div class="flex items-center gap-3 rounded-xl px-2 py-1 transition hover:bg-[#f3f4f5]">
                             <div class="hidden text-right sm:block">
