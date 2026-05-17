@@ -69,7 +69,6 @@ class SidebarRoleModeTest extends TestCase
             ->assertSee('href="'.route('categories.index').'"', false)
             ->assertSee('href="'.route('suppliers.index').'"', false)
             ->assertSee('href="'.route('purchases.index').'"', false)
-            ->assertSee('href="'.route('stocks.notifications').'"', false)
             ->assertSee('href="'.route('forecasts.index').'"', false)
             ->assertDontSee('href="'.route('dashboard.index').'"', false)
             ->assertDontSee('href="'.route('users.index').'"', false)

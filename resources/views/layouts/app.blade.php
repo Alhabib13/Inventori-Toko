@@ -36,6 +36,7 @@
                 ]
                 : [
                     ['label' => 'Dashboard', 'route' => 'dashboard.index', 'icon' => 'dashboard'],
+                    ['label' => 'Produk', 'route' => 'products.index', 'icon' => 'products'],
                     ['label' => 'Kategori', 'route' => 'categories.index', 'icon' => 'categories'],
                     ['label' => 'Stok', 'route' => 'stocks.role-home', 'icon' => 'stocks'],
                     ['label' => 'Laporan', 'route' => 'reports.index', 'icon' => 'reports'],
@@ -50,7 +51,6 @@
                     ['label' => 'Kategori', 'route' => 'categories.index', 'icon' => 'categories'],
                     ['label' => 'Supplier', 'route' => 'suppliers.index', 'icon' => 'supplier'],
                     ['label' => 'Pembelian', 'route' => 'purchases.index', 'icon' => 'purchase'],
-                    ['label' => 'Notifikasi Stok', 'route' => 'stocks.notifications', 'icon' => 'alert'],
                     ['label' => 'Prediksi Stok', 'route' => 'forecasts.index', 'icon' => 'forecast'],
                 ]
                 : [],
@@ -168,7 +168,7 @@
                                                 {{ $criticalProductsCount > 0 ? $criticalProductsCount . ' produk perlu perhatian' : 'Tidak ada stok kritis saat ini' }}
                                             </p>
                                         </div>
-                                        <a href="{{ route('stocks.role-home') }}" class="text-xs font-semibold text-[#003441] transition hover:text-[#0f4c5c]">
+                                        <a href="{{ route('stocks.notifications') }}" class="text-xs font-semibold text-[#003441] transition hover:text-[#0f4c5c]">
                                             Lihat semua
                                         </a>
                                     </div>
@@ -176,7 +176,7 @@
                                 @if ($criticalProductsPreview->isNotEmpty())
                                     <div class="max-h-80 overflow-y-auto py-2">
                                         @foreach ($criticalProductsPreview as $criticalProduct)
-                                            <a href="{{ route('stocks.role-home') }}" class="flex items-start gap-3 px-4 py-3 transition hover:bg-[#f9f9fa]">
+                                            <a href="{{ route('stocks.notifications') }}" class="flex items-start gap-3 px-4 py-3 transition hover:bg-[#f9f9fa]">
                                                 <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ffdad6] text-[#ba1a1a]">
                                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8.25v4.5m0 3h.01M10.04 4.72 3.56 15.53A1.5 1.5 0 0 0 4.85 17.8h14.3a1.5 1.5 0 0 0 1.29-2.27L13.96 4.72a1.5 1.5 0 0 0-2.92 0Z" />
