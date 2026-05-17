@@ -13,21 +13,12 @@ class StockController extends Controller
 {
     public function index(): View
     {
-        $products = Product::query()
-            ->with(['kategori', 'supplier'])
-            ->orderBy('nama_produk')
-            ->get();
+        return $this->stockListingView();
+    }
 
-        $movements = StockMovement::query()
-            ->with(['produk', 'pengguna'])
-            ->latest('tanggal_pergerakan')
-            ->paginate(10);
-
-        return view('stocks.index', [
-            'products' => $products,
-            'movements' => $movements,
-            'canManageStock' => $this->canManageStock(request()->user()?->role, request()->user()?->mode_app),
-        ]);
+    public function notifications(): View
+    {
+        return $this->stockListingView(true);
     }
 
     public function create(): View
@@ -83,6 +74,27 @@ class StockController extends Controller
     public function destroy(StockMovement $stock): RedirectResponse
     {
         return redirect()->route('stocks.index');
+    }
+
+    private function stockListingView(bool $showLowStockOnly = false): View
+    {
+        $products = Product::query()
+            ->with(['kategori', 'supplier'])
+            ->when($showLowStockOnly, fn ($query) => $query->whereColumn('stok', '<=', 'stok_minimum'))
+            ->orderBy('nama_produk')
+            ->get();
+
+        $movements = StockMovement::query()
+            ->with(['produk', 'pengguna'])
+            ->latest('tanggal_pergerakan')
+            ->paginate(10);
+
+        return view('stocks.index', [
+            'products' => $products,
+            'movements' => $movements,
+            'canManageStock' => $this->canManageStock(request()->user()?->role, request()->user()?->mode_app),
+            'showLowStockOnly' => $showLowStockOnly,
+        ]);
     }
 
     private function canManageStock(?string $role, ?string $modeApp): bool

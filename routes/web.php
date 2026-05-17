@@ -53,9 +53,12 @@ Route::middleware('auth')->group(function (): void {
         Route::resource('products', ProductController::class)->only(['show']);
     });
 
+    Route::middleware('mode.access:low-stock')->group(function (): void {
+        Route::get('/stok/notifikasi', [StockController::class, 'notifications'])->name('stocks.notifications');
+    });
+
     Route::middleware('mode.access:warehouse')->group(function (): void {
         Route::resource('purchases', PurchaseController::class);
-        Route::get('/stok/notifikasi', [StockController::class, 'index'])->name('stocks.notifications');
     });
 
     Route::middleware('mode.access:owner')->group(function (): void {

@@ -28,6 +28,7 @@ class EnsureRoleModeAccess
         $bolehAkses = match ($access) {
             'owner' => $pengguna->role === 'owner',
             'stock-read' => $this->canReadStock($pengguna->role, $pengguna->mode_app),
+            'low-stock' => $this->canAccessLowStockNotifications($pengguna->role, $pengguna->mode_app),
             'inventory' => $this->canAccessInventory($pengguna->role, $pengguna->mode_app),
             'warehouse' => $this->canAccessWarehouse($pengguna->role, $pengguna->mode_app),
             'sales' => $this->canAccessSales($pengguna->role, $pengguna->mode_app),
@@ -51,6 +52,15 @@ class EnsureRoleModeAccess
     }
 
     private function canAccessInventory(string $role, ?string $modeApp): bool
+    {
+        return match ($role) {
+            'owner' => in_array($modeApp, ['sederhana', 'lengkap'], true),
+            'gudang' => $modeApp === 'lengkap',
+            default => false,
+        };
+    }
+
+    private function canAccessLowStockNotifications(string $role, ?string $modeApp): bool
     {
         return match ($role) {
             'owner' => in_array($modeApp, ['sederhana', 'lengkap'], true),

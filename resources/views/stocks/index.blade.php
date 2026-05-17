@@ -3,12 +3,15 @@
 @php
     $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
     $lowStockCount = $products->filter(fn ($product) => $product->stok <= $product->stok_minimum)->count();
+    $showLowStockOnly = $showLowStockOnly ?? false;
 @endphp
 
 @section('page_title', 'Stok')
-@section('page_subtitle', $isSimpleMode
-    ? 'Pantau ringkasan stok barang, stok masuk/keluar, stok minimum, dan histori pergerakan stok sederhana.'
-    : 'Pantau data stok utama, stok minimum, histori pergerakan stok, dan kontrol stok lebih detail untuk owner mode lengkap.')
+@section('page_subtitle', $showLowStockOnly
+    ? 'Daftar produk dengan stok saat ini berada di bawah atau sama dengan batas minimum.'
+    : ($isSimpleMode
+        ? 'Pantau ringkasan stok barang, stok masuk/keluar, stok minimum, dan histori pergerakan stok sederhana.'
+        : 'Pantau data stok utama, stok minimum, histori pergerakan stok, dan kontrol stok lebih detail untuk owner mode lengkap.'))
 
 @section('page_actions')
     @if ($canManageStock)
@@ -28,9 +31,9 @@
 
         <section class="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Data Stok Utama</p>
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $showLowStockOnly ? 'Produk Menipis' : 'Data Stok Utama' }}</p>
                 <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $products->count() }}</h2>
-                <p class="mt-2 text-sm text-slate-500">Produk yang sedang dimonitor pada inventory aktif.</p>
+                <p class="mt-2 text-sm text-slate-500">{{ $showLowStockOnly ? 'Produk yang perlu segera diprioritaskan untuk restock.' : 'Produk yang sedang dimonitor pada inventory aktif.' }}</p>
             </article>
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
                 <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Stok Minimum</p>
@@ -46,8 +49,12 @@
 
         <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
             <div class="border-b border-[#c0c8cb] px-6 py-4">
-                <h2 class="text-lg font-semibold text-slate-900">Data Stok Utama</h2>
-                <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Ringkasan stok barang dan stok minimum untuk pemantauan owner sehari-hari.' : 'Tabel stok aktif, stok minimum, supplier terkait, dan indikator produk yang perlu perhatian.' }}</p>
+                <h2 class="text-lg font-semibold text-slate-900">{{ $showLowStockOnly ? 'Daftar Stok Menipis' : 'Data Stok Utama' }}</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                    {{ $showLowStockOnly
+                        ? 'Hanya produk dengan stok saat ini berada di bawah atau sama dengan stok minimum yang ditampilkan.'
+                        : ($isSimpleMode ? 'Ringkasan stok barang dan stok minimum untuk pemantauan owner sehari-hari.' : 'Tabel stok aktif, stok minimum, supplier terkait, dan indikator produk yang perlu perhatian.') }}
+                </p>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-[920px] w-full text-left text-sm">
@@ -85,7 +92,9 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $isSimpleMode ? '5' : '6' }}" class="px-6 py-8 text-center text-slate-500">Belum ada produk.</td>
+                                <td colspan="{{ $isSimpleMode ? '5' : '6' }}" class="px-6 py-8 text-center text-slate-500">
+                                    {{ $showLowStockOnly ? 'Tidak ada produk dengan stok menipis.' : 'Belum ada produk.' }}
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
