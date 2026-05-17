@@ -1,98 +1,135 @@
 @extends('layouts.app')
 
+@php
+    $lowStockCount = $products->filter(fn ($product) => $product->stok <= $product->stok_minimum)->count();
+@endphp
+
+@section('page_title', 'Stok')
+@section('page_subtitle', 'Pantau data stok utama, stok minimum, histori pergerakan stok, dan kontrol stok lebih detail untuk owner mode lengkap.')
+
+@section('page_actions')
+    @if ($canManageStock)
+        <a href="{{ route('stocks.create') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+            Catat Stok Masuk
+        </a>
+    @endif
+@endsection
+
 @section('content')
-    <section class="rounded-2xl bg-white p-6 shadow-sm">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h3 class="text-lg font-semibold">Stok dan Pergerakan Barang</h3>
-                <p class="mt-1 text-sm text-slate-600">Pantau stok produk dan riwayat perubahan stok.</p>
-            </div>
-
-            @if ($canManageStock)
-                <a href="{{ route('stocks.create') }}" class="inline-flex rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-                    Catat Stok Masuk
-                </a>
-            @endif
-        </div>
-
+    <div class="space-y-6">
         @if (session('status'))
-            <div class="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
                 {{ session('status') }}
             </div>
         @endif
 
-        <div class="mt-6 overflow-x-auto">
-            <table class="w-full min-w-[720px] text-left text-sm">
-                <thead class="border-b border-slate-200 text-xs uppercase text-slate-500">
-                    <tr>
-                        <th class="py-3 pr-4">Produk</th>
-                        <th class="py-3 pr-4">Kategori</th>
-                        <th class="py-3 pr-4">Supplier</th>
-                        <th class="py-3 pr-4">Stok Saat Ini</th>
-                        <th class="py-3 pr-4">Stok Minimum</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($products as $product)
-                        <tr>
-                            <td class="py-3 pr-4">{{ $product->nama_produk }}</td>
-                            <td class="py-3 pr-4">{{ $product->kategori?->nama_kategori ?? '-' }}</td>
-                            <td class="py-3 pr-4">{{ $product->supplier?->nama_supplier ?? '-' }}</td>
-                            <td class="py-3 pr-4">{{ $product->stok }} {{ $product->satuan }}</td>
-                            <td class="py-3 pr-4">{{ $product->stok_minimum }} {{ $product->satuan }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="py-6 text-center text-slate-500">Belum ada produk.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+        <section class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Data Stok Utama</p>
+                <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $products->count() }}</h2>
+                <p class="mt-2 text-sm text-slate-500">Produk yang sedang dimonitor pada inventory aktif.</p>
+            </article>
+            <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Stok Minimum</p>
+                <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $lowStockCount }}</h2>
+                <p class="mt-2 text-sm text-slate-500">Produk yang sudah mencapai atau melewati batas minimum.</p>
+            </article>
+            <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Kontrol Stok Detail</p>
+                <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $movements->total() }}</h2>
+                <p class="mt-2 text-sm text-slate-500">Riwayat pergerakan stok yang tercatat di sistem.</p>
+            </article>
+        </section>
 
-        <div class="mt-8">
-            <h4 class="text-base font-semibold text-slate-900">Riwayat Pergerakan Stok</h4>
-
-            <div class="mt-4 overflow-x-auto">
-                <table class="w-full min-w-[840px] text-left text-sm">
-                    <thead class="border-b border-slate-200 text-xs uppercase text-slate-500">
+        <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
+            <div class="border-b border-[#c0c8cb] px-6 py-4">
+                <h2 class="text-lg font-semibold text-slate-900">Data Stok Utama</h2>
+                <p class="mt-1 text-sm text-slate-500">Tabel stok aktif, stok minimum, supplier terkait, dan indikator produk yang perlu perhatian.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-[920px] w-full text-left text-sm">
+                    <thead class="bg-[#f3f4f5] text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                         <tr>
-                            <th class="py-3 pr-4">Waktu</th>
-                            <th class="py-3 pr-4">Produk</th>
-                            <th class="py-3 pr-4">Jenis</th>
-                            <th class="py-3 pr-4">Qty</th>
-                            <th class="py-3 pr-4">Sebelum</th>
-                            <th class="py-3 pr-4">Sesudah</th>
-                            <th class="py-3 pr-4">Catatan</th>
+                            <th class="px-6 py-3">Produk</th>
+                            <th class="px-6 py-3">Kategori</th>
+                            <th class="px-6 py-3">Supplier</th>
+                            <th class="px-6 py-3">Stok Saat Ini</th>
+                            <th class="px-6 py-3">Stok Minimum</th>
+                            <th class="px-6 py-3">Status</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse ($movements as $movement)
-                            <tr>
-                                <td class="py-3 pr-4">{{ $movement->tanggal_pergerakan?->format('d/m/Y H:i') }}</td>
-                                <td class="py-3 pr-4">
-                                    <a href="{{ route('stocks.show', $movement) }}" class="font-medium text-slate-900">
-                                        {{ $movement->produk?->nama_produk ?? '-' }}
-                                    </a>
+                    <tbody class="divide-y divide-slate-200">
+                        @forelse ($products as $product)
+                            <tr class="transition hover:bg-slate-50">
+                                <td class="px-6 py-4">
+                                    <p class="font-semibold text-slate-900">{{ $product->nama_produk }}</p>
+                                    <p class="mt-1 text-xs text-slate-500">{{ $product->kode_produk }}</p>
                                 </td>
-                                <td class="py-3 pr-4">{{ ucfirst($movement->jenis_pergerakan) }}</td>
-                                <td class="py-3 pr-4">{{ $movement->qty }}</td>
-                                <td class="py-3 pr-4">{{ $movement->stok_sebelum }}</td>
-                                <td class="py-3 pr-4">{{ $movement->stok_sesudah }}</td>
-                                <td class="py-3 pr-4">{{ $movement->catatan ?? '-' }}</td>
+                                <td class="px-6 py-4 text-slate-600">{{ $product->kategori?->nama_kategori ?? '-' }}</td>
+                                <td class="px-6 py-4 text-slate-600">{{ $product->supplier?->nama_supplier ?? '-' }}</td>
+                                <td class="px-6 py-4 font-semibold text-slate-900">{{ $product->stok }} {{ $product->satuan }}</td>
+                                <td class="px-6 py-4 text-slate-600">{{ $product->stok_minimum }} {{ $product->satuan }}</td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-2 rounded-full {{ $product->stok <= $product->stok_minimum ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700' }} px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]">
+                                        <span class="h-2 w-2 rounded-full {{ $product->stok <= $product->stok_minimum ? 'bg-red-500' : 'bg-emerald-500' }}"></span>
+                                        {{ $product->stok <= $product->stok_minimum ? 'Kritis' : 'Aman' }}
+                                    </span>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="py-6 text-center text-slate-500">Belum ada pergerakan stok.</td>
+                                <td colspan="6" class="px-6 py-8 text-center text-slate-500">Belum ada produk.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+        </section>
 
-            <div class="mt-4">
+        <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
+            <div class="border-b border-[#c0c8cb] px-6 py-4">
+                <h2 class="text-lg font-semibold text-slate-900">Histori Pergerakan Stok</h2>
+                <p class="mt-1 text-sm text-slate-500">Riwayat perubahan stok untuk kontrol yang lebih detail terhadap barang masuk dan keluar.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-[1040px] w-full text-left text-sm">
+                    <thead class="bg-[#f3f4f5] text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                        <tr>
+                            <th class="px-6 py-3">Waktu</th>
+                            <th class="px-6 py-3">Produk</th>
+                            <th class="px-6 py-3">Jenis</th>
+                            <th class="px-6 py-3">Qty</th>
+                            <th class="px-6 py-3">Sebelum</th>
+                            <th class="px-6 py-3">Sesudah</th>
+                            <th class="px-6 py-3">Catatan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        @forelse ($movements as $movement)
+                            <tr class="transition hover:bg-slate-50">
+                                <td class="px-6 py-4 text-slate-600">{{ $movement->tanggal_pergerakan?->format('d/m/Y H:i') }}</td>
+                                <td class="px-6 py-4">
+                                    <a href="{{ route('stocks.show', $movement) }}" class="font-semibold text-slate-900 transition hover:text-[#003441]">
+                                        {{ $movement->produk?->nama_produk ?? '-' }}
+                                    </a>
+                                </td>
+                                <td class="px-6 py-4 text-slate-600">{{ ucfirst($movement->jenis_pergerakan) }}</td>
+                                <td class="px-6 py-4 font-semibold text-slate-900">{{ $movement->qty }}</td>
+                                <td class="px-6 py-4 text-slate-600">{{ $movement->stok_sebelum }}</td>
+                                <td class="px-6 py-4 text-slate-600">{{ $movement->stok_sesudah }}</td>
+                                <td class="px-6 py-4 text-slate-600">{{ $movement->catatan ?? '-' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="px-6 py-8 text-center text-slate-500">Belum ada pergerakan stok.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="border-t border-slate-200 px-6 py-4">
                 {{ $movements->links() }}
             </div>
-        </div>
-    </section>
+        </section>
+    </div>
 @endsection
