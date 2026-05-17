@@ -18,6 +18,10 @@ class TransactionController extends Controller
     {
         $transactions = Transaction::query()
             ->with('kasir')
+            ->when(
+                request()->user()?->role === 'kasir',
+                fn ($query) => $query->where('user_id', request()->user()->id),
+            )
             ->latest('tanggal_transaksi')
             ->paginate(10);
 
@@ -129,6 +133,10 @@ class TransactionController extends Controller
 
     public function show(Transaction $transaction): View
     {
+        if (request()->user()?->role === 'kasir' && $transaction->user_id !== request()->user()?->id) {
+            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
+        }
+
         $transaction->load(['kasir', 'detailItem']);
 
         return view('transactions.show', compact('transaction'));
