@@ -1,7 +1,3 @@
-@php
-    $forecastProducts = \App\Models\Product::query()->orderBy('nama_produk')->get();
-@endphp
-
 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
     <div class="space-y-2 md:col-span-2">
         <label for="product_id" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Produk</label>
@@ -17,17 +13,9 @@
                 </option>
             @endforeach
         </select>
-    </div>
-
-    <div class="space-y-2">
-        <label for="periode_awal" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Periode Awal</label>
-        <input
-            id="periode_awal"
-            name="periode_awal"
-            type="date"
-            value="{{ old('periode_awal', optional($forecast->periode_awal ?? null)->format('Y-m-d')) }}"
-            class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
-        />
+        @error('product_id')
+            <p class="text-sm text-red-600">{{ $message }}</p>
+        @enderror
     </div>
 
     <div class="space-y-2">
@@ -36,9 +24,12 @@
             id="periode_akhir"
             name="periode_akhir"
             type="date"
-            value="{{ old('periode_akhir', optional($forecast->periode_akhir ?? null)->format('Y-m-d')) }}"
+            value="{{ old('periode_akhir', optional($forecast->periode_akhir ?? now())->format('Y-m-d')) }}"
             class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
         />
+        @error('periode_akhir')
+            <p class="text-sm text-red-600">{{ $message }}</p>
+        @enderror
     </div>
 
     <div class="space-y-2">
@@ -48,50 +39,15 @@
             name="panjang_jendela"
             type="number"
             min="1"
-            value="{{ old('panjang_jendela', $forecast->panjang_jendela ?? 7) }}"
-            placeholder="Contoh: 7"
+            max="12"
+            value="{{ old('panjang_jendela', $forecast->panjang_jendela ?? 3) }}"
+            placeholder="Contoh: 3"
             class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
         />
-    </div>
-
-    <div class="space-y-2">
-        <label for="prediksi_stok" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Prediksi Stok</label>
-        <input
-            id="prediksi_stok"
-            name="prediksi_stok"
-            type="number"
-            min="0"
-            value="{{ old('prediksi_stok', $forecast->prediksi_stok ?? '') }}"
-            placeholder="Estimasi stok periode berikutnya"
-            class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
-        />
-    </div>
-
-    <div class="space-y-2">
-        <label for="stok_aktual" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Stok Aktual</label>
-        <input
-            id="stok_aktual"
-            name="stok_aktual"
-            type="number"
-            min="0"
-            value="{{ old('stok_aktual', $forecast->stok_aktual ?? '') }}"
-            placeholder="Stok saat ini"
-            class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
-        />
-    </div>
-
-    <div class="space-y-2">
-        <label for="nilai_moving_average" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Nilai Moving Average</label>
-        <input
-            id="nilai_moving_average"
-            name="nilai_moving_average"
-            type="number"
-            step="0.01"
-            min="0"
-            value="{{ old('nilai_moving_average', $forecast->nilai_moving_average ?? '') }}"
-            placeholder="Contoh: 12.50"
-            class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
-        />
+        <p class="text-xs text-slate-500">Gunakan jumlah bulan terakhir yang ingin dihitung. Rekomendasi awal: 3 bulan.</p>
+        @error('panjang_jendela')
+            <p class="text-sm text-red-600">{{ $message }}</p>
+        @enderror
     </div>
 
     <div class="space-y-2 md:col-span-2">
@@ -103,5 +59,8 @@
             placeholder="Tulis insight singkat, rekomendasi restock, atau catatan tren penjualan."
             class="w-full rounded-lg border border-[#c0c8cb] bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
         >{{ old('catatan', $forecast->catatan ?? '') }}</textarea>
+        @error('catatan')
+            <p class="text-sm text-red-600">{{ $message }}</p>
+        @enderror
     </div>
 </div>

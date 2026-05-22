@@ -100,7 +100,7 @@ class StockController extends Controller
     private function canManageStock(?string $role, ?string $modeApp): bool
     {
         return match ($role) {
-            'owner' => in_array($modeApp, ['sederhana', 'lengkap'], true),
+            'owner' => $modeApp === 'sederhana',
             'gudang' => $modeApp === 'lengkap',
             default => false,
         };

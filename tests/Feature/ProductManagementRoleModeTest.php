@@ -79,6 +79,38 @@ class ProductManagementRoleModeTest extends TestCase
         ]);
     }
 
+    public function test_owner_lengkap_can_only_view_product_data(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $category = $this->createCategory(['nama_kategori' => 'Minuman', 'slug' => 'minuman']);
+        $supplier = $this->createSupplier(['nama_supplier' => 'Supplier Monitoring']);
+        $product = $this->createProduct($category, $supplier, [
+            'nama_produk' => 'Teh Botol',
+        ]);
+
+        $this->actingAs($owner)
+            ->get('/products')
+            ->assertOk()
+            ->assertSee($product->nama_produk)
+            ->assertDontSee('Tambah Produk')
+            ->assertDontSee('Edit');
+
+        $this->actingAs($owner)
+            ->get(route('products.show', $product))
+            ->assertOk()
+            ->assertSee($product->nama_produk)
+            ->assertDontSee('Edit Produk');
+
+        $this->actingAs($owner)->get('/products/create')->assertForbidden();
+        $this->actingAs($owner)->post('/products', [])->assertForbidden();
+        $this->actingAs($owner)->get(route('products.edit', $product))->assertForbidden();
+        $this->actingAs($owner)->put(route('products.update', $product), [])->assertForbidden();
+        $this->actingAs($owner)->delete(route('products.destroy', $product))->assertForbidden();
+    }
+
     public function test_kasir_can_only_view_product_data_and_cannot_manage_products(): void
     {
         $kasir = User::factory()->create([
@@ -126,7 +158,7 @@ class ProductManagementRoleModeTest extends TestCase
     {
         $owner = User::factory()->create([
             'role' => 'owner',
-            'mode_app' => 'lengkap',
+            'mode_app' => 'sederhana',
         ]);
 
         $this->actingAs($owner)

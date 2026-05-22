@@ -16,11 +16,11 @@
             <div class="mt-5 space-y-4">
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Periode Analisis</p>
-                    <p class="mt-2 text-sm leading-6 text-slate-600">Pilih periode yang mewakili pola penjualan produk agar hasil prediksi lebih relevan.</p>
+                    <p class="mt-2 text-sm leading-6 text-slate-600">Sistem akan menghitung rata-rata penjualan dari beberapa bulan terakhir dengan metode Simple Moving Average.</p>
                 </div>
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Rekomendasi Restock</p>
-                    <p class="mt-2 text-sm leading-6 text-slate-600">Gunakan kolom catatan untuk menulis kebutuhan restock atau catatan tren produk.</p>
+                    <p class="mt-2 text-sm leading-6 text-slate-600">Setelah disimpan, sistem akan mengisi prediksi stok, stok aktual, moving average, dan gap restock secara otomatis.</p>
                 </div>
             </div>
         </section>

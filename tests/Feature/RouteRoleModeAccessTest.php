@@ -30,7 +30,7 @@ class RouteRoleModeAccessTest extends TestCase
         $this->actingAs($kasir)->get('/transactions/create')->assertForbidden();
     }
 
-    public function test_gudang_lengkap_can_access_warehouse_features_but_not_owner_or_sales_features(): void
+    public function test_gudang_lengkap_can_access_warehouse_and_report_features_but_not_owner_or_sales_features(): void
     {
         $gudang = User::factory()->create([
             'role' => 'gudang',
@@ -42,10 +42,10 @@ class RouteRoleModeAccessTest extends TestCase
         $this->actingAs($gudang)->get('/suppliers')->assertOk();
         $this->actingAs($gudang)->get('/purchases')->assertOk();
         $this->actingAs($gudang)->get('/stok/notifikasi')->assertOk();
+        $this->actingAs($gudang)->get('/reports')->assertOk();
 
         $this->actingAs($gudang)->get('/pos')->assertForbidden();
         $this->actingAs($gudang)->get('/users')->assertForbidden();
-        $this->actingAs($gudang)->get('/reports')->assertForbidden();
     }
 
     public function test_gudang_sederhana_is_not_a_valid_mode_for_gudang_features(): void
@@ -80,8 +80,17 @@ class RouteRoleModeAccessTest extends TestCase
             'mode_app' => 'lengkap',
         ]);
 
-        $this->actingAs($ownerLengkap)->get('/suppliers')->assertOk();
-        $this->actingAs($ownerLengkap)->get('/purchases')->assertOk();
+        $this->actingAs($ownerLengkap)->get('/dashboard')->assertOk();
+        $this->actingAs($ownerLengkap)->get('/products')->assertOk();
+        $this->actingAs($ownerLengkap)->get('/categories')->assertOk();
+        $this->actingAs($ownerLengkap)->get('/reports')->assertOk();
+        $this->actingAs($ownerLengkap)->get('/forecasts')->assertOk();
+        $this->actingAs($ownerLengkap)->get('/stok')->assertForbidden();
+        $this->actingAs($ownerLengkap)->get('/products/create')->assertForbidden();
+        $this->actingAs($ownerLengkap)->get('/categories/create')->assertForbidden();
+        $this->actingAs($ownerLengkap)->get('/forecasts/create')->assertForbidden();
+        $this->actingAs($ownerLengkap)->get('/suppliers')->assertForbidden();
+        $this->actingAs($ownerLengkap)->get('/purchases')->assertForbidden();
     }
 
     public function test_owner_without_mode_is_redirected_to_mode_selection_for_protected_routes(): void

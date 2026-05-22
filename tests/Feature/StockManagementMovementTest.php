@@ -68,6 +68,23 @@ class StockManagementMovementTest extends TestCase
         ]);
     }
 
+    public function test_owner_lengkap_cannot_access_stock_management(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $product = $this->createProduct(['stok' => 1, 'stok_minimum' => 2]);
+
+        $this->actingAs($owner)->get('/stok')->assertForbidden();
+        $this->actingAs($owner)->get('/stocks/create')->assertForbidden();
+        $this->actingAs($owner)->post('/stocks', [
+            'product_id' => $product->id,
+            'qty' => 2,
+        ])->assertForbidden();
+        $this->actingAs($owner)->get('/stok/notifikasi')->assertOk()->assertSee($product->nama_produk);
+    }
+
     public function test_kasir_can_only_view_stock_read_only(): void
     {
         $kasir = User::factory()->create([

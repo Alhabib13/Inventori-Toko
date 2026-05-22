@@ -27,10 +27,15 @@ class EnsureRoleModeAccess
 
         $bolehAkses = match ($access) {
             'owner' => $pengguna->role === 'owner',
+            'reports' => $this->canAccessReports($pengguna->role, $pengguna->mode_app),
+            'product-read' => $this->canReadProducts($pengguna->role, $pengguna->mode_app),
             'stock-read' => $this->canReadStock($pengguna->role, $pengguna->mode_app),
+            'stock-manage' => $this->canManageStock($pengguna->role, $pengguna->mode_app),
             'low-stock' => $this->canAccessLowStockNotifications($pengguna->role, $pengguna->mode_app),
-            'inventory' => $this->canAccessInventory($pengguna->role, $pengguna->mode_app),
-            'warehouse' => $this->canAccessWarehouse($pengguna->role, $pengguna->mode_app),
+            'inventory-read' => $this->canReadInventory($pengguna->role, $pengguna->mode_app),
+            'inventory-manage' => $this->canManageInventory($pengguna->role, $pengguna->mode_app),
+            'supplier-manage' => $this->canManageSuppliers($pengguna->role, $pengguna->mode_app),
+            'purchase-manage' => $this->canManagePurchases($pengguna->role, $pengguna->mode_app),
             'sales' => $this->canAccessSales($pengguna->role, $pengguna->mode_app),
             default => false,
         };
@@ -45,16 +50,53 @@ class EnsureRoleModeAccess
     private function canReadStock(string $role, ?string $modeApp): bool
     {
         return match ($role) {
+            'owner' => $modeApp === 'sederhana',
+            'kasir' => in_array($modeApp, ['sederhana', 'lengkap'], true),
+            'gudang' => $modeApp === 'lengkap',
+            default => false,
+        };
+    }
+
+    private function canReadProducts(string $role, ?string $modeApp): bool
+    {
+        return match ($role) {
             'owner', 'kasir' => in_array($modeApp, ['sederhana', 'lengkap'], true),
             'gudang' => $modeApp === 'lengkap',
             default => false,
         };
     }
 
-    private function canAccessInventory(string $role, ?string $modeApp): bool
+    private function canManageStock(string $role, ?string $modeApp): bool
+    {
+        return match ($role) {
+            'owner' => $modeApp === 'sederhana',
+            'gudang' => $modeApp === 'lengkap',
+            default => false,
+        };
+    }
+
+    private function canAccessReports(string $role, ?string $modeApp): bool
     {
         return match ($role) {
             'owner' => in_array($modeApp, ['sederhana', 'lengkap'], true),
+            'gudang' => $modeApp === 'lengkap',
+            default => false,
+        };
+    }
+
+    private function canReadInventory(string $role, ?string $modeApp): bool
+    {
+        return match ($role) {
+            'owner' => in_array($modeApp, ['sederhana', 'lengkap'], true),
+            'gudang' => $modeApp === 'lengkap',
+            default => false,
+        };
+    }
+
+    private function canManageInventory(string $role, ?string $modeApp): bool
+    {
+        return match ($role) {
+            'owner' => $modeApp === 'sederhana',
             'gudang' => $modeApp === 'lengkap',
             default => false,
         };
@@ -69,10 +111,19 @@ class EnsureRoleModeAccess
         };
     }
 
-    private function canAccessWarehouse(string $role, ?string $modeApp): bool
+    private function canManageSuppliers(string $role, ?string $modeApp): bool
     {
         return match ($role) {
-            'owner', 'gudang' => $modeApp === 'lengkap',
+            'owner' => $modeApp === 'sederhana',
+            'gudang' => $modeApp === 'lengkap',
+            default => false,
+        };
+    }
+
+    private function canManagePurchases(string $role, ?string $modeApp): bool
+    {
+        return match ($role) {
+            'gudang' => $modeApp === 'lengkap',
             default => false,
         };
     }

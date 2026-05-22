@@ -122,7 +122,7 @@ class ProductController extends Controller
     private function canManageProducts(?string $role, ?string $modeApp): bool
     {
         return match ($role) {
-            'owner' => in_array($modeApp, ['sederhana', 'lengkap'], true),
+            'owner' => $modeApp === 'sederhana',
             'gudang' => $modeApp === 'lengkap',
             default => false,
         };

@@ -9,6 +9,12 @@
     ? 'Perbarui prediksi stok sederhana agar rekomendasi owner tetap akurat untuk operasional harian.'
     : 'Perbarui parameter prediksi stok untuk menyesuaikan tren penjualan dan kebutuhan restock.')
 
+@section('page_actions')
+    <a href="{{ route('forecasts.show', $forecast) }}" class="inline-flex h-11 items-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-[#003441] transition hover:bg-[#f3f4f5]">
+        Lihat Detail
+    </a>
+@endsection
+
 @section('content')
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-[0.72fr_1.28fr]">
         <section class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
@@ -32,8 +38,8 @@
                 @include('forecasts._form', ['forecast' => $forecast])
 
                 <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-end">
-                    <a href="{{ route('forecasts.show', $forecast) }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-[#c0c8cb] px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
-                        Lihat Detail
+                    <a href="{{ route('forecasts.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-[#c0c8cb] px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
+                        Kembali
                     </a>
                     <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
                         Update Prediksi

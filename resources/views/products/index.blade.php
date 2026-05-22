@@ -8,7 +8,9 @@
 @section('page_title', 'Produk')
 @section('page_subtitle', $isSimpleMode
     ? 'Kelola daftar produk, tambah/edit/hapus produk, harga beli dan jual, serta stok per produk untuk owner mode sederhana.'
-    : 'Kelola daftar produk, detail stok, harga jual dan beli, serta supplier terkait untuk owner mode lengkap.')
+    : ($canManageProducts
+        ? 'Kelola daftar produk, detail stok, harga jual dan beli, serta supplier terkait untuk operasional gudang.'
+        : 'Pantau daftar produk, harga, stok, dan supplier terkait untuk monitoring owner mode lengkap.'))
 
 @section('page_actions')
     @if ($canManageProducts)
@@ -39,7 +41,7 @@
             <div class="flex items-center justify-between border-b border-[#c0c8cb] px-6 py-4">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900">Daftar Produk</h2>
-                    <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Tampilkan daftar produk, harga jual beli, stok per produk, dan aksi pengelolaan sederhana.' : 'Tampilkan harga, stok minimum, supplier terkait, dan status produk aktif.' }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Tampilkan daftar produk, harga jual beli, stok per produk, dan aksi pengelolaan sederhana.' : ($canManageProducts ? 'Tampilkan harga, stok minimum, supplier terkait, dan status produk aktif.' : 'Tampilkan data produk aktif untuk evaluasi owner tanpa aksi perubahan data.') }}</p>
                 </div>
                 <span class="rounded-full bg-[#d0e1fb]/35 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f4c5c]">
                     {{ $products->total() }} Produk

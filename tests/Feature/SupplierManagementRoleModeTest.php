@@ -11,7 +11,7 @@ class SupplierManagementRoleModeTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_owner_can_access_and_crud_suppliers_in_any_mode(): void
+    public function test_owner_sederhana_can_access_and_crud_suppliers(): void
     {
         $owner = User::factory()->create([
             'role' => 'owner',
@@ -102,6 +102,28 @@ class SupplierManagementRoleModeTest extends TestCase
         ]);
     }
 
+    public function test_owner_lengkap_cannot_access_supplier_management(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+
+        $supplier = Supplier::create([
+            'nama_supplier' => 'PT Monitoring',
+            'nama_kontak' => 'Wira',
+            'telepon' => '08122222',
+            'alamat' => 'Jl. Melati 5',
+        ]);
+
+        $this->actingAs($owner)->get('/suppliers')->assertForbidden();
+        $this->actingAs($owner)->get('/suppliers/create')->assertForbidden();
+        $this->actingAs($owner)->post('/suppliers', [])->assertForbidden();
+        $this->actingAs($owner)->get(route('suppliers.edit', $supplier))->assertForbidden();
+        $this->actingAs($owner)->put(route('suppliers.update', $supplier), [])->assertForbidden();
+        $this->actingAs($owner)->delete(route('suppliers.destroy', $supplier))->assertForbidden();
+    }
+
     public function test_gudang_sederhana_cannot_access_suppliers(): void
     {
         $gudang = User::factory()->create([
@@ -148,7 +170,7 @@ class SupplierManagementRoleModeTest extends TestCase
     {
         $owner = User::factory()->create([
             'role' => 'owner',
-            'mode_app' => 'lengkap',
+            'mode_app' => 'sederhana',
         ]);
 
         $this->actingAs($owner)

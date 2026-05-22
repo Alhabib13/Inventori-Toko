@@ -1,21 +1,16 @@
 @extends('layouts.app')
 
-@php
-    $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
-    $forecastRows = \App\Models\SalesForecast::query()->with('produk')->latest()->take(8)->get();
-    $trendingProducts = \App\Models\Product::query()->orderByDesc('stok')->take(5)->get();
-    $transactionCount = \App\Models\Transaction::query()->count();
-@endphp
-
 @section('page_title', 'Prediksi Stok')
 @section('page_subtitle', $isSimpleMode
     ? 'Prediksi kebutuhan stok sederhana, rekomendasi restock, dan tren penjualan barang.'
     : 'Prediksi stok per produk, kebutuhan restock, dan analisis tren penjualan untuk owner mode lengkap.')
 
 @section('page_actions')
-    <a href="{{ route('forecasts.create') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-        Tambah Prediksi
-    </a>
+    @if ($canManageForecasts)
+        <a href="{{ route('forecasts.create') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+            Tambah Prediksi
+        </a>
+    @endif
 @endsection
 
 @section('content')
@@ -31,11 +26,11 @@
                 <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                         <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Data Prediksi</p>
-                        <p class="mt-2 text-3xl font-bold text-slate-900">{{ $forecastRows->count() }}</p>
+                        <p class="mt-2 text-3xl font-bold text-slate-900">{{ $forecastRows->total() }}</p>
                     </div>
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                         <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Produk Terpantau</p>
-                        <p class="mt-2 text-3xl font-bold text-slate-900">{{ $trendingProducts->count() }}</p>
+                        <p class="mt-2 text-3xl font-bold text-slate-900">{{ $restockProducts->count() }}</p>
                     </div>
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                         <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Riwayat Penjualan</p>
@@ -47,21 +42,18 @@
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
                 <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Rekomendasi Restock' : 'Kebutuhan Restock' }}</h2>
                 <div class="mt-4 space-y-3">
-                    @forelse ($trendingProducts as $product)
-                        @php
-                            $restockGap = max(($product->stok_minimum ?? 0) - ($product->stok ?? 0), 0);
-                        @endphp
+                    @forelse ($restockProducts as $restockItem)
                         <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                             <div class="flex items-start justify-between gap-4">
                                 <div>
-                                    <p class="font-semibold text-slate-900">{{ $product->nama_produk }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $product->kode_produk }}</p>
+                                    <p class="font-semibold text-slate-900">{{ $restockItem['product']->nama_produk }}</p>
+                                    <p class="mt-1 text-xs text-slate-500">{{ $restockItem['product']->kode_produk }}</p>
                                 </div>
-                                <span class="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] {{ $restockGap > 0 ? 'bg-red-50 text-red-600' : 'bg-[#d0e1fb]/40 text-[#0f4c5c]' }}">
-                                    {{ $restockGap > 0 ? 'Perlu Restock' : 'Aman' }}
+                                <span class="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] {{ $restockItem['restock_gap'] > 0 ? 'bg-red-50 text-red-600' : 'bg-[#d0e1fb]/40 text-[#0f4c5c]' }}">
+                                    {{ $restockItem['restock_gap'] > 0 ? 'Perlu Restock' : 'Aman' }}
                                 </span>
                             </div>
-                            <p class="mt-3 text-sm text-slate-600">Stok saat ini {{ $product->stok }} {{ $product->satuan }}. Batas minimum {{ $product->stok_minimum }} {{ $product->satuan }}.</p>
+                            <p class="mt-3 text-sm text-slate-600">Prediksi kebutuhan {{ $restockItem['forecast_qty'] }} {{ $restockItem['product']->satuan }}. Stok saat ini {{ $restockItem['product']->stok }} {{ $restockItem['product']->satuan }}.</p>
                         </div>
                     @empty
                         <p class="text-sm text-slate-500">Belum ada produk untuk dianalisis.</p>
@@ -91,7 +83,7 @@
                         @forelse ($forecastRows as $forecast)
                             <tr class="transition hover:bg-slate-50">
                                 <td class="px-6 py-4">
-                                    <p class="font-semibold text-slate-900">{{ $forecast->produk?->nama_produk ?? 'Produk tidak ditemukan' }}</p>
+                                    <a href="{{ route('forecasts.show', $forecast) }}" class="font-semibold text-slate-900 hover:text-[#0f4c5c]">{{ $forecast->produk?->nama_produk ?? 'Produk tidak ditemukan' }}</a>
                                     <p class="mt-1 text-xs text-slate-500">{{ $forecast->produk?->kode_produk ?? '-' }}</p>
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">
@@ -113,6 +105,9 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+            <div class="border-t border-slate-200 px-6 py-4">
+                {{ $forecastRows->links() }}
             </div>
         </section>
     </div>

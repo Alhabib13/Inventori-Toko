@@ -8,12 +8,14 @@
 @section('page_title', 'Kategori')
 @section('page_subtitle', $isSimpleMode
     ? 'Kelola daftar kategori produk dan proses tambah/edit/hapus kategori untuk owner mode sederhana.'
-    : 'Kelola klasifikasi produk dan CRUD kategori untuk owner mode lengkap.')
+    : 'Pantau klasifikasi produk untuk monitoring owner mode lengkap tanpa perubahan data operasional.')
 
 @section('page_actions')
-    <a href="{{ route('categories.create') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-        Tambah Kategori
-    </a>
+    @if ($canManageCategories)
+        <a href="{{ route('categories.create') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+            Tambah Kategori
+        </a>
+    @endif
 @endsection
 
 @section('content')
@@ -66,16 +68,18 @@
                                         <a href="{{ route('categories.show', $category) }}" class="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
                                             Detail
                                         </a>
-                                        <a href="{{ route('categories.edit', $category) }}" class="inline-flex h-9 items-center rounded-lg border border-[#c0c8cb] px-3 text-sm font-medium text-[#003441] transition hover:bg-[#f3f4f5]">
-                                            Edit
-                                        </a>
-                                        <form action="{{ route('categories.destroy', $category) }}" method="POST">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="inline-flex h-9 items-center rounded-lg border border-red-100 px-3 text-sm font-medium text-red-600 transition hover:bg-red-50">
-                                                Hapus
-                                            </button>
-                                        </form>
+                                        @if ($canManageCategories)
+                                            <a href="{{ route('categories.edit', $category) }}" class="inline-flex h-9 items-center rounded-lg border border-[#c0c8cb] px-3 text-sm font-medium text-[#003441] transition hover:bg-[#f3f4f5]">
+                                                Edit
+                                            </a>
+                                            <form action="{{ route('categories.destroy', $category) }}" method="POST">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="inline-flex h-9 items-center rounded-lg border border-red-100 px-3 text-sm font-medium text-red-600 transition hover:bg-red-50">
+                                                    Hapus
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>

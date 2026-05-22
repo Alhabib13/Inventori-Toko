@@ -13,7 +13,10 @@ class CategoryController extends Controller
     public function index(): View
     {
         $categories = Category::all();
-        return view('categories.index', compact('categories'));
+        return view('categories.index', [
+            'categories' => $categories,
+            'canManageCategories' => $this->canManageCategories(request()->user()?->role, request()->user()?->mode_app),
+        ]);
     }
 
     public function create(): View
@@ -37,7 +40,10 @@ class CategoryController extends Controller
 
     public function show(Category $category): View
     {
-        return view('categories.show', compact('category'));
+        return view('categories.show', [
+            'category' => $category,
+            'canManageCategories' => $this->canManageCategories(request()->user()?->role, request()->user()?->mode_app),
+        ]);
     }
 
     public function edit(Category $category): View
@@ -64,5 +70,14 @@ class CategoryController extends Controller
         $category->delete();
 
         return redirect()->route('categories.index')->with('success', 'Kategori berhasil dihapus.');
+    }
+
+    private function canManageCategories(?string $role, ?string $modeApp): bool
+    {
+        return match ($role) {
+            'owner' => $modeApp === 'sederhana',
+            'gudang' => $modeApp === 'lengkap',
+            default => false,
+        };
     }
 }
