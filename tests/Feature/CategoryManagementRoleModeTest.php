@@ -93,6 +93,38 @@ class CategoryManagementRoleModeTest extends TestCase
         ]);
     }
 
+    public function test_owner_lengkap_can_only_view_categories(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+
+        $category = Category::create([
+            'nama_kategori' => 'Frozen Food',
+            'slug' => 'frozen-food',
+        ]);
+
+        $this->actingAs($owner)
+            ->get('/categories')
+            ->assertOk()
+            ->assertSee($category->nama_kategori)
+            ->assertDontSee('Tambah Kategori')
+            ->assertDontSee('Edit');
+
+        $this->actingAs($owner)
+            ->get(route('categories.show', $category))
+            ->assertOk()
+            ->assertSee($category->nama_kategori)
+            ->assertDontSee('Edit Kategori');
+
+        $this->actingAs($owner)->get('/categories/create')->assertForbidden();
+        $this->actingAs($owner)->post('/categories', ['nama_kategori' => 'Baru'])->assertForbidden();
+        $this->actingAs($owner)->get(route('categories.edit', $category))->assertForbidden();
+        $this->actingAs($owner)->put(route('categories.update', $category), ['nama_kategori' => 'Baru'])->assertForbidden();
+        $this->actingAs($owner)->delete(route('categories.destroy', $category))->assertForbidden();
+    }
+
     public function test_gudang_sederhana_cannot_access_categories(): void
     {
         $gudang = User::factory()->create([
@@ -135,7 +167,7 @@ class CategoryManagementRoleModeTest extends TestCase
     {
         $owner = User::factory()->create([
             'role' => 'owner',
-            'mode_app' => 'lengkap',
+            'mode_app' => 'sederhana',
         ]);
 
         Category::create([

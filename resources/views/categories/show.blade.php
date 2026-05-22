@@ -11,9 +11,11 @@
     : 'Lihat detail kategori untuk membantu klasifikasi produk pada mode lengkap tetap terkontrol.')
 
 @section('page_actions')
-    <a href="{{ route('categories.edit', $category) }}" class="inline-flex h-11 items-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-[#003441] transition hover:bg-[#f3f4f5]">
-        Edit Kategori
-    </a>
+    @if ($canManageCategories)
+        <a href="{{ route('categories.edit', $category) }}" class="inline-flex h-11 items-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-[#003441] transition hover:bg-[#f3f4f5]">
+            Edit Kategori
+        </a>
+    @endif
 @endsection
 
 @section('content')

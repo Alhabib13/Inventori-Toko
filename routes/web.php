@@ -33,31 +33,44 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/register-user', [AuthController::class, 'showUserRegisterForm'])->name('users.register');
         Route::post('/register-user', [AuthController::class, 'registerUser'])->name('users.register.process');
         Route::resource('users', UserController::class);
+    });
+
+    Route::middleware('mode.access:reports')->group(function (): void {
         Route::resource('reports', ReportController::class)->only(['index']);
+    });
+
+    Route::middleware('mode.access:inventory-manage')->group(function (): void {
+        Route::resource('categories', CategoryController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
+        Route::resource('products', ProductController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
+        Route::resource('forecasts', ForecastController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
     });
 
     Route::middleware('mode.access:stock-read')->group(function (): void {
         Route::get('/stok', [StockController::class, 'index'])->name('stocks.role-home');
-        Route::resource('products', ProductController::class)->only(['index']);
     });
 
-    Route::middleware('mode.access:inventory')->group(function (): void {
-        Route::resource('categories', CategoryController::class);
+    Route::middleware('mode.access:product-read')->group(function (): void {
+        Route::resource('products', ProductController::class)->only(['index', 'show']);
+    });
+
+    Route::middleware('mode.access:inventory-read')->group(function (): void {
+        Route::resource('categories', CategoryController::class)->only(['index', 'show']);
+        Route::resource('forecasts', ForecastController::class)->only(['index', 'show']);
+    });
+
+    Route::middleware('mode.access:supplier-manage')->group(function (): void {
         Route::resource('suppliers', SupplierController::class);
-        Route::resource('products', ProductController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
-        Route::resource('stocks', StockController::class)->only(['index', 'create', 'store', 'show']);
-        Route::resource('forecasts', ForecastController::class);
-    });
-
-    Route::middleware('mode.access:stock-read')->group(function (): void {
-        Route::resource('products', ProductController::class)->only(['show']);
     });
 
     Route::middleware('mode.access:low-stock')->group(function (): void {
         Route::get('/stok/notifikasi', [StockController::class, 'notifications'])->name('stocks.notifications');
     });
 
-    Route::middleware('mode.access:warehouse')->group(function (): void {
+    Route::middleware('mode.access:stock-manage')->group(function (): void {
+        Route::resource('stocks', StockController::class)->only(['index', 'create', 'store', 'show']);
+    });
+
+    Route::middleware('mode.access:purchase-manage')->group(function (): void {
         Route::resource('purchases', PurchaseController::class);
     });
 

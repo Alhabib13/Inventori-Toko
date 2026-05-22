@@ -11,7 +11,9 @@
     ? 'Daftar produk dengan stok saat ini berada di bawah atau sama dengan batas minimum.'
     : ($isSimpleMode
         ? 'Pantau ringkasan stok barang, stok masuk/keluar, stok minimum, dan histori pergerakan stok sederhana.'
-        : 'Pantau data stok utama, stok minimum, histori pergerakan stok, dan kontrol stok lebih detail untuk owner mode lengkap.'))
+        : ($canManageStock
+            ? 'Pantau data stok utama, stok minimum, histori pergerakan stok, dan kontrol stok lebih detail untuk operasional gudang.'
+            : 'Pantau histori stok kritis dan pergerakan barang untuk monitoring owner mode lengkap.')))
 
 @section('page_actions')
     @if ($canManageStock)
@@ -125,9 +127,13 @@
                             <tr class="transition hover:bg-slate-50">
                                 <td class="px-6 py-4 text-slate-600">{{ $movement->tanggal_pergerakan?->format('d/m/Y H:i') }}</td>
                                 <td class="px-6 py-4">
-                                    <a href="{{ route('stocks.show', $movement) }}" class="font-semibold text-slate-900 transition hover:text-[#003441]">
-                                        {{ $movement->produk?->nama_produk ?? '-' }}
-                                    </a>
+                                    @if ($canManageStock)
+                                        <a href="{{ route('stocks.show', $movement) }}" class="font-semibold text-slate-900 transition hover:text-[#003441]">
+                                            {{ $movement->produk?->nama_produk ?? '-' }}
+                                        </a>
+                                    @else
+                                        <span class="font-semibold text-slate-900">{{ $movement->produk?->nama_produk ?? '-' }}</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">{{ ucfirst($movement->jenis_pergerakan) }}</td>
                                 <td class="px-6 py-4 font-semibold text-slate-900">{{ $movement->qty }}</td>

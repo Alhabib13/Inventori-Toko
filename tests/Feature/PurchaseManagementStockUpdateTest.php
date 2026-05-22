@@ -15,17 +15,17 @@ class PurchaseManagementStockUpdateTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_owner_lengkap_can_create_purchase_with_multiple_items_and_stock_updates(): void
+    public function test_gudang_lengkap_can_create_purchase_with_multiple_items_and_stock_updates(): void
     {
-        $owner = User::factory()->create([
-            'role' => 'owner',
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
             'mode_app' => 'lengkap',
         ]);
         $supplier = $this->createSupplier();
         $firstProduct = $this->createProduct(['stok' => 4, 'harga_beli' => 10000]);
         $secondProduct = $this->createProduct(['stok' => 2, 'harga_beli' => 7000]);
 
-        $response = $this->actingAs($owner)->post('/purchases', [
+        $response = $this->actingAs($gudang)->post('/purchases', [
             'supplier_id' => $supplier->id,
             'items' => [
                 [
@@ -51,7 +51,7 @@ class PurchaseManagementStockUpdateTest extends TestCase
         $this->assertDatabaseHas('purchases', [
             'id' => $purchase->id,
             'supplier_id' => $supplier->id,
-            'user_id' => $owner->id,
+            'user_id' => $gudang->id,
             'subtotal' => 73000,
             'diskon' => 2000,
             'ongkir' => 5000,
@@ -89,7 +89,7 @@ class PurchaseManagementStockUpdateTest extends TestCase
 
         $this->assertDatabaseHas('stock_movements', [
             'product_id' => $firstProduct->id,
-            'user_id' => $owner->id,
+            'user_id' => $gudang->id,
             'jenis_pergerakan' => 'masuk',
             'qty' => 3,
             'stok_sebelum' => 4,
@@ -100,7 +100,7 @@ class PurchaseManagementStockUpdateTest extends TestCase
 
         $this->assertDatabaseHas('stock_movements', [
             'product_id' => $secondProduct->id,
-            'user_id' => $owner->id,
+            'user_id' => $gudang->id,
             'jenis_pergerakan' => 'masuk',
             'qty' => 5,
             'stok_sebelum' => 2,
@@ -150,14 +150,14 @@ class PurchaseManagementStockUpdateTest extends TestCase
 
     public function test_purchase_requires_at_least_one_item_with_quantity(): void
     {
-        $owner = User::factory()->create([
-            'role' => 'owner',
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
             'mode_app' => 'lengkap',
         ]);
         $supplier = $this->createSupplier();
         $product = $this->createProduct();
 
-        $this->actingAs($owner)
+        $this->actingAs($gudang)
             ->from('/purchases/create')
             ->post('/purchases', [
                 'supplier_id' => $supplier->id,
@@ -174,6 +174,18 @@ class PurchaseManagementStockUpdateTest extends TestCase
 
         $this->assertEquals(0, Purchase::query()->count());
         $this->assertEquals(0, StockMovement::query()->count());
+    }
+
+    public function test_owner_lengkap_cannot_access_purchase_routes(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+
+        $this->actingAs($owner)->get('/purchases')->assertForbidden();
+        $this->actingAs($owner)->get('/purchases/create')->assertForbidden();
+        $this->actingAs($owner)->post('/purchases', [])->assertForbidden();
     }
 
     private function createSupplier(): Supplier
