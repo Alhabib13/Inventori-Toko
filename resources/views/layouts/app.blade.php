@@ -38,6 +38,7 @@
                     ['label' => 'Dashboard', 'route' => 'dashboard.index', 'icon' => 'dashboard'],
                     ['label' => 'Produk', 'route' => 'products.index', 'icon' => 'products'],
                     ['label' => 'Kategori', 'route' => 'categories.index', 'icon' => 'categories'],
+                    ['label' => 'Stok', 'route' => 'stocks.role-home', 'icon' => 'stocks'],
                     ['label' => 'Laporan', 'route' => 'reports.index', 'icon' => 'reports'],
                     ['label' => 'Prediksi Stok', 'route' => 'forecasts.index', 'icon' => 'forecast'],
                     ['label' => 'Manajemen User', 'route' => 'users.index', 'icon' => 'users'],

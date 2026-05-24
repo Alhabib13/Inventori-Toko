@@ -16,10 +16,13 @@
     @if ($canManageProducts)
         <div class="flex flex-wrap items-center justify-end gap-3">
             @if ($showImportButton)
-                <label class="inline-flex h-11 cursor-pointer items-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
-                    <input type="file" accept=".csv,text/csv" class="sr-only">
-                    Import Data .CSV
-                </label>
+                <form method="POST" action="{{ route('products.import') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
+                    @csrf
+                    <label class="inline-flex h-11 cursor-pointer items-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
+                        <input type="file" name="import_file" accept=".csv,text/csv" class="sr-only" onchange="this.form.submit()">
+                        Import Produk & Stok Awal
+                    </label>
+                </form>
             @endif
 
             <a href="{{ route('products.create') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
@@ -37,11 +40,28 @@
             </div>
         @endif
 
+        @error('import_file')
+            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+                {{ $message }}
+            </div>
+        @enderror
+
         <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
             <div class="flex items-center justify-between border-b border-[#c0c8cb] px-6 py-4">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900">Daftar Produk</h2>
                     <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Tampilkan daftar produk, harga jual beli, stok per produk, dan aksi pengelolaan sederhana.' : ($canManageProducts ? 'Tampilkan harga, stok minimum, supplier terkait, dan status produk aktif.' : 'Tampilkan data produk aktif untuk evaluasi owner tanpa aksi perubahan data.') }}</p>
+                    @if ($showImportButton)
+                        <p class="mt-2 text-xs text-slate-500">
+                            Format CSV:
+                            <span class="font-mono">
+                                {{ $requiresSupplier
+                                    ? 'nama_produk,kategori,supplier,satuan,harga_beli,harga_jual,stok_awal,stok_minimum'
+                                    : 'nama_produk,kategori,satuan,harga_beli,harga_jual,stok_awal,stok_minimum' }}
+                            </span>.
+                            File Excel simpan dulu sebagai CSV.
+                        </p>
+                    @endif
                 </div>
                 <span class="rounded-full bg-[#d0e1fb]/35 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f4c5c]">
                     {{ $products->total() }} Produk

@@ -164,7 +164,10 @@ class TransactionController extends Controller
 
         $transaction->load(['kasir', 'detailItem.produk']);
 
-        return view('transactions.show', compact('transaction'));
+        return view('transactions.show', [
+            'transaction' => $transaction,
+            'canCancelTransaction' => $user?->role === 'owner' && $transaction->status !== 'dibatalkan',
+        ]);
     }
 
     public function edit(Transaction $transaction): View
@@ -177,9 +180,50 @@ class TransactionController extends Controller
         return redirect()->route('transactions.index');
     }
 
-    public function destroy(Transaction $transaction): RedirectResponse
+    public function destroy(Request $request, Transaction $transaction, StockMovementService $stockMovementService): RedirectResponse
     {
-        return redirect()->route('transactions.index');
+        $user = $request->user();
+
+        if ($user?->role !== 'owner') {
+            abort(403, 'Anda tidak memiliki akses untuk membatalkan transaksi ini.');
+        }
+
+        if ($transaction->kasir?->store_name !== $user->store_name) {
+            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
+        }
+
+        if ($transaction->status === 'dibatalkan') {
+            return redirect()
+                ->route('transactions.show', $transaction)
+                ->with('status', 'Transaksi sudah dibatalkan sebelumnya.');
+        }
+
+        $transaction->load('detailItem.produk');
+
+        DB::transaction(function () use ($transaction, $user, $stockMovementService): void {
+            foreach ($transaction->detailItem as $item) {
+                if (! $item->produk) {
+                    continue;
+                }
+
+                $stockMovementService->recordIncoming(
+                    product: $item->produk,
+                    qty: $item->qty,
+                    user: $user,
+                    note: 'Pembatalan transaksi penjualan '.$transaction->kode_transaksi,
+                    referenceType: 'transaction_cancellation',
+                    referenceId: $transaction->id,
+                );
+            }
+
+            $transaction->update([
+                'status' => 'dibatalkan',
+            ]);
+        });
+
+        return redirect()
+            ->route('transactions.show', $transaction)
+            ->with('status', 'Transaksi berhasil dibatalkan dan stok telah dikembalikan.');
     }
 
     private function makeTransactionCode(): string

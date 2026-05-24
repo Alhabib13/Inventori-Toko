@@ -102,6 +102,72 @@ class ReportAccessAndContentTest extends TestCase
             ->assertSee('7 hari terakhir');
     }
 
+    public function test_owner_can_export_and_print_main_reports(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $product = $this->createProduct([
+            'nama_produk' => 'Produk Export',
+            'stok' => 10,
+            'harga_beli' => 12000,
+        ]);
+        $supplier = Supplier::findOrFail($product->supplier_id);
+
+        Transaction::create([
+            'kode_transaksi' => 'TRX-EXPORT-001',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now()->subDay(),
+            'total_item' => 3,
+            'subtotal' => 90000,
+            'total_bayar' => 90000,
+            'nominal_bayar' => 100000,
+            'kembalian' => 10000,
+            'metode_pembayaran' => 'tunai',
+            'status' => 'selesai',
+        ]);
+
+        Purchase::create([
+            'kode_pembelian' => 'PO-EXPORT-001',
+            'supplier_id' => $supplier->id,
+            'user_id' => $owner->id,
+            'tanggal_pembelian' => now()->subDay(),
+            'subtotal' => 50000,
+            'diskon' => 5000,
+            'ongkir' => 0,
+            'total_bayar' => 45000,
+            'status' => 'selesai',
+        ]);
+
+        $salesExport = $this->actingAs($owner)
+            ->get('/reports/export/sales?period=30_hari')
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('TRX-EXPORT-001', $salesExport->streamedContent());
+
+        $purchaseExport = $this->actingAs($owner)
+            ->get('/reports/export/purchases?period=30_hari')
+            ->assertOk();
+        $this->assertStringContainsString('PO-EXPORT-001', $purchaseExport->streamedContent());
+
+        $stockExport = $this->actingAs($owner)
+            ->get('/reports/export/stock?period=30_hari')
+            ->assertOk();
+        $this->assertStringContainsString('Produk Export', $stockExport->streamedContent());
+
+        $profitExport = $this->actingAs($owner)
+            ->get('/reports/export/profit?period=30_hari')
+            ->assertOk();
+        $this->assertStringContainsString('Pendapatan', $profitExport->streamedContent());
+
+        $this->actingAs($owner)
+            ->get('/reports/print/sales?period=30_hari')
+            ->assertOk()
+            ->assertSee('Laporan Penjualan')
+            ->assertSee('TRX-EXPORT-001');
+    }
+
     public function test_kasir_cannot_access_owner_reports(): void
     {
         $kasir = User::factory()->create([
@@ -111,6 +177,10 @@ class ReportAccessAndContentTest extends TestCase
 
         $this->actingAs($kasir)
             ->get('/reports')
+            ->assertForbidden();
+
+        $this->actingAs($kasir)
+            ->get('/reports/export/sales')
             ->assertForbidden();
     }
 
@@ -160,6 +230,21 @@ class ReportAccessAndContentTest extends TestCase
             ->assertDontSee('Laporan Penjualan')
             ->assertDontSee('Laba Rugi Sederhana')
             ->assertDontSee('TRX-GDG-001');
+
+        $warehousePurchaseExport = $this->actingAs($gudang)
+            ->get('/reports/export/purchases?period=30_hari')
+            ->assertOk();
+        $this->assertStringContainsString('PO-GDG-001', $warehousePurchaseExport->streamedContent());
+
+        $this->actingAs($gudang)
+            ->get('/reports/print/stock?period=30_hari')
+            ->assertOk()
+            ->assertSee('Laporan Stok')
+            ->assertSee('Produk Gudang');
+
+        $this->actingAs($gudang)
+            ->get('/reports/export/sales?period=30_hari')
+            ->assertForbidden();
     }
 
     private function createProduct(array $attributes = []): Product

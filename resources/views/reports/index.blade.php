@@ -133,8 +133,20 @@
         @if ($canViewSalesAndProfit)
             <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
                 <div class="border-b border-[#c0c8cb] px-6 py-4">
-                    <h2 class="text-lg font-semibold text-slate-900">Laporan Penjualan</h2>
-                    <p class="mt-1 text-sm text-slate-500">Transaksi penjualan pada periode {{ $periodLabel }}.</p>
+                    <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-900">Laporan Penjualan</h2>
+                            <p class="mt-1 text-sm text-slate-500">Transaksi penjualan pada periode {{ $periodLabel }}.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{{ route('reports.export', ['section' => 'sales', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
+                                Export CSV
+                            </a>
+                            <a href="{{ route('reports.print', ['section' => 'sales', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                                Cetak
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-[860px] w-full text-left text-sm">
@@ -172,8 +184,20 @@
         @if ($canViewPurchases)
             <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
                 <div class="border-b border-[#c0c8cb] px-6 py-4">
-                    <h2 class="text-lg font-semibold text-slate-900">Laporan Pembelian</h2>
-                    <p class="mt-1 text-sm text-slate-500">Pembelian supplier pada periode {{ $periodLabel }}.</p>
+                    <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-900">Laporan Pembelian</h2>
+                            <p class="mt-1 text-sm text-slate-500">Pembelian supplier pada periode {{ $periodLabel }}.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{{ route('reports.export', ['section' => 'purchases', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
+                                Export CSV
+                            </a>
+                            <a href="{{ route('reports.print', ['section' => 'purchases', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                                Cetak
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-[860px] w-full text-left text-sm">
@@ -210,8 +234,20 @@
 
         <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
             <div class="border-b border-[#c0c8cb] px-6 py-4">
-                <h2 class="text-lg font-semibold text-slate-900">Laporan Stok</h2>
-                <p class="mt-1 text-sm text-slate-500">Kondisi stok produk aktif saat ini.</p>
+                <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-900">Laporan Stok</h2>
+                        <p class="mt-1 text-sm text-slate-500">Kondisi stok produk aktif saat ini.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ route('reports.export', ['section' => 'stock', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
+                            Export CSV
+                        </a>
+                        <a href="{{ route('reports.print', ['section' => 'stock', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                            Cetak
+                        </a>
+                    </div>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-[980px] w-full text-left text-sm">
@@ -247,5 +283,29 @@
                 </table>
             </div>
         </section>
+
+        @if ($canViewSalesAndProfit)
+            <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
+                <div class="border-b border-[#c0c8cb] px-6 py-4">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-900">Export atau Cetak Laba Rugi Sederhana</h2>
+                            <p class="mt-1 text-sm text-slate-500">Gunakan ringkasan laba rugi untuk evaluasi performa bisnis pada periode {{ $periodLabel }}.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{{ route('reports.export', ['section' => 'profit', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
+                                Export CSV
+                            </a>
+                            <a href="{{ route('reports.print', ['section' => 'profit', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                                Cetak
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-4 text-sm text-slate-600">
+                    Ringkasan ini memakai data penjualan dan pembelian pada periode aktif.
+                </div>
+            </section>
+        @endif
     </div>
 @endsection

@@ -4,9 +4,20 @@
 @section('page_subtitle', 'Tinjau ringkasan transaksi, item penjualan, metode pembayaran, dan kasir pencatat.')
 
 @section('page_actions')
-    <a href="{{ route('transactions.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
-        Kembali
-    </a>
+    <div class="flex flex-wrap items-center justify-end gap-3">
+        @if ($canCancelTransaction)
+            <form method="POST" action="{{ route('transactions.destroy', $transaction) }}" onsubmit="return confirm('Batalkan transaksi ini dan kembalikan stok produk?')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg border border-red-100 bg-white px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50">
+                    Batalkan Transaksi
+                </button>
+            </form>
+        @endif
+        <a href="{{ route('transactions.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
+            Kembali
+        </a>
+    </div>
 @endsection
 
 @section('content')

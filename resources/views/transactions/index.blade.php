@@ -6,9 +6,11 @@
     : 'Pantau transaksi penjualan toko berdasarkan periode dan detail transaksi yang tercatat.')
 
 @section('page_actions')
-    <a href="{{ route('transactions.pos') }}" class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-        Buka POS
-    </a>
+    @if (auth()->user()?->role !== 'gudang')
+        <a href="{{ route('transactions.pos') }}" class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+            Buka POS
+        </a>
+    @endif
 @endsection
 
 @section('content')
@@ -73,15 +75,26 @@
                             <td class="py-3 pr-4">Rp{{ number_format((float) $transaction->total_bayar, 0, ',', '.') }}</td>
                             <td class="py-3 pr-4">{{ ucfirst($transaction->metode_pembayaran ?? 'tunai') }}</td>
                             <td class="py-3 pr-4">
-                                <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-700">
-                                    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                <span class="inline-flex items-center gap-2 rounded-full {{ $transaction->status === 'dibatalkan' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700' }} px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]">
+                                    <span class="h-2 w-2 rounded-full {{ $transaction->status === 'dibatalkan' ? 'bg-red-500' : 'bg-emerald-500' }}"></span>
                                     {{ ucfirst($transaction->status) }}
                                 </span>
                             </td>
                             <td class="py-3 text-right">
-                                <a href="{{ route('transactions.show', $transaction) }}" class="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-                                    Detail
-                                </a>
+                                <div class="flex justify-end gap-2">
+                                    <a href="{{ route('transactions.show', $transaction) }}" class="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+                                        Detail
+                                    </a>
+                                    @if (auth()->user()?->role === 'owner' && $transaction->status !== 'dibatalkan')
+                                        <form method="POST" action="{{ route('transactions.destroy', $transaction) }}" onsubmit="return confirm('Batalkan transaksi ini dan kembalikan stok produk?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="inline-flex h-9 items-center rounded-lg border border-red-100 px-3 text-sm font-medium text-red-600 transition hover:bg-red-50">
+                                                Batalkan
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty

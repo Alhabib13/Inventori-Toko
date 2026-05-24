@@ -76,7 +76,9 @@ class StockManagementMovementTest extends TestCase
         ]);
         $product = $this->createProduct(['stok' => 1, 'stok_minimum' => 2]);
 
-        $this->actingAs($owner)->get('/stok')->assertForbidden();
+        $this->actingAs($owner)->get('/stok')
+            ->assertOk()
+            ->assertDontSee('Catat Stok Masuk');
         $this->actingAs($owner)->get('/stocks/create')->assertForbidden();
         $this->actingAs($owner)->post('/stocks', [
             'product_id' => $product->id,
