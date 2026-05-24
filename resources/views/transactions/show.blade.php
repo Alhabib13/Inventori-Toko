@@ -95,45 +95,69 @@
                 <p class="mt-1 text-sm text-slate-600">Rincian produk, qty, harga jual, dan subtotal pada transaksi ini.</p>
             </div>
 
-            <div class="overflow-x-auto px-6 py-4">
-                <table class="w-full min-w-[720px] text-left text-sm">
-                    <thead class="border-b border-slate-200 text-xs uppercase tracking-[0.16em] text-slate-500">
-                        <tr>
-                            <th class="py-3 pr-4">Produk</th>
-                            <th class="py-3 pr-4">Qty</th>
-                            <th class="py-3 pr-4">Harga</th>
-                            <th class="py-3 pr-4">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @foreach ($transaction->detailItem as $item)
-                            <tr class="transition hover:bg-slate-50">
-                                <td class="py-3 pr-4 font-medium text-slate-900">{{ $item->nama_produk }}</td>
-                                <td class="py-3 pr-4">{{ $item->qty }}</td>
-                                <td class="py-3 pr-4">Rp{{ number_format((float) $item->harga, 0, ',', '.') }}</td>
-                                <td class="py-3 pr-4">Rp{{ number_format((float) $item->subtotal, 0, ',', '.') }}</td>
+            <div class="space-y-4 px-6 py-4">
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <article class="rounded-2xl border border-slate-200 bg-[#f9f9fa] p-4">
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Baris Item</p>
+                        <p class="mt-2 text-2xl font-bold text-slate-900">{{ $transaction->detailItem->count() }}</p>
+                    </article>
+                    <article class="rounded-2xl border border-slate-200 bg-[#f9f9fa] p-4">
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Qty</p>
+                        <p class="mt-2 text-2xl font-bold text-slate-900">{{ $transaction->detailItem->sum('qty') }}</p>
+                    </article>
+                    <article class="rounded-2xl border border-[#cde2e8] bg-[#eff7f8] p-4">
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Penjualan</p>
+                        <p class="mt-2 text-2xl font-bold text-[#003441]">Rp{{ number_format((float) $transaction->total_bayar, 0, ',', '.') }}</p>
+                    </article>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[720px] text-left text-sm">
+                        <thead class="border-b border-slate-200 text-xs uppercase tracking-[0.16em] text-slate-500">
+                            <tr>
+                                <th class="py-3 pr-4">Produk</th>
+                                <th class="py-3 pr-4">Qty</th>
+                                <th class="py-3 pr-4">Harga</th>
+                                <th class="py-3 pr-4">Subtotal</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                    <tfoot class="border-t border-slate-200">
-                        <tr>
-                            <td colspan="3" class="py-3 pr-4 text-right text-sm font-semibold text-slate-700">Subtotal</td>
-                            <td class="py-3 pr-4 text-sm font-semibold text-slate-900">Rp{{ number_format((float) $transaction->subtotal, 0, ',', '.') }}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="3" class="py-3 pr-4 text-right text-sm font-semibold text-slate-700">Diskon</td>
-                            <td class="py-3 pr-4 text-sm font-semibold text-slate-900">Rp{{ number_format((float) $transaction->diskon, 0, ',', '.') }}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="3" class="py-3 pr-4 text-right text-sm font-semibold text-slate-700">Pajak</td>
-                            <td class="py-3 pr-4 text-sm font-semibold text-slate-900">Rp{{ number_format((float) $transaction->pajak, 0, ',', '.') }}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="3" class="py-3 pr-4 text-right text-sm font-semibold text-slate-700">Total Bayar</td>
-                            <td class="py-3 pr-4 text-sm font-bold text-[#003441]">Rp{{ number_format((float) $transaction->total_bayar, 0, ',', '.') }}</td>
-                        </tr>
-                    </tfoot>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach ($transaction->detailItem as $item)
+                                <tr class="transition hover:bg-slate-50">
+                                    <td class="py-3 pr-4">
+                                        <p class="font-medium text-slate-900">{{ $item->nama_produk }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">Item tercatat pada transaksi ini</p>
+                                    </td>
+                                    <td class="py-3 pr-4">
+                                        <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                                            {{ $item->qty }} unit
+                                        </span>
+                                    </td>
+                                    <td class="py-3 pr-4">Rp{{ number_format((float) $item->harga, 0, ',', '.') }}</td>
+                                    <td class="py-3 pr-4 font-semibold text-slate-900">Rp{{ number_format((float) $item->subtotal, 0, ',', '.') }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot class="border-t border-slate-200">
+                            <tr>
+                                <td colspan="3" class="py-3 pr-4 text-right text-sm font-semibold text-slate-700">Subtotal</td>
+                                <td class="py-3 pr-4 text-sm font-semibold text-slate-900">Rp{{ number_format((float) $transaction->subtotal, 0, ',', '.') }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="py-3 pr-4 text-right text-sm font-semibold text-slate-700">Diskon</td>
+                                <td class="py-3 pr-4 text-sm font-semibold text-slate-900">Rp{{ number_format((float) $transaction->diskon, 0, ',', '.') }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="py-3 pr-4 text-right text-sm font-semibold text-slate-700">Pajak</td>
+                                <td class="py-3 pr-4 text-sm font-semibold text-slate-900">Rp{{ number_format((float) $transaction->pajak, 0, ',', '.') }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="py-3 pr-4 text-right text-sm font-semibold text-slate-700">Total Bayar</td>
+                                <td class="py-3 pr-4 text-sm font-bold text-[#003441]">Rp{{ number_format((float) $transaction->total_bayar, 0, ',', '.') }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
             </div>
         </section>
     </div>
