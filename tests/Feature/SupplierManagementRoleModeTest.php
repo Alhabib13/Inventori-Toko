@@ -11,54 +11,26 @@ class SupplierManagementRoleModeTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_owner_sederhana_can_access_and_crud_suppliers(): void
+    public function test_owner_sederhana_cannot_access_suppliers(): void
     {
         $owner = User::factory()->create([
             'role' => 'owner',
             'mode_app' => 'sederhana',
         ]);
 
-        $this->actingAs($owner)->get('/suppliers')->assertOk();
-        $this->actingAs($owner)->get('/suppliers/create')->assertOk();
-
-        $this->actingAs($owner)
-            ->post('/suppliers', [
-                'nama_supplier' => 'PT Sumber Rejeki',
-                'nama_kontak' => 'Budi',
-                'telepon' => '081234567890',
-                'alamat' => 'Jl. Raya No. 1',
-            ])
-            ->assertRedirect(route('suppliers.index'));
-
-        $this->assertDatabaseHas('suppliers', [
+        $supplier = Supplier::create([
             'nama_supplier' => 'PT Sumber Rejeki',
+            'nama_kontak' => 'Budi',
+            'telepon' => '081234567890',
+            'alamat' => 'Jl. Raya No. 1',
         ]);
 
-        $supplier = Supplier::where('nama_supplier', 'PT Sumber Rejeki')->first();
-
-        $this->actingAs($owner)->get(route('suppliers.edit', $supplier))->assertOk();
-
-        $this->actingAs($owner)
-            ->put(route('suppliers.update', $supplier), [
-                'nama_supplier' => 'PT Sumber Rejeki Jaya',
-                'nama_kontak' => 'Budi',
-                'telepon' => '081234567890',
-                'alamat' => 'Jl. Raya No. 1',
-            ])
-            ->assertRedirect(route('suppliers.index'));
-
-        $this->assertDatabaseHas('suppliers', [
-            'id' => $supplier->id,
-            'nama_supplier' => 'PT Sumber Rejeki Jaya',
-        ]);
-
-        $this->actingAs($owner)
-            ->delete(route('suppliers.destroy', $supplier))
-            ->assertRedirect(route('suppliers.index'));
-
-        $this->assertDatabaseMissing('suppliers', [
-            'id' => $supplier->id,
-        ]);
+        $this->actingAs($owner)->get('/suppliers')->assertForbidden();
+        $this->actingAs($owner)->get('/suppliers/create')->assertForbidden();
+        $this->actingAs($owner)->post('/suppliers', [])->assertForbidden();
+        $this->actingAs($owner)->get(route('suppliers.edit', $supplier))->assertForbidden();
+        $this->actingAs($owner)->put(route('suppliers.update', $supplier), [])->assertForbidden();
+        $this->actingAs($owner)->delete(route('suppliers.destroy', $supplier))->assertForbidden();
     }
 
     public function test_gudang_lengkap_can_crud_suppliers(): void
@@ -168,12 +140,14 @@ class SupplierManagementRoleModeTest extends TestCase
 
     public function test_supplier_validation_requires_minimum_fields(): void
     {
-        $owner = User::factory()->create([
-            'role' => 'owner',
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
             'mode_app' => 'sederhana',
         ]);
 
-        $this->actingAs($owner)
+        $gudang->forceFill(['mode_app' => 'lengkap'])->save();
+
+        $this->actingAs($gudang)
             ->from('/suppliers/create')
             ->post('/suppliers', [])
             ->assertRedirect('/suppliers/create')

@@ -72,7 +72,7 @@ class RouteRoleModeAccessTest extends TestCase
         $this->actingAs($ownerSederhana)->get('/dashboard')->assertOk();
         $this->actingAs($ownerSederhana)->get('/products')->assertOk();
         $this->actingAs($ownerSederhana)->get('/stok')->assertOk();
-        $this->actingAs($ownerSederhana)->get('/suppliers')->assertOk();
+        $this->actingAs($ownerSederhana)->get('/suppliers')->assertForbidden();
         $this->actingAs($ownerSederhana)->get('/purchases')->assertForbidden();
 
         $ownerLengkap = User::factory()->create([
@@ -90,7 +90,8 @@ class RouteRoleModeAccessTest extends TestCase
         $this->actingAs($ownerLengkap)->get('/categories/create')->assertForbidden();
         $this->actingAs($ownerLengkap)->get('/forecasts/create')->assertForbidden();
         $this->actingAs($ownerLengkap)->get('/suppliers')->assertForbidden();
-        $this->actingAs($ownerLengkap)->get('/purchases')->assertForbidden();
+        $this->actingAs($ownerLengkap)->get('/purchases')->assertOk();
+        $this->actingAs($ownerLengkap)->get('/purchases/create')->assertForbidden();
     }
 
     public function test_owner_without_mode_is_redirected_to_mode_selection_for_protected_routes(): void

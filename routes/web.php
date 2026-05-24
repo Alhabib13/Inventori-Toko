@@ -32,7 +32,8 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
         Route::get('/register-user', [AuthController::class, 'showUserRegisterForm'])->name('users.register');
         Route::post('/register-user', [AuthController::class, 'registerUser'])->name('users.register.process');
-        Route::resource('users', UserController::class);
+        Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+        Route::resource('users', UserController::class)->only(['index', 'show', 'edit', 'update']);
     });
 
     Route::middleware('mode.access:reports')->group(function (): void {
@@ -71,7 +72,11 @@ Route::middleware('auth')->group(function (): void {
     });
 
     Route::middleware('mode.access:purchase-manage')->group(function (): void {
-        Route::resource('purchases', PurchaseController::class);
+        Route::resource('purchases', PurchaseController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
+    });
+
+    Route::middleware('mode.access:purchase-read')->group(function (): void {
+        Route::resource('purchases', PurchaseController::class)->only(['index', 'show']);
     });
 
     Route::middleware('mode.access:owner')->group(function (): void {

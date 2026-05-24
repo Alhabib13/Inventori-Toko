@@ -35,6 +35,7 @@ class EnsureRoleModeAccess
             'inventory-read' => $this->canReadInventory($pengguna->role, $pengguna->mode_app),
             'inventory-manage' => $this->canManageInventory($pengguna->role, $pengguna->mode_app),
             'supplier-manage' => $this->canManageSuppliers($pengguna->role, $pengguna->mode_app),
+            'purchase-read' => $this->canReadPurchases($pengguna->role, $pengguna->mode_app),
             'purchase-manage' => $this->canManagePurchases($pengguna->role, $pengguna->mode_app),
             'sales' => $this->canAccessSales($pengguna->role, $pengguna->mode_app),
             default => false,
@@ -114,7 +115,6 @@ class EnsureRoleModeAccess
     private function canManageSuppliers(string $role, ?string $modeApp): bool
     {
         return match ($role) {
-            'owner' => $modeApp === 'sederhana',
             'gudang' => $modeApp === 'lengkap',
             default => false,
         };
@@ -124,6 +124,14 @@ class EnsureRoleModeAccess
     {
         return match ($role) {
             'gudang' => $modeApp === 'lengkap',
+            default => false,
+        };
+    }
+
+    private function canReadPurchases(string $role, ?string $modeApp): bool
+    {
+        return match ($role) {
+            'owner', 'gudang' => $modeApp === 'lengkap',
             default => false,
         };
     }
