@@ -23,7 +23,7 @@
                 </div>
                 <div>
                     <h2 class="text-xl font-semibold text-slate-900">{{ $user->name }}</h2>
-                    <p class="mt-1 text-sm text-slate-500">{{ ucfirst($user->role) }} · {{ $user->username }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ ucfirst($user->role) }} - {{ $user->username }}</p>
                 </div>
             </div>
 
@@ -35,6 +35,16 @@
                         {{ $user->is_active ? 'Aktif' : 'Nonaktif' }}
                     </span>
                 </div>
+            </div>
+
+            <div class="mt-4 rounded-xl border border-[#cde2e8] bg-[#eff7f8] p-4">
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Ringkasan Akses</p>
+                <p class="mt-2 text-sm font-semibold text-[#003441]">
+                    {{ $user->role === 'kasir' ? 'User ini fokus pada transaksi penjualan dan alur kasir.' : ($user->role === 'gudang' ? 'User ini fokus pada stok, pembelian, dan alur gudang.' : 'User ini merupakan owner dengan akses pengawasan toko.') }}
+                </p>
+                <p class="mt-2 text-sm text-slate-600">
+                    {{ $user->is_active ? 'Status aktif menandakan user dapat login dan memakai fitur sesuai rolenya.' : 'Status nonaktif menandakan user tersimpan di sistem tetapi sementara tidak bisa login.' }}
+                </p>
             </div>
         </section>
 
@@ -52,6 +62,9 @@
                 <div class="rounded-xl border border-slate-200 p-4">
                     <dt class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Role</dt>
                     <dd class="mt-2 text-sm font-semibold text-slate-900">{{ ucfirst($user->role) }}</dd>
+                    <p class="mt-2 text-xs text-slate-500">
+                        {{ $user->role === 'kasir' ? 'Akses kasir untuk transaksi penjualan.' : ($user->role === 'gudang' ? 'Akses gudang untuk stok dan pembelian.' : 'Akses owner untuk monitoring dan pengelolaan toko.') }}
+                    </p>
                 </div>
                 <div class="rounded-xl border border-slate-200 p-4">
                     <dt class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Mode Toko</dt>
