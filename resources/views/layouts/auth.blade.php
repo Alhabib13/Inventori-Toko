@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $judulHalaman ?? 'Masuk' }} - Sitori</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        [data-confirm-dialog] {
+            margin: auto;
+            inset: 0;
+        }
+
+        [data-confirm-dialog]::backdrop {
+            background: rgba(2, 6, 23, 0.45);
+        }
+    </style>
 </head>
 <body class="min-h-screen bg-[#f7f8fa] font-sans text-slate-900 antialiased">
     @php

@@ -11,20 +11,6 @@
         <h2 class="text-[2rem] leading-tight font-extrabold tracking-tight text-slate-800">Selamat datang kembali</h2>
     </div>
 
-    @if ($errors->any())
-        <div class="mb-5 flex items-start gap-3 rounded-md border border-red-300 bg-red-50 px-4 py-3">
-            <div class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
-                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </div>
-            <div>
-                <h3 class="text-sm font-bold text-red-700">Autentikasi Gagal</h3>
-                <p class="mt-1 text-xs leading-relaxed text-red-600">{{ $errors->first() }}</p>
-            </div>
-        </div>
-    @endif
-
     <div class="rounded-xl border border-slate-200 bg-white px-4 py-5 shadow-sm sm:px-5 sm:py-6">
         <form action="{{ route('login.process') }}" method="POST" class="space-y-4">
             @csrf

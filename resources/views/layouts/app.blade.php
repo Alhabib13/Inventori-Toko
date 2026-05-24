@@ -17,6 +17,15 @@
             transition: opacity 0.18s ease;
         }
 
+        [data-confirm-dialog] {
+            margin: auto;
+            inset: 0;
+        }
+
+        [data-confirm-dialog]::backdrop {
+            background: rgba(2, 6, 23, 0.45);
+        }
+
         @media (max-width: 767.98px) {
             [data-sidebar-root][data-sidebar-state='closed'] [data-sidebar-panel] {
                 transform: translateX(-100%);
