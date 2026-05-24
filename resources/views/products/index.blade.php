@@ -3,6 +3,8 @@
 @php
     $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
     $showImportButton = $isSimpleMode || (auth()->user()?->role === 'gudang' && auth()->user()?->mode_app === 'lengkap');
+    $lowStockCount = $products->getCollection()->filter(fn ($product) => $product->stok <= $product->stok_minimum)->count();
+    $inactiveCount = $products->getCollection()->where('is_active', false)->count();
 @endphp
 
 @section('page_title', 'Produk')
@@ -46,6 +48,24 @@
             </div>
         @enderror
 
+        <section class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <article class="rounded-2xl border border-[#c0c8cb] bg-white p-5 shadow-sm">
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Produk</p>
+                <p class="mt-2 text-3xl font-bold text-slate-900">{{ $products->total() }}</p>
+                <p class="mt-1 text-sm text-slate-500">{{ $canManageProducts ? 'Data produk aktif untuk pengelolaan harian.' : 'Data produk untuk monitoring owner.' }}</p>
+            </article>
+            <article class="rounded-2xl border {{ $lowStockCount > 0 ? 'border-amber-200 bg-amber-50/70' : 'border-[#c0c8cb] bg-white' }} p-5 shadow-sm">
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em] {{ $lowStockCount > 0 ? 'text-amber-700' : 'text-slate-500' }}">Stok Perlu Dicek</p>
+                <p class="mt-2 text-3xl font-bold {{ $lowStockCount > 0 ? 'text-amber-700' : 'text-slate-900' }}">{{ $lowStockCount }}</p>
+                <p class="mt-1 text-sm {{ $lowStockCount > 0 ? 'text-amber-700' : 'text-slate-500' }}">Produk yang stoknya sudah menyentuh batas minimum.</p>
+            </article>
+            <article class="rounded-2xl border border-[#c0c8cb] bg-white p-5 shadow-sm">
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Produk Nonaktif</p>
+                <p class="mt-2 text-3xl font-bold text-slate-900">{{ $inactiveCount }}</p>
+                <p class="mt-1 text-sm text-slate-500">{{ $canManageProducts ? 'Produk nonaktif tidak ikut transaksi aktif.' : 'Lihat status produk aktif dan nonaktif dari satu halaman.' }}</p>
+            </article>
+        </section>
+
         <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
             <div class="flex items-center justify-between border-b border-[#c0c8cb] px-6 py-4">
                 <div>
@@ -60,6 +80,11 @@
                                     : 'nama_produk,kategori,satuan,harga_beli,harga_jual,stok_awal,stok_minimum' }}
                             </span>.
                             File Excel simpan dulu sebagai CSV.
+                        </p>
+                    @endif
+                    @if (! $canManageProducts)
+                        <p class="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                            Mode Read Only
                         </p>
                     @endif
                 </div>
@@ -101,6 +126,11 @@
                                 <td class="px-6 py-4 text-slate-600">
                                     <div>Stok: <span class="font-semibold text-slate-900">{{ $product->stok }} {{ $product->satuan }}</span></div>
                                     <div class="mt-1">Min: {{ $product->stok_minimum }} {{ $product->satuan }}</div>
+                                    @if ($product->stok <= $product->stok_minimum)
+                                        <span class="mt-2 inline-flex rounded-full bg-amber-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-amber-700">
+                                            Stok Menipis
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="inline-flex items-center gap-2 rounded-full {{ $product->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' }} px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]">
@@ -130,7 +160,17 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $isSimpleMode ? '6' : '7' }}" class="px-6 py-8 text-center text-slate-500">Belum ada produk.</td>
+                                <td colspan="{{ $isSimpleMode ? '6' : '7' }}" class="px-6 py-0">
+                                    <div class="mx-auto my-8 max-w-xl rounded-2xl border border-dashed border-slate-300 bg-[#f9f9fa] px-6 py-10 text-center">
+                                        <p class="text-base font-semibold text-slate-900">Belum ada produk yang tersimpan.</p>
+                                        <p class="mt-2 text-sm leading-6 text-slate-500">Tambahkan produk pertama untuk mulai memantau harga, stok, kategori, dan supplier dari satu halaman.</p>
+                                        @if ($canManageProducts)
+                                            <a href="{{ route('products.create') }}" class="mt-5 inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                                                Tambah Produk
+                                            </a>
+                                        @endif
+                                    </div>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>

@@ -20,7 +20,7 @@
                 </div>
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Pergerakan</p>
-                    <p class="mt-2 text-sm font-semibold text-slate-900">{{ ucfirst($stock->jenis_pergerakan) }} • qty {{ $stock->qty }}</p>
+                    <p class="mt-2 text-sm font-semibold text-slate-900">{{ ucfirst($stock->jenis_pergerakan) }} - qty {{ $stock->qty }}</p>
                 </div>
             </div>
         </section>

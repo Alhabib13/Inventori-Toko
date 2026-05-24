@@ -28,6 +28,10 @@
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Selisih Prediksi</p>
                     <p class="mt-2 text-sm font-semibold text-slate-900">{{ $forecast->selisih_prediksi ?? '-' }}</p>
                 </div>
+                <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Moving Average Aktif</p>
+                    <p class="mt-2 text-sm font-semibold text-slate-900">{{ number_format((float) $forecast->nilai_moving_average, 2, ',', '.') }}</p>
+                </div>
             </div>
         </section>
 
@@ -35,6 +39,11 @@
             <form action="{{ route('forecasts.update', $forecast) }}" method="POST" class="space-y-6">
                 @csrf
                 @method('PUT')
+                <div class="space-y-2 border-b border-slate-200 pb-5">
+                    <h2 class="text-lg font-semibold text-slate-900">Perbarui Parameter Forecast</h2>
+                    <p class="text-sm leading-6 text-slate-500">Sesuaikan produk, periode akhir, atau jendela moving average agar hasil prediksi tetap relevan.</p>
+                </div>
+
                 @include('forecasts._form', ['forecast' => $forecast])
 
                 <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-end">

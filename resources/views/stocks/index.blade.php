@@ -4,6 +4,7 @@
     $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
     $isCashier = auth()->user()?->role === 'kasir';
     $lowStockCount = $products->filter(fn ($product) => $product->stok <= $product->stok_minimum)->count();
+    $safeStockCount = $products->count() - $lowStockCount;
     $showLowStockOnly = $showLowStockOnly ?? false;
 @endphp
 
@@ -35,20 +36,20 @@
         @endif
 
         <section class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+            <article class="rounded-2xl border {{ $showLowStockOnly ? 'border-red-200 bg-red-50/70' : 'border-[#c0c8cb] bg-white' }} p-6 shadow-sm">
                 <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $showLowStockOnly ? 'Produk Menipis' : 'Data Stok Utama' }}</p>
-                <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $products->count() }}</h2>
-                <p class="mt-2 text-sm text-slate-500">{{ $showLowStockOnly ? 'Produk yang perlu segera diprioritaskan untuk restock.' : ($isCashier ? 'Produk aktif yang stoknya bisa dicek cepat oleh kasir sebelum transaksi.' : 'Produk yang sedang dimonitor pada inventory aktif.') }}</p>
+                <h2 class="mt-2 text-3xl font-bold tracking-tight {{ $showLowStockOnly ? 'text-red-600' : 'text-slate-900' }}">{{ $products->count() }}</h2>
+                <p class="mt-2 text-sm {{ $showLowStockOnly ? 'text-red-600' : 'text-slate-500' }}">{{ $showLowStockOnly ? 'Produk yang perlu segera diprioritaskan untuk restock.' : ($isCashier ? 'Produk aktif yang stoknya bisa dicek cepat oleh kasir sebelum transaksi.' : 'Produk yang sedang dimonitor pada inventory aktif.') }}</p>
             </article>
-            <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+            <article class="rounded-2xl border {{ $lowStockCount > 0 ? 'border-amber-200 bg-amber-50/70' : 'border-[#c0c8cb] bg-white' }} p-6 shadow-sm">
                 <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Stok Minimum</p>
-                <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $lowStockCount }}</h2>
-                <p class="mt-2 text-sm text-slate-500">{{ $isCashier ? 'Produk yang stoknya perlu diwaspadai saat melayani transaksi.' : 'Produk yang sudah mencapai atau melewati batas minimum.' }}</p>
+                <h2 class="mt-2 text-3xl font-bold tracking-tight {{ $lowStockCount > 0 ? 'text-amber-700' : 'text-slate-900' }}">{{ $lowStockCount }}</h2>
+                <p class="mt-2 text-sm {{ $lowStockCount > 0 ? 'text-amber-700' : 'text-slate-500' }}">{{ $isCashier ? 'Produk yang stoknya perlu diwaspadai saat melayani transaksi.' : 'Produk yang sudah mencapai atau melewati batas minimum.' }}</p>
             </article>
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isCashier ? 'Ketersediaan Aman' : 'Kontrol Stok Detail' }}</p>
-                <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $movements->total() }}</h2>
-                <p class="mt-2 text-sm text-slate-500">{{ $isCashier ? 'Gunakan informasi ini untuk memastikan produk yang dipilih pelanggan masih tersedia.' : ($isSimpleMode ? 'Riwayat stok masuk dan keluar yang tercatat secara sederhana.' : 'Riwayat pergerakan stok yang tercatat di sistem.') }}</p>
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isCashier ? 'Ketersediaan Aman' : ($showLowStockOnly ? 'Stok Aman' : 'Kontrol Stok Detail') }}</p>
+                <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $showLowStockOnly ? $safeStockCount : $movements->total() }}</h2>
+                <p class="mt-2 text-sm text-slate-500">{{ $isCashier ? 'Gunakan informasi ini untuk memastikan produk yang dipilih pelanggan masih tersedia.' : ($showLowStockOnly ? 'Produk lain yang saat ini masih berada pada status aman.' : ($isSimpleMode ? 'Riwayat stok masuk dan keluar yang tercatat secara sederhana.' : 'Riwayat pergerakan stok yang tercatat di sistem.')) }}</p>
             </article>
         </section>
 
@@ -60,6 +61,11 @@
                         ? 'Hanya produk dengan stok saat ini berada di bawah atau sama dengan stok minimum yang ditampilkan.'
                         : ($isSimpleMode ? 'Ringkasan stok barang dan stok minimum untuk pemantauan owner sehari-hari.' : ($isCashier ? 'Tabel stok aktif untuk membantu kasir mengecek ketersediaan produk sebelum melakukan transaksi.' : 'Tabel stok aktif, stok minimum, supplier terkait, dan indikator produk yang perlu perhatian.')) }}
                 </p>
+                @if (! $canManageStock && ! $isCashier)
+                    <p class="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                        Mode Read Only
+                    </p>
+                @endif
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-[920px] w-full text-left text-sm">
@@ -86,7 +92,12 @@
                                 @unless($isSimpleMode || $isCashier)
                                     <td class="px-6 py-4 text-slate-600">{{ $product->supplier?->nama_supplier ?? '-' }}</td>
                                 @endunless
-                                <td class="px-6 py-4 font-semibold text-slate-900">{{ $product->stok }} {{ $product->satuan }}</td>
+                                <td class="px-6 py-4">
+                                    <p class="font-semibold text-slate-900">{{ $product->stok }} {{ $product->satuan }}</p>
+                                    @if ($product->stok <= $product->stok_minimum)
+                                        <p class="mt-1 text-xs font-medium text-red-600">Perlu prioritas restock</p>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 text-slate-600">{{ $product->stok_minimum }} {{ $product->satuan }}</td>
                                 <td class="px-6 py-4">
                                     <span class="inline-flex items-center gap-2 rounded-full {{ $product->stok <= $product->stok_minimum ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700' }} px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]">
@@ -97,8 +108,11 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $isSimpleMode || $isCashier ? '5' : '6' }}" class="px-6 py-8 text-center text-slate-500">
-                                    {{ $showLowStockOnly ? 'Tidak ada produk dengan stok menipis.' : 'Belum ada produk.' }}
+                                <td colspan="{{ $isSimpleMode || $isCashier ? '5' : '6' }}" class="px-6 py-0">
+                                    <div class="mx-auto my-8 max-w-xl rounded-2xl border border-dashed border-slate-300 bg-[#f9f9fa] px-6 py-10 text-center">
+                                        <p class="text-base font-semibold text-slate-900">{{ $showLowStockOnly ? 'Tidak ada produk dengan stok menipis.' : 'Belum ada data stok produk.' }}</p>
+                                        <p class="mt-2 text-sm leading-6 text-slate-500">{{ $showLowStockOnly ? 'Semua produk saat ini masih berada di atas batas minimum.' : 'Produk akan muncul di sini setelah data inventori dan pergerakan stok mulai tercatat.' }}</p>
+                                    </div>
                                 </td>
                             </tr>
                         @endforelse
@@ -129,7 +143,10 @@
                         <tbody class="divide-y divide-slate-200">
                             @forelse ($movements as $movement)
                                 <tr class="transition hover:bg-slate-50">
-                                    <td class="px-6 py-4 text-slate-600">{{ $movement->tanggal_pergerakan?->format('d/m/Y H:i') }}</td>
+                                    <td class="px-6 py-4 text-slate-600">
+                                        <p>{{ $movement->tanggal_pergerakan?->format('d/m/Y') }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">{{ $movement->tanggal_pergerakan?->format('H:i') }}</p>
+                                    </td>
                                     <td class="px-6 py-4">
                                         @if ($canManageStock)
                                             <a href="{{ route('stocks.show', $movement) }}" class="font-semibold text-slate-900 transition hover:text-[#003441]">
@@ -139,15 +156,24 @@
                                             <span class="font-semibold text-slate-900">{{ $movement->produk?->nama_produk ?? '-' }}</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 text-slate-600">{{ ucfirst($movement->jenis_pergerakan) }}</td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] {{ $movement->jenis_pergerakan === 'masuk' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
+                                            {{ ucfirst($movement->jenis_pergerakan) }}
+                                        </span>
+                                    </td>
                                     <td class="px-6 py-4 font-semibold text-slate-900">{{ $movement->qty }}</td>
                                     <td class="px-6 py-4 text-slate-600">{{ $movement->stok_sebelum }}</td>
                                     <td class="px-6 py-4 text-slate-600">{{ $movement->stok_sesudah }}</td>
-                                    <td class="px-6 py-4 text-slate-600">{{ $movement->catatan ?? '-' }}</td>
+                                    <td class="px-6 py-4 text-slate-600">{{ $movement->catatan ?: 'Tidak ada catatan.' }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-6 py-8 text-center text-slate-500">Belum ada pergerakan stok.</td>
+                                    <td colspan="7" class="px-6 py-0">
+                                        <div class="mx-auto my-8 max-w-xl rounded-2xl border border-dashed border-slate-300 bg-[#f9f9fa] px-6 py-10 text-center">
+                                            <p class="text-base font-semibold text-slate-900">Belum ada histori pergerakan stok.</p>
+                                            <p class="mt-2 text-sm leading-6 text-slate-500">Riwayat stok masuk dan keluar akan muncul di sini setelah transaksi stok mulai dicatat.</p>
+                                        </div>
+                                    </td>
                                 </tr>
                             @endforelse
                         </tbody>

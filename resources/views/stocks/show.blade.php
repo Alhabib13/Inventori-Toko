@@ -14,6 +14,12 @@
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Qty Pergerakan</p>
                     <p class="mt-2 text-4xl font-bold tracking-tight text-[#003441]">{{ $stock->qty }}</p>
                 </div>
+                <div class="rounded-xl border {{ $stock->jenis_pergerakan === 'masuk' ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/70' }} p-4">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] {{ $stock->jenis_pergerakan === 'masuk' ? 'text-emerald-700' : 'text-amber-700' }}">Jenis Pergerakan</p>
+                    <p class="mt-2 text-sm font-semibold {{ $stock->jenis_pergerakan === 'masuk' ? 'text-emerald-700' : 'text-amber-700' }}">
+                        {{ $stock->jenis_pergerakan === 'masuk' ? 'Stok masuk menambah jumlah barang yang tersedia.' : 'Stok keluar mengurangi jumlah barang yang tersedia.' }}
+                    </p>
+                </div>
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Dicatat Oleh</p>
                     <p class="mt-2 text-sm font-semibold text-slate-900">{{ $stock->pengguna?->name ?? '-' }}</p>
@@ -28,6 +34,11 @@
             </div>
 
             <div class="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
+                <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4 md:col-span-2">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Ringkasan Produk</p>
+                    <p class="mt-2 text-base font-semibold text-slate-900">{{ $stock->produk?->nama_produk ?? '-' }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ $stock->produk?->kode_produk ?? '-' }}</p>
+                </div>
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Jenis Pergerakan</p>
                     <p class="mt-2 text-sm font-semibold text-slate-900">{{ ucfirst($stock->jenis_pergerakan) }}</p>

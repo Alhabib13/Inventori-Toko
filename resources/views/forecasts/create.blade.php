@@ -12,15 +12,19 @@
 @section('content')
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-[0.72fr_1.28fr]">
         <section class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-            <h2 class="text-lg font-semibold text-slate-900">Panduan Prediksi</h2>
+            <h2 class="text-lg font-semibold text-slate-900">Panduan Generate Forecast</h2>
             <div class="mt-5 space-y-4">
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
-                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Periode Analisis</p>
-                    <p class="mt-2 text-sm leading-6 text-slate-600">Sistem akan menghitung rata-rata penjualan dari beberapa bulan terakhir dengan metode Simple Moving Average.</p>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Langkah 1</p>
+                    <p class="mt-2 text-sm leading-6 text-slate-600">Pilih satu produk yang ingin dianalisis. Forecast akan menggunakan histori transaksi produk tersebut.</p>
                 </div>
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
-                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Rekomendasi Restock</p>
-                    <p class="mt-2 text-sm leading-6 text-slate-600">Setelah disimpan, sistem akan mengisi prediksi stok, stok aktual, moving average, dan gap restock secara otomatis.</p>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Langkah 2</p>
+                    <p class="mt-2 text-sm leading-6 text-slate-600">Tentukan periode akhir dan jumlah bulan untuk moving average. Rekomendasi awal yang paling aman adalah 3 bulan.</p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Hasil Otomatis</p>
+                    <p class="mt-2 text-sm leading-6 text-slate-600">Setelah disimpan, sistem akan menghitung prediksi stok, stok aktual, nilai moving average, dan rekomendasi restock secara otomatis.</p>
                 </div>
             </div>
         </section>
@@ -28,6 +32,11 @@
         <section class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
             <form action="{{ route('forecasts.store') }}" method="POST" class="space-y-6">
                 @csrf
+                <div class="space-y-2 border-b border-slate-200 pb-5">
+                    <h2 class="text-lg font-semibold text-slate-900">Generate Prediksi Baru</h2>
+                    <p class="text-sm leading-6 text-slate-500">Isi parameter inti di bawah ini. Forecast akan dibuat otomatis setelah form disimpan.</p>
+                </div>
+
                 @include('forecasts._form', ['forecast' => null])
 
                 <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-end">
@@ -35,7 +44,7 @@
                         Batal
                     </a>
                     <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-                        Simpan Prediksi
+                        Generate Prediksi
                     </button>
                 </div>
             </form>
