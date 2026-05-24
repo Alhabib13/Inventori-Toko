@@ -8,7 +8,9 @@
 @section('page_title', 'Kategori')
 @section('page_subtitle', $isSimpleMode
     ? 'Kelola daftar kategori produk dan proses tambah/edit/hapus kategori untuk owner mode sederhana.'
-    : 'Pantau klasifikasi produk untuk monitoring owner mode lengkap tanpa perubahan data operasional.')
+    : ($canManageCategories
+        ? 'Kelola klasifikasi produk untuk membantu operasional gudang menjaga struktur inventori tetap rapi.'
+        : 'Pantau klasifikasi produk untuk monitoring owner mode lengkap tanpa perubahan data operasional.'))
 
 @section('page_actions')
     @if ($canManageCategories)
@@ -37,7 +39,7 @@
         <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
             <div class="border-b border-[#c0c8cb] px-6 py-4">
                 <h2 class="text-lg font-semibold text-slate-900">Klasifikasi Produk</h2>
-                <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Kategori membantu owner memisahkan produk agar pencatatan dan laporan tetap rapi.' : 'Gunakan kategori untuk mempermudah analisis stok, produk, dan laporan bisnis.' }}</p>
+                <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Kategori membantu owner memisahkan produk agar pencatatan dan laporan tetap rapi.' : ($canManageCategories ? 'Gunakan kategori untuk mempermudah pencatatan barang, penataan stok, dan operasional gudang harian.' : 'Gunakan kategori untuk mempermudah analisis stok, produk, dan laporan bisnis.') }}</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-sm">

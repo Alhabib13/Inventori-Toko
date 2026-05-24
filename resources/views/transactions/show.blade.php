@@ -21,47 +21,69 @@
 @endsection
 
 @section('content')
-    <div class="space-y-6">
-        <section class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-            <div class="flex flex-col gap-2">
-                <h3 class="text-lg font-semibold text-slate-900">{{ $transaction->kode_transaksi }}</h3>
-                <p class="text-sm text-slate-600">Status transaksi {{ strtolower($transaction->status) }} pada {{ $transaction->tanggal_transaksi?->format('d/m/Y H:i') }}.</p>
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[0.36fr_0.64fr]">
+        <section class="rounded-[28px] border border-[#c0c8cb] bg-white shadow-sm">
+            <div class="border-b border-[#c0c8cb] px-6 py-5">
+                <h3 class="text-xl font-semibold text-slate-900">Ringkasan Struk</h3>
+                <p class="mt-1 text-sm text-slate-500">{{ $transaction->kode_transaksi }} • {{ $transaction->tanggal_transaksi?->format('d/m/Y H:i') }}</p>
             </div>
 
-            <dl class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <div class="rounded-xl border border-slate-200 p-4">
-                    <dt class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Kasir Pencatat</dt>
-                    <dd class="mt-2 text-sm font-semibold text-slate-900">{{ $transaction->kasir?->name ?? '-' }}</dd>
+            <div class="space-y-5 px-6 py-5">
+                <div class="rounded-2xl border border-slate-200 bg-[#f9f9fa] p-4">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Status Transaksi</p>
+                    <p class="mt-2 text-sm font-semibold {{ $transaction->status === 'dibatalkan' ? 'text-red-600' : 'text-emerald-700' }}">
+                        {{ ucfirst($transaction->status) }}
+                    </p>
                 </div>
-                <div class="rounded-xl border border-slate-200 p-4">
-                    <dt class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Metode Pembayaran</dt>
-                    <dd class="mt-2 text-sm font-semibold text-slate-900">{{ ucfirst($transaction->metode_pembayaran ?? 'tunai') }}</dd>
+
+                <div class="space-y-3 text-sm">
+                    <div class="flex items-center justify-between text-slate-600">
+                        <span>Kasir</span>
+                        <span class="font-semibold text-slate-900">{{ $transaction->kasir?->name ?? '-' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-600">
+                        <span>Metode</span>
+                        <span class="font-semibold text-slate-900">{{ ucfirst($transaction->metode_pembayaran ?? 'tunai') }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-600">
+                        <span>Total Item</span>
+                        <span class="font-semibold text-slate-900">{{ $transaction->total_item }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-600">
+                        <span>Nominal Bayar</span>
+                        <span class="font-semibold text-slate-900">Rp{{ number_format((float) $transaction->nominal_bayar, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-600">
+                        <span>Kembalian</span>
+                        <span class="font-semibold text-emerald-700">Rp{{ number_format((float) $transaction->kembalian, 0, ',', '.') }}</span>
+                    </div>
                 </div>
-                <div class="rounded-xl border border-slate-200 p-4">
-                    <dt class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Item</dt>
-                    <dd class="mt-2 text-sm font-semibold text-slate-900">{{ $transaction->total_item }}</dd>
+
+                <div class="rounded-2xl border border-slate-200 bg-[#f9f9fa] p-4">
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span>Subtotal</span>
+                            <span class="font-semibold text-slate-900">Rp{{ number_format((float) $transaction->subtotal, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span>Diskon</span>
+                            <span class="font-semibold text-slate-900">Rp{{ number_format((float) $transaction->diskon, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span>Pajak</span>
+                            <span class="font-semibold text-slate-900">Rp{{ number_format((float) $transaction->pajak, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex items-center justify-between border-t border-slate-200 pt-3">
+                            <span class="font-semibold text-slate-700">Total Bayar</span>
+                            <span class="text-xl font-bold text-[#003441]">Rp{{ number_format((float) $transaction->total_bayar, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="rounded-xl border border-slate-200 p-4">
-                    <dt class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Subtotal</dt>
-                    <dd class="mt-2 text-sm font-semibold text-slate-900">Rp{{ number_format((float) $transaction->subtotal, 0, ',', '.') }}</dd>
-                </div>
-                <div class="rounded-xl border border-slate-200 p-4">
-                    <dt class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Bayar</dt>
-                    <dd class="mt-2 text-sm font-semibold text-slate-900">Rp{{ number_format((float) $transaction->total_bayar, 0, ',', '.') }}</dd>
-                </div>
-                <div class="rounded-xl border border-slate-200 p-4">
-                    <dt class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Nominal Bayar / Kembalian</dt>
-                    <dd class="mt-2 text-sm font-semibold text-slate-900">
-                        Rp{{ number_format((float) $transaction->nominal_bayar, 0, ',', '.') }}
-                        <span class="text-slate-400">/</span>
-                        Rp{{ number_format((float) $transaction->kembalian, 0, ',', '.') }}
-                    </dd>
-                </div>
-            </dl>
+            </div>
         </section>
 
-        <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
-            <div class="border-b border-[#c0c8cb] px-6 py-4">
+        <section class="overflow-hidden rounded-[28px] border border-[#c0c8cb] bg-white shadow-sm">
+            <div class="border-b border-[#c0c8cb] px-6 py-5">
                 <h3 class="text-lg font-semibold text-slate-900">Item Penjualan</h3>
                 <p class="mt-1 text-sm text-slate-600">Rincian produk, qty, harga jual, dan subtotal pada transaksi ini.</p>
             </div>
