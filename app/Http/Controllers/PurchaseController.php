@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\Supplier;
 use App\Services\StockMovementService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,14 +16,37 @@ use Illuminate\View\View;
 
 class PurchaseController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $user = $request->user();
+        $dateFrom = $request->string('date_from')->toString();
+        $dateTo = $request->string('date_to')->toString();
+
         $purchases = Purchase::query()
             ->with(['supplier', 'pengguna'])
+            ->when($user?->role === 'owner', function (Builder $query) use ($user): void {
+                $query->whereHas('pengguna', fn (Builder $penggunaQuery) => $penggunaQuery->where('store_name', $user->store_name));
+            })
+            ->when($user?->role === 'gudang', function (Builder $query) use ($user): void {
+                $query->whereHas('pengguna', fn (Builder $penggunaQuery) => $penggunaQuery->where('store_name', $user->store_name));
+            })
+            ->when($dateFrom !== '', function (Builder $query) use ($dateFrom): void {
+                $query->whereDate('tanggal_pembelian', '>=', $dateFrom);
+            })
+            ->when($dateTo !== '', function (Builder $query) use ($dateTo): void {
+                $query->whereDate('tanggal_pembelian', '<=', $dateTo);
+            })
             ->latest('tanggal_pembelian')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('purchases.index', compact('purchases'));
+        return view('purchases.index', [
+            'purchases' => $purchases,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'canManagePurchases' => $user?->role === 'gudang' && $user?->mode_app === 'lengkap',
+            'isOwner' => $user?->role === 'owner',
+        ]);
     }
 
     public function create(): View
@@ -129,9 +153,15 @@ class PurchaseController extends Controller
             ->with('status', 'Pembelian berhasil disimpan.');
     }
 
-    public function show(Purchase $purchase): View
+    public function show(Request $request, Purchase $purchase): View
     {
-        $purchase->load(['supplier', 'pengguna', 'detailItem']);
+        $user = $request->user();
+
+        if (in_array($user?->role, ['owner', 'gudang'], true) && $purchase->pengguna?->store_name !== $user->store_name) {
+            abort(403, 'Anda tidak memiliki akses ke pembelian ini.');
+        }
+
+        $purchase->load(['supplier', 'pengguna', 'detailItem.produk']);
 
         return view('purchases.show', compact('purchase'));
     }

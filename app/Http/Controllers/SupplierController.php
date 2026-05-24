@@ -11,8 +11,15 @@ class SupplierController extends Controller
 {
     public function index(): View
     {
-        $suppliers = Supplier::all();
-        return view('suppliers.index', compact('suppliers'));
+        $suppliers = Supplier::query()
+            ->orderByDesc('is_active')
+            ->orderBy('nama_supplier')
+            ->get();
+
+        return view('suppliers.index', [
+            'suppliers' => $suppliers,
+            'activeSupplierCount' => $suppliers->where('is_active', true)->count(),
+        ]);
     }
 
     public function create(): View
@@ -29,7 +36,10 @@ class SupplierController extends Controller
             'telepon' => ['required', 'string', 'max:20'],
             'alamat' => ['required', 'string'],
             'keterangan' => ['nullable', 'string'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
+
+        $validated['is_active'] = $request->boolean('is_active', true);
 
         Supplier::create($validated);
 
@@ -55,8 +65,10 @@ class SupplierController extends Controller
             'telepon' => ['required', 'string', 'max:20'],
             'alamat' => ['required', 'string'],
             'keterangan' => ['nullable', 'string'],
-            'is_active' => ['boolean'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
+
+        $validated['is_active'] = $request->boolean('is_active');
 
         $supplier->update($validated);
 

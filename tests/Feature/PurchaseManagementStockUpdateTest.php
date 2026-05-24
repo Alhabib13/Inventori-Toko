@@ -181,11 +181,94 @@ class PurchaseManagementStockUpdateTest extends TestCase
         $owner = User::factory()->create([
             'role' => 'owner',
             'mode_app' => 'lengkap',
+            'store_name' => 'Toko Monitoring',
         ]);
 
-        $this->actingAs($owner)->get('/purchases')->assertForbidden();
+        $purchaseRecorder = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko Monitoring',
+        ]);
+        $supplier = $this->createSupplier();
+
+        $purchase = Purchase::create([
+            'kode_pembelian' => 'PO-MONITOR-001',
+            'supplier_id' => $supplier->id,
+            'user_id' => $purchaseRecorder->id,
+            'tanggal_pembelian' => now(),
+            'subtotal' => 30000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 30000,
+            'status' => 'selesai',
+        ]);
+
+        $this->actingAs($owner)->get('/purchases')->assertOk();
+        $this->actingAs($owner)->get(route('purchases.show', $purchase))->assertOk();
         $this->actingAs($owner)->get('/purchases/create')->assertForbidden();
         $this->actingAs($owner)->post('/purchases', [])->assertForbidden();
+    }
+
+    public function test_purchase_history_supports_period_filter_and_detail_content(): void
+    {
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko Gudang',
+            'name' => 'Gudang Utama',
+        ]);
+        $supplier = $this->createSupplier();
+        $product = $this->createProduct(['nama_produk' => 'Produk Pembelian Detail']);
+
+        $recentPurchase = Purchase::create([
+            'kode_pembelian' => 'PO-RECENT-001',
+            'supplier_id' => $supplier->id,
+            'user_id' => $gudang->id,
+            'tanggal_pembelian' => now()->subDays(2),
+            'subtotal' => 24000,
+            'diskon' => 1000,
+            'ongkir' => 500,
+            'total_bayar' => 23500,
+            'status' => 'selesai',
+        ]);
+
+        $recentPurchase->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => 'Produk Pembelian Detail',
+            'qty' => 2,
+            'harga_beli' => 12000,
+            'subtotal' => 24000,
+        ]);
+
+        Purchase::create([
+            'kode_pembelian' => 'PO-OLD-001',
+            'supplier_id' => $supplier->id,
+            'user_id' => $gudang->id,
+            'tanggal_pembelian' => now()->subDays(20),
+            'subtotal' => 10000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 10000,
+            'status' => 'selesai',
+        ]);
+
+        $this->actingAs($gudang)
+            ->get(route('purchases.index', [
+                'date_from' => now()->subDays(7)->toDateString(),
+                'date_to' => now()->toDateString(),
+            ]))
+            ->assertOk()
+            ->assertSee('PO-RECENT-001')
+            ->assertDontSee('PO-OLD-001');
+
+        $this->actingAs($gudang)
+            ->get(route('purchases.show', $recentPurchase))
+            ->assertOk()
+            ->assertSee($supplier->nama_supplier)
+            ->assertSee('Gudang Utama')
+            ->assertSee('Produk Pembelian Detail')
+            ->assertSee('Rp24.000')
+            ->assertSee('Rp23.500');
     }
 
     private function createSupplier(): Supplier
