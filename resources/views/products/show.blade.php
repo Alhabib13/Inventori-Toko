@@ -27,8 +27,15 @@
                 </div>
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Status Produk</p>
-                    <p class="mt-2 text-sm font-semibold {{ $product->is_active ? 'text-emerald-700' : 'text-slate-500' }}">
+                    <span class="mt-2 inline-flex items-center gap-2 rounded-full {{ $product->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' }} px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]">
+                        <span class="h-2 w-2 rounded-full {{ $product->is_active ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
                         {{ $product->is_active ? 'Aktif' : 'Nonaktif' }}
+                    </span>
+                </div>
+                <div class="rounded-xl border {{ $product->stok <= $product->stok_minimum ? 'border-amber-200 bg-amber-50/70' : 'border-emerald-200 bg-emerald-50/70' }} p-4">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] {{ $product->stok <= $product->stok_minimum ? 'text-amber-700' : 'text-emerald-700' }}">Kondisi Stok</p>
+                    <p class="mt-2 text-sm font-semibold {{ $product->stok <= $product->stok_minimum ? 'text-amber-700' : 'text-emerald-700' }}">
+                        {{ $product->stok <= $product->stok_minimum ? 'Perlu perhatian karena stok sudah menyentuh batas minimum.' : 'Stok masih aman untuk operasional saat ini.' }}
                     </p>
                 </div>
             </div>
@@ -41,6 +48,11 @@
             </div>
 
             <div class="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
+                <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4 md:col-span-2">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Ringkasan Produk</p>
+                    <p class="mt-2 text-base font-semibold text-slate-900">{{ $product->nama_produk }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ $product->kode_produk }} - {{ $product->satuan }}</p>
+                </div>
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Kategori</p>
                     <p class="mt-2 text-sm font-semibold text-slate-900">{{ $product->kategori?->nama_kategori ?? '-' }}</p>
@@ -58,6 +70,10 @@
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Harga Jual</p>
                     <p class="mt-2 text-sm font-semibold text-slate-900">Rp{{ number_format((float) $product->harga_jual, 0, ',', '.') }}</p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Potensi Margin</p>
+                    <p class="mt-2 text-sm font-semibold text-slate-900">Rp{{ number_format((float) ($product->harga_jual - $product->harga_beli), 0, ',', '.') }}</p>
                 </div>
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Stok Minimum</p>
