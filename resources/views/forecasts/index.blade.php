@@ -3,7 +3,9 @@
 @section('page_title', 'Prediksi Stok')
 @section('page_subtitle', $isSimpleMode
     ? 'Prediksi kebutuhan stok sederhana, rekomendasi restock, dan tren penjualan barang.'
-    : 'Prediksi stok per produk, kebutuhan restock, dan analisis tren penjualan untuk owner mode lengkap.')
+    : ($canManageForecasts
+        ? 'Prediksi kebutuhan barang gudang, rekomendasi restock, dan analisis pergerakan stok per produk.'
+        : 'Prediksi stok per produk, kebutuhan restock, dan analisis tren penjualan untuk owner mode lengkap.'))
 
 @section('page_actions')
     @if ($canManageForecasts)
@@ -17,11 +19,13 @@
     <div class="space-y-6">
         <section class="grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_0.85fr]">
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-                <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Prediksi Kebutuhan Stok Sederhana' : 'Analisis Tren Penjualan' }}</h2>
+                <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Prediksi Kebutuhan Stok Sederhana' : ($canManageForecasts ? 'Prediksi Kebutuhan Barang Gudang' : 'Analisis Tren Penjualan') }}</h2>
                 <p class="mt-2 text-sm leading-6 text-slate-500">
                     {{ $isSimpleMode
                         ? 'Halaman ini membantu owner sederhana memperkirakan kebutuhan stok tanpa analisis yang terlalu kompleks.'
-                        : 'Prediksi stok di halaman ini digunakan untuk membantu owner menilai kebutuhan restock berdasarkan histori transaksi dan laju pergerakan produk.' }}
+                        : ($canManageForecasts
+                            ? 'Halaman ini membantu tim gudang membaca kebutuhan restock berdasarkan histori pergerakan barang, prediksi stok, dan laju penjualan produk.'
+                            : 'Prediksi stok di halaman ini digunakan untuk membantu owner menilai kebutuhan restock berdasarkan histori transaksi dan laju pergerakan produk.') }}
                 </p>
                 <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
@@ -40,7 +44,7 @@
             </article>
 
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-                <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Rekomendasi Restock' : 'Kebutuhan Restock' }}</h2>
+                <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Rekomendasi Restock' : ($canManageForecasts ? 'Rekomendasi Restock Gudang' : 'Kebutuhan Restock') }}</h2>
                 <div class="mt-4 space-y-3">
                     @forelse ($restockProducts as $restockItem)
                         <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
@@ -64,8 +68,8 @@
 
         <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
             <div class="border-b border-[#c0c8cb] px-6 py-4">
-                <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Tren Penjualan Barang' : 'Prediksi Stok per Produk' }}</h2>
-                <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Tabel prediksi sederhana untuk membantu owner membaca barang yang perlu diprioritaskan.' : 'Tabel prediksi, nilai moving average, dan selisih dengan stok aktual.' }}</p>
+                <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Tren Penjualan Barang' : ($canManageForecasts ? 'Prediksi Kebutuhan Barang per Produk' : 'Prediksi Stok per Produk') }}</h2>
+                <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Tabel prediksi sederhana untuk membantu owner membaca barang yang perlu diprioritaskan.' : ($canManageForecasts ? 'Tabel prediksi, stok aktual, selisih, dan moving average untuk membantu keputusan restock gudang.' : 'Tabel prediksi, nilai moving average, dan selisih dengan stok aktual.') }}</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left text-sm">
