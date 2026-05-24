@@ -51,7 +51,7 @@ class EnsureRoleModeAccess
     private function canReadStock(string $role, ?string $modeApp): bool
     {
         return match ($role) {
-            'owner' => $modeApp === 'sederhana',
+            'owner' => in_array($modeApp, ['sederhana', 'lengkap'], true),
             'kasir' => in_array($modeApp, ['sederhana', 'lengkap'], true),
             'gudang' => $modeApp === 'lengkap',
             default => false,

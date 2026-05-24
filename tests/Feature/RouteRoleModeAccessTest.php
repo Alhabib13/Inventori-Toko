@@ -85,7 +85,7 @@ class RouteRoleModeAccessTest extends TestCase
         $this->actingAs($ownerLengkap)->get('/categories')->assertOk();
         $this->actingAs($ownerLengkap)->get('/reports')->assertOk();
         $this->actingAs($ownerLengkap)->get('/forecasts')->assertOk();
-        $this->actingAs($ownerLengkap)->get('/stok')->assertForbidden();
+        $this->actingAs($ownerLengkap)->get('/stok')->assertOk();
         $this->actingAs($ownerLengkap)->get('/products/create')->assertForbidden();
         $this->actingAs($ownerLengkap)->get('/categories/create')->assertForbidden();
         $this->actingAs($ownerLengkap)->get('/forecasts/create')->assertForbidden();
