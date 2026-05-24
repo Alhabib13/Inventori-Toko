@@ -4,13 +4,30 @@
 @section('page_subtitle', 'Tinjau supplier, pencatat pembelian, item produk, qty, harga beli, dan total pembelian.')
 
 @section('page_actions')
-    <a href="{{ route('purchases.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
-        Kembali
-    </a>
+    <div class="flex flex-wrap items-center justify-end gap-3">
+        @if ($canCancelPurchase)
+            <form method="POST" action="{{ route('purchases.destroy', $purchase) }}" onsubmit="return confirm('Batalkan pembelian ini dan sesuaikan kembali stok produk?')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg border border-red-100 bg-white px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50">
+                    Batalkan Pembelian
+                </button>
+            </form>
+        @endif
+        <a href="{{ route('purchases.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
+            Kembali
+        </a>
+    </div>
 @endsection
 
 @section('content')
     <div class="space-y-6">
+        @if ($errors->has('items'))
+            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+                {{ $errors->first('items') }}
+            </div>
+        @endif
+
         <section class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
             <div class="flex flex-col gap-2">
                 <h3 class="text-lg font-semibold text-slate-900">{{ $purchase->kode_pembelian }}</h3>

@@ -271,6 +271,165 @@ class PurchaseManagementStockUpdateTest extends TestCase
             ->assertSee('Rp23.500');
     }
 
+    public function test_gudang_can_cancel_purchase_and_reduce_stock_back(): void
+    {
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko Gudang',
+        ]);
+        $supplier = $this->createSupplier();
+        $product = $this->createProduct([
+            'stok' => 9,
+            'nama_produk' => 'Produk Cancel Purchase',
+        ]);
+
+        $purchase = Purchase::create([
+            'kode_pembelian' => 'PO-CANCEL-001',
+            'supplier_id' => $supplier->id,
+            'user_id' => $gudang->id,
+            'tanggal_pembelian' => now(),
+            'subtotal' => 30000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 30000,
+            'status' => 'selesai',
+        ]);
+
+        $purchase->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 4,
+            'harga_beli' => 7500,
+            'subtotal' => 30000,
+        ]);
+
+        StockMovement::create([
+            'product_id' => $product->id,
+            'user_id' => $gudang->id,
+            'referensi_tipe' => 'purchase',
+            'referensi_id' => $purchase->id,
+            'jenis_pergerakan' => 'masuk',
+            'qty' => 4,
+            'stok_sebelum' => 5,
+            'stok_sesudah' => 9,
+            'catatan' => 'Pembelian '.$purchase->kode_pembelian,
+            'tanggal_pergerakan' => now(),
+        ]);
+
+        $this->actingAs($gudang)
+            ->delete(route('purchases.destroy', $purchase))
+            ->assertRedirect(route('purchases.show', $purchase));
+
+        $this->assertDatabaseHas('purchases', [
+            'id' => $purchase->id,
+            'status' => 'dibatalkan',
+        ]);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'stok' => 5,
+        ]);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'user_id' => $gudang->id,
+            'referensi_tipe' => 'purchase_cancellation',
+            'referensi_id' => $purchase->id,
+            'jenis_pergerakan' => 'keluar',
+            'qty' => 4,
+            'stok_sebelum' => 9,
+            'stok_sesudah' => 5,
+        ]);
+    }
+
+    public function test_purchase_cancellation_is_rejected_when_stock_rollback_would_be_invalid(): void
+    {
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko Gudang',
+        ]);
+        $supplier = $this->createSupplier();
+        $product = $this->createProduct([
+            'stok' => 2,
+            'nama_produk' => 'Produk Rollback Invalid',
+        ]);
+
+        $purchase = Purchase::create([
+            'kode_pembelian' => 'PO-ROLLBACK-001',
+            'supplier_id' => $supplier->id,
+            'user_id' => $gudang->id,
+            'tanggal_pembelian' => now(),
+            'subtotal' => 30000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 30000,
+            'status' => 'selesai',
+        ]);
+
+        $purchase->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 4,
+            'harga_beli' => 7500,
+            'subtotal' => 30000,
+        ]);
+
+        $this->actingAs($gudang)
+            ->from(route('purchases.show', $purchase))
+            ->delete(route('purchases.destroy', $purchase))
+            ->assertRedirect(route('purchases.show', $purchase))
+            ->assertSessionHasErrors('items');
+
+        $this->assertDatabaseHas('purchases', [
+            'id' => $purchase->id,
+            'status' => 'selesai',
+        ]);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'stok' => 2,
+        ]);
+
+        $this->assertDatabaseMissing('stock_movements', [
+            'product_id' => $product->id,
+            'referensi_tipe' => 'purchase_cancellation',
+            'referensi_id' => $purchase->id,
+        ]);
+    }
+
+    public function test_owner_cannot_cancel_purchase(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko Monitoring',
+        ]);
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko Monitoring',
+        ]);
+        $supplier = $this->createSupplier();
+
+        $purchase = Purchase::create([
+            'kode_pembelian' => 'PO-OWNER-FORBIDDEN',
+            'supplier_id' => $supplier->id,
+            'user_id' => $gudang->id,
+            'tanggal_pembelian' => now(),
+            'subtotal' => 10000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 10000,
+            'status' => 'selesai',
+        ]);
+
+        $this->actingAs($owner)
+            ->delete(route('purchases.destroy', $purchase))
+            ->assertForbidden();
+    }
+
     private function createSupplier(): Supplier
     {
         return Supplier::create([

@@ -163,7 +163,10 @@ class PurchaseController extends Controller
 
         $purchase->load(['supplier', 'pengguna', 'detailItem.produk']);
 
-        return view('purchases.show', compact('purchase'));
+        return view('purchases.show', [
+            'purchase' => $purchase,
+            'canCancelPurchase' => $user?->role === 'gudang' && $user?->mode_app === 'lengkap' && $purchase->status !== 'dibatalkan',
+        ]);
     }
 
     public function edit(Purchase $purchase): View
@@ -176,9 +179,59 @@ class PurchaseController extends Controller
         return redirect()->route('purchases.index');
     }
 
-    public function destroy(Purchase $purchase): RedirectResponse
+    public function destroy(Request $request, Purchase $purchase, StockMovementService $stockMovementService): RedirectResponse
     {
-        return redirect()->route('purchases.index');
+        $user = $request->user();
+
+        if ($user?->role !== 'gudang' || $user?->mode_app !== 'lengkap') {
+            abort(403, 'Anda tidak memiliki akses untuk membatalkan pembelian ini.');
+        }
+
+        if ($purchase->pengguna?->store_name !== $user->store_name) {
+            abort(403, 'Anda tidak memiliki akses ke pembelian ini.');
+        }
+
+        if ($purchase->status === 'dibatalkan') {
+            return redirect()
+                ->route('purchases.show', $purchase)
+                ->with('status', 'Pembelian sudah dibatalkan sebelumnya.');
+        }
+
+        $purchase->load('detailItem.produk');
+
+        try {
+            DB::transaction(function () use ($purchase, $user, $stockMovementService): void {
+                foreach ($purchase->detailItem as $item) {
+                    if (! $item->produk) {
+                        throw ValidationException::withMessages([
+                            'items' => 'Salah satu produk pada pembelian ini sudah tidak tersedia untuk rollback stok.',
+                        ]);
+                    }
+
+                    $stockMovementService->recordOutgoing(
+                        product: $item->produk,
+                        qty: $item->qty,
+                        user: $user,
+                        note: 'Pembatalan pembelian '.$purchase->kode_pembelian,
+                        referenceType: 'purchase_cancellation',
+                        referenceId: $purchase->id,
+                    );
+                }
+
+                $purchase->update([
+                    'status' => 'dibatalkan',
+                ]);
+            });
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('purchases.show', $purchase)
+                ->withErrors($exception->errors())
+                ->withInput();
+        }
+
+        return redirect()
+            ->route('purchases.show', $purchase)
+            ->with('status', 'Pembelian berhasil dibatalkan dan stok telah disesuaikan.');
     }
 
     private function makePurchaseCode(): string
