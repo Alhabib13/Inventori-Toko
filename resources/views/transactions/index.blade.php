@@ -6,7 +6,7 @@
     : 'Pantau transaksi penjualan toko berdasarkan periode dan detail transaksi yang tercatat.')
 
 @section('page_actions')
-    @if (auth()->user()?->role !== 'gudang')
+    @if ($isKasir)
         <a href="{{ route('transactions.pos') }}" class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
             Buka POS
         </a>

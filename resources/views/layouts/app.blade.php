@@ -138,7 +138,6 @@
                 ]
                 : [
                     ['label' => 'Dashboard', 'route' => 'dashboard.index', 'icon' => 'dashboard'],
-                    ['label' => 'Produk', 'route' => 'products.index', 'icon' => 'products'],
                     ['label' => 'Kategori', 'route' => 'categories.index', 'icon' => 'categories'],
                     ['label' => 'Stok', 'route' => 'stocks.role-home', 'icon' => 'stocks'],
                     ['label' => 'Laporan', 'route' => 'reports.index', 'icon' => 'reports'],
@@ -197,7 +196,9 @@
                         </div>
                         <div data-sidebar-brand-copy>
                             <p class="text-2xl font-extrabold tracking-tight text-white">Sitori</p>
-                            <p class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-300">{{ $modeApp === 'lengkap' ? 'Mode Lengkap' : 'Workspace Toko' }}</p>
+                            <p class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-300">
+                                {{ $role === 'owner' && $modeApp === 'lengkap' ? 'Mode Monitoring' : ($modeApp === 'lengkap' ? 'Mode Lengkap' : 'Workspace Toko') }}
+                            </p>
                         </div>
                     </div>
 
@@ -260,7 +261,9 @@
                         </div>
                         <div class="sm:hidden">
                             <p class="text-xl font-extrabold tracking-tight text-[#003441]">Sitori</p>
-                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $modeApp === 'lengkap' ? 'Mode Lengkap' : 'Workspace Toko' }}</p>
+                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                                {{ $role === 'owner' && $modeApp === 'lengkap' ? 'Mode Monitoring' : ($modeApp === 'lengkap' ? 'Mode Lengkap' : 'Workspace Toko') }}
+                            </p>
                         </div>
                     </div>
 
