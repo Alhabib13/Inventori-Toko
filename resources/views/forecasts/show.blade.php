@@ -15,7 +15,7 @@
             <a href="{{ route('forecasts.edit', $forecast) }}" class="inline-flex h-11 items-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-[#003441] transition hover:bg-[#f3f4f5]">
                 Edit Prediksi
             </a>
-            <form action="{{ route('forecasts.destroy', $forecast) }}" method="POST" onsubmit="return confirm('Hapus prediksi stok ini?')">
+            <form action="{{ route('forecasts.destroy', $forecast) }}" method="POST" data-confirm="Hapus prediksi stok ini?" data-confirm-title="Hapus Prediksi">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50">

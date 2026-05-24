@@ -122,7 +122,7 @@
                                             Detail
                                         </a>
                                         @if ($canManagePurchases && $purchase->status !== 'dibatalkan')
-                                            <form method="POST" action="{{ route('purchases.destroy', $purchase) }}" onsubmit="return confirm('Batalkan pembelian ini dan sesuaikan kembali stok produk?')">
+                                            <form method="POST" action="{{ route('purchases.destroy', $purchase) }}" data-confirm="Batalkan pembelian ini dan sesuaikan kembali stok produk?" data-confirm-title="Batalkan Pembelian">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="inline-flex h-9 items-center rounded-lg border border-red-100 px-3 text-sm font-medium text-red-600 transition hover:bg-red-50">

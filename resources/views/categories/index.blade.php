@@ -86,7 +86,7 @@
                                             <a href="{{ route('categories.edit', $category) }}" class="inline-flex h-9 items-center rounded-lg border border-[#c0c8cb] px-3 text-sm font-medium text-[#003441] transition hover:bg-[#f3f4f5]">
                                                 Edit
                                             </a>
-                                            <form action="{{ route('categories.destroy', $category) }}" method="POST">
+                                            <form action="{{ route('categories.destroy', $category) }}" method="POST" data-confirm="Hapus kategori ini dari klasifikasi produk?" data-confirm-title="Hapus Kategori">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="inline-flex h-9 items-center rounded-lg border border-red-100 px-3 text-sm font-medium text-red-600 transition hover:bg-red-50">

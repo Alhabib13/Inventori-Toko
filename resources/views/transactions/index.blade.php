@@ -147,7 +147,7 @@
                                             Detail
                                         </a>
                                         @if (auth()->user()?->role === 'owner' && $transaction->status !== 'dibatalkan')
-                                            <form method="POST" action="{{ route('transactions.destroy', $transaction) }}" onsubmit="return confirm('Batalkan transaksi ini dan kembalikan stok produk?')">
+                                            <form method="POST" action="{{ route('transactions.destroy', $transaction) }}" data-confirm="Batalkan transaksi ini dan kembalikan stok produk?" data-confirm-title="Batalkan Transaksi">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="inline-flex h-9 items-center rounded-lg border border-red-100 px-3 text-sm font-medium text-red-600 transition hover:bg-red-50">

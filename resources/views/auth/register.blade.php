@@ -160,7 +160,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="mt-1 h-11 w-full rounded-md bg-[#083d4b] text-sm font-bold text-white transition hover:bg-[#062f39]">
+            <button type="submit" data-loading-text="Mendaftarkan..." class="mt-1 h-11 w-full rounded-md bg-[#083d4b] text-sm font-bold text-white transition hover:bg-[#062f39]">
                 Daftar sebagai Pemilik
             </button>
 

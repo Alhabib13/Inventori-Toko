@@ -6,7 +6,7 @@
 @section('page_actions')
     <div class="flex flex-wrap items-center justify-end gap-3">
         @if ($canCancelPurchase)
-            <form method="POST" action="{{ route('purchases.destroy', $purchase) }}" onsubmit="return confirm('Batalkan pembelian ini dan sesuaikan kembali stok produk?')">
+            <form method="POST" action="{{ route('purchases.destroy', $purchase) }}" data-confirm="Batalkan pembelian ini dan sesuaikan kembali stok produk?" data-confirm-title="Batalkan Pembelian">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg border border-red-100 bg-white px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50">

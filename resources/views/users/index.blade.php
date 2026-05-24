@@ -108,7 +108,7 @@
                                             <a href="{{ route('users.edit', $listedUser) }}" class="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
                                                 Edit
                                             </a>
-                                            <form action="{{ route('users.toggle-status', $listedUser) }}" method="POST">
+                                            <form action="{{ route('users.toggle-status', $listedUser) }}" method="POST" data-confirm="{{ $listedUser->is_active ? 'Nonaktifkan user ini agar tidak bisa login sementara?' : 'Aktifkan kembali user ini agar bisa login?' }}" data-confirm-title="{{ $listedUser->is_active ? 'Nonaktifkan User' : 'Aktifkan User' }}">
                                                 @csrf
                                                 @method('PATCH')
                                                 <button type="submit" class="inline-flex h-9 items-center rounded-lg border {{ $listedUser->is_active ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' }} px-3 text-sm font-medium transition">

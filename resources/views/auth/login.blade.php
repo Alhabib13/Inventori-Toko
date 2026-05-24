@@ -92,7 +92,7 @@
                 <a href="#" class="text-xs font-bold text-[#0b4a5a] hover:underline">Lupa kata sandi?</a>
             </div>
 
-            <button type="submit" class="mt-1 h-11 w-full rounded-md bg-[#083d4b] text-sm font-bold text-white transition hover:bg-[#062f39]">
+            <button type="submit" data-loading-text="Masuk..." class="mt-1 h-11 w-full rounded-md bg-[#083d4b] text-sm font-bold text-white transition hover:bg-[#062f39]">
                 Masuk
             </button>
 

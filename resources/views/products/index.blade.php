@@ -147,7 +147,7 @@
                                             <a href="{{ route('products.edit', $product) }}" class="inline-flex h-9 items-center rounded-lg border border-[#c0c8cb] px-3 text-sm font-medium text-[#003441] transition hover:bg-[#f3f4f5]">
                                                 Edit
                                             </a>
-                                            <form method="POST" action="{{ route('products.destroy', $product) }}">
+                                            <form method="POST" action="{{ route('products.destroy', $product) }}" data-confirm="Hapus produk ini dari daftar inventori?" data-confirm-title="Hapus Produk">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="inline-flex h-9 items-center rounded-lg border border-red-100 px-3 text-sm font-medium text-red-600 transition hover:bg-red-50">
