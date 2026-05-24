@@ -25,10 +25,17 @@
         <section class="rounded-[28px] border border-[#c0c8cb] bg-white shadow-sm">
             <div class="border-b border-[#c0c8cb] px-6 py-5">
                 <h3 class="text-xl font-semibold text-slate-900">Ringkasan Struk</h3>
-                <p class="mt-1 text-sm text-slate-500">{{ $transaction->kode_transaksi }} • {{ $transaction->tanggal_transaksi?->format('d/m/Y H:i') }}</p>
+                <p class="mt-1 text-sm text-slate-500">{{ $transaction->kode_transaksi }} - {{ $transaction->tanggal_transaksi?->format('d/m/Y H:i') }}</p>
             </div>
 
             <div class="space-y-5 px-6 py-5">
+                @if (session('status'))
+                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
+                        <p class="font-semibold">Transaksi berhasil diproses.</p>
+                        <p class="mt-1">{{ session('status') }}</p>
+                    </div>
+                @endif
+
                 <div class="rounded-2xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Status Transaksi</p>
                     <p class="mt-2 text-sm font-semibold {{ $transaction->status === 'dibatalkan' ? 'text-red-600' : 'text-emerald-700' }}">

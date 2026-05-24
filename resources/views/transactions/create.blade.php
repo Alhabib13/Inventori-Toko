@@ -14,7 +14,7 @@
                         <h2 class="text-3xl font-bold tracking-tight text-[#003441]">{{ auth()->user()?->store_name ?? 'Sitori POS' }}</h2>
                         <p class="mt-2 text-sm leading-6 text-slate-500">
                             {{ auth()->user()?->name ?? 'Kasir Aktif' }}<br>
-                            {{ now()->format('d M Y') }} • {{ now()->format('H:i') }}
+                            {{ now()->format('d M Y') }} - {{ now()->format('H:i') }}
                         </p>
                     </div>
 
@@ -44,6 +44,10 @@
                             <div class="px-2 py-8 text-center text-sm text-slate-500" data-order-empty>
                                 Belum ada produk dipilih.
                             </div>
+                        </div>
+
+                        <div class="mt-4 hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700" data-pos-item-error>
+                            Pilih minimal satu item dengan qty lebih dari 0 sebelum menyimpan transaksi.
                         </div>
                     </div>
 
@@ -167,10 +171,26 @@
             @if ($errors->any())
                 <div class="border-b border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700">
                     {{ $errors->first() }}
+                    <p class="mt-1 text-xs text-red-600">Periksa qty item, stok tersedia, dan nominal pembayaran sebelum mencoba lagi.</p>
                 </div>
             @endif
 
             <div class="px-6 py-5">
+                <div class="mb-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div class="rounded-2xl border border-[#c0c8cb] bg-[#f9f9fa] p-4">
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Produk Aktif</p>
+                        <p class="mt-2 text-2xl font-bold text-slate-900">{{ $products->count() }}</p>
+                    </div>
+                    <div class="rounded-2xl border border-[#c0c8cb] bg-[#f9f9fa] p-4">
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Fokus Kasir</p>
+                        <p class="mt-2 text-sm font-semibold text-slate-900">Pilih item, atur qty, dan simpan transaksi lebih cepat.</p>
+                    </div>
+                    <div class="rounded-2xl border border-[#c0c8cb] bg-[#f9f9fa] p-4">
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Cek Stok</p>
+                        <p class="mt-2 text-sm font-semibold text-slate-900">Sistem membatasi qty sesuai stok yang tersedia.</p>
+                    </div>
+                </div>
+
                 <div class="overflow-hidden rounded-[24px] border border-[#d7dfe3] bg-white">
                     <div class="grid grid-cols-[1.7fr_0.7fr_0.8fr_0.5fr] border-b border-[#d7dfe3] bg-[#f5f7f8] px-5 py-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                         <div>Product</div>
@@ -190,7 +210,12 @@
                                         </div>
                                         <div class="min-w-0">
                                             <p class="font-semibold text-slate-900">{{ $product->nama_produk }}</p>
-                                            <p class="mt-1 truncate text-xs text-slate-500">{{ $product->kategori?->nama_kategori ?? 'Produk aktif' }} • stok {{ $product->stok }} {{ $product->satuan }}</p>
+                                            <p class="mt-1 truncate text-xs text-slate-500">{{ $product->kategori?->nama_kategori ?? 'Produk aktif' }} - stok {{ $product->stok }} {{ $product->satuan }}</p>
+                                            <div class="mt-2 flex flex-wrap gap-2 text-[11px]">
+                                                <span class="rounded-full {{ $product->stok <= 5 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700' }} px-2.5 py-1 font-semibold">
+                                                    {{ $product->stok <= 5 ? 'Stok terbatas' : 'Stok aman' }}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -215,6 +240,9 @@
                                             +
                                         </button>
                                     </div>
+                                    <p class="mt-2 hidden text-xs font-medium text-red-600" data-stock-warning>
+                                        Qty melebihi stok tersedia.
+                                    </p>
                                 </div>
                                 <div>
                                     <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-red-500 transition hover:bg-red-50" data-qty-clear aria-label="Hapus item">
@@ -235,6 +263,7 @@
         <script>
             (() => {
                 const currency = new Intl.NumberFormat('id-ID');
+                const form = document.querySelector('form');
                 const productSearch = document.querySelector('[data-product-search]');
                 const productRows = Array.from(document.querySelectorAll('[data-product-row]'));
                 const discountInput = document.querySelector('[data-discount-input]');
@@ -252,6 +281,7 @@
                 const paymentInput = document.querySelector('[data-payment-input]');
                 const paymentButtons = Array.from(document.querySelectorAll('[data-payment-option]'));
                 const receiptEditButton = document.querySelector('[data-receipt-edit]');
+                const posItemError = document.querySelector('[data-pos-item-error]');
 
                 const formatCurrency = (value) => `Rp${currency.format(Math.max(0, Number(value) || 0))}`;
 
@@ -331,27 +361,40 @@
                 productRows.forEach((row) => {
                     const qtyInput = row.querySelector('[data-qty-input]');
                     const maxQty = Number(qtyInput.max || 0);
+                    const stockWarning = row.querySelector('[data-stock-warning]');
+
+                    const syncRowWarning = () => {
+                        const qty = Number(qtyInput.value) || 0;
+                        if (!stockWarning) return;
+                        stockWarning.classList.toggle('hidden', qty <= maxQty);
+                    };
 
                     row.querySelector('[data-qty-increase]')?.addEventListener('click', () => {
                         qtyInput.value = Math.min(maxQty, (Number(qtyInput.value) || 0) + 1);
+                        syncRowWarning();
                         updateSummary();
                     });
 
                     row.querySelector('[data-qty-decrease]')?.addEventListener('click', () => {
                         qtyInput.value = Math.max(0, (Number(qtyInput.value) || 0) - 1);
+                        syncRowWarning();
                         updateSummary();
                     });
 
                     row.querySelector('[data-qty-clear]')?.addEventListener('click', () => {
                         qtyInput.value = 0;
+                        syncRowWarning();
                         updateSummary();
                     });
 
                     qtyInput.addEventListener('input', () => {
                         if ((Number(qtyInput.value) || 0) > maxQty) qtyInput.value = maxQty;
                         if ((Number(qtyInput.value) || 0) < 0) qtyInput.value = 0;
+                        syncRowWarning();
                         updateSummary();
                     });
+
+                    syncRowWarning();
                 });
 
                 [discountInput, taxInput, paidInput].forEach((input) => input?.addEventListener('input', updateSummary));
@@ -374,6 +417,21 @@
                         const haystack = row.dataset.search || '';
                         row.classList.toggle('hidden', keyword !== '' && !haystack.includes(keyword));
                     });
+                });
+
+                form?.addEventListener('submit', (event) => {
+                    const hasSelectedItem = productRows.some((row) => {
+                        const qtyInput = row.querySelector('[data-qty-input]');
+                        return (Number(qtyInput?.value) || 0) > 0;
+                    });
+
+                    if (posItemError) {
+                        posItemError.classList.toggle('hidden', hasSelectedItem);
+                    }
+
+                    if (!hasSelectedItem) {
+                        event.preventDefault();
+                    }
                 });
 
                 updatePaymentButtons();
