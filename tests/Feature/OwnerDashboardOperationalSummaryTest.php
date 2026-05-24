@@ -60,9 +60,13 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             ->assertSee('Jumlah Produk')
             ->assertSee('Stok Menipis')
             ->assertSee('Prediksi Restock')
+            ->assertSee('Tren Penjualan 7 Hari')
+            ->assertSee('30 Hari')
+            ->assertSee('Prioritas Hari Ini')
             ->assertSee('Produk Sederhana')
             ->assertSee('Produk Stok Menipis')
-            ->assertSee('Produk Baru');
+            ->assertSee('Produk Baru')
+            ->assertDontSee('User Operasional');
     }
 
     public function test_owner_lengkap_sees_monitoring_summary_and_forecast_on_dashboard(): void
@@ -110,9 +114,40 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             ->assertSee('Nilai Stok')
             ->assertSee('Supplier Aktif')
             ->assertSee('Prediksi Restock')
+            ->assertSee('Tren Penjualan 7 Hari')
+            ->assertSee('Insight Inventori')
             ->assertSee('Produk Lengkap')
             ->assertSee('Lihat Prediksi')
-            ->assertDontSee('Produk Baru');
+            ->assertDontSee('Produk Baru')
+            ->assertDontSee('User Operasional');
+    }
+
+    public function test_owner_can_switch_dashboard_sales_trend_period_to_30_days(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+
+        Transaction::create([
+            'kode_transaksi' => 'TRX-30-001',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now()->subDays(20),
+            'total_item' => 1,
+            'subtotal' => 50000,
+            'total_bayar' => 50000,
+            'nominal_bayar' => 50000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+
+        $this->actingAs($owner)
+            ->get(route('dashboard.index', ['trend' => 30]))
+            ->assertOk()
+            ->assertSee('Tren Penjualan 30 Hari')
+            ->assertSee('Periode Dipilih')
+            ->assertSee('30 Hari Terakhir')
+            ->assertSee('Total Penjualan');
     }
 
     private function createProduct(array $attributes = []): Product

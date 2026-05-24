@@ -7,7 +7,7 @@ use App\Models\Purchase;
 use App\Models\SalesForecast;
 use App\Models\Supplier;
 use App\Models\Transaction;
-use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -17,6 +17,11 @@ class DashboardController extends Controller
     {
         $user = request()->user();
         $isSimpleMode = $user?->mode_app === 'sederhana';
+        $trendPeriod = request()->integer('trend', 7);
+
+        if (! in_array($trendPeriod, [7, 30], true)) {
+            $trendPeriod = 7;
+        }
 
         $salesTotal = (float) Transaction::query()->sum('total_bayar');
         $purchaseTotal = (float) Purchase::query()->sum('total_bayar');
@@ -31,16 +36,6 @@ class DashboardController extends Controller
             ->take(5)
             ->get(['id', 'nama_produk', 'kode_produk', 'stok', 'stok_minimum', 'satuan']);
 
-        $operationalUsers = User::query()
-            ->when(
-                $isSimpleMode,
-                fn ($query) => $query->whereIn('role', ['owner', 'kasir']),
-                fn ($query) => $query->whereIn('role', ['owner', 'kasir', 'gudang']),
-            )
-            ->latest()
-            ->take(5)
-            ->get();
-
         $forecastHighlights = SalesForecast::query()
             ->with('produk')
             ->latest()
@@ -50,6 +45,20 @@ class DashboardController extends Controller
         $forecastCount = $forecastHighlights->count();
         $forecastRestockTotal = (int) $forecastHighlights->sum('selisih_prediksi');
         $canManageInventory = $user?->mode_app === 'sederhana';
+        $salesTrend = collect(range($trendPeriod - 1, 0))
+            ->map(function (int $daysAgo) {
+                $date = Carbon::now()->subDays($daysAgo);
+
+                return [
+                    'label' => $date->translatedFormat('d M'),
+                    'date' => $date->toDateString(),
+                    'total' => (float) Transaction::query()
+                        ->whereDate('tanggal_transaksi', $date->toDateString())
+                        ->sum('total_bayar'),
+                ];
+            });
+        $salesTrendTotal = (float) $salesTrend->sum('total');
+        $salesTrendAverage = (float) $salesTrend->avg('total');
 
         return view('dashboard.index', [
             'isSimpleMode' => $isSimpleMode,
@@ -61,11 +70,14 @@ class DashboardController extends Controller
             'activeSuppliers' => $activeSuppliers,
             'criticalProductsCount' => $criticalProductsCount,
             'criticalProducts' => $criticalProducts,
-            'operationalUsers' => $operationalUsers,
             'forecastHighlights' => $forecastHighlights,
             'forecastCount' => $forecastCount,
             'forecastRestockTotal' => $forecastRestockTotal,
             'canManageInventory' => $canManageInventory,
+            'salesTrend' => $salesTrend,
+            'trendPeriod' => $trendPeriod,
+            'salesTrendTotal' => $salesTrendTotal,
+            'salesTrendAverage' => $salesTrendAverage,
         ]);
     }
 }

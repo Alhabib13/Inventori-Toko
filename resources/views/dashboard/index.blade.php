@@ -21,6 +21,24 @@
 @endsection
 
 @section('content')
+    @php
+        $trendMax = max(1, (int) $salesTrend->max('total'));
+        $firstPoint = $salesTrend->first();
+        $lastPoint = $salesTrend->last();
+        $chartPoints = $salesTrend
+            ->values()
+            ->map(function ($point, $index) use ($salesTrend, $trendMax) {
+                $width = 100;
+                $height = 100;
+                $x = $salesTrend->count() === 1 ? 50 : ($index * ($width / max(1, $salesTrend->count() - 1)));
+                $y = $height - (($point['total'] / $trendMax) * 84) - 8;
+
+                return round($x, 2).','.round($y, 2);
+            })
+            ->implode(' ');
+        $chartAreaPoints = '0,92 '.$chartPoints.' 100,92';
+    @endphp
+
     <div class="space-y-6">
         <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
@@ -109,57 +127,62 @@
             <article class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
                 <div class="flex items-center justify-between border-b border-[#c0c8cb] px-6 py-4">
                     <div>
-                        <h2 class="text-lg font-semibold text-slate-900">User Operasional</h2>
-                        <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Aktivitas terbaru dari owner dan kasir untuk mode sederhana.' : 'Owner, kasir, dan gudang yang aktif dalam workspace toko.' }}</p>
+                        <h2 class="text-lg font-semibold text-slate-900">Tren Penjualan {{ $trendPeriod }} Hari</h2>
+                        <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Pantau ritme penjualan harian untuk menjaga stok dan prioritas operasional.' : 'Pantau pergerakan penjualan harian untuk membaca performa bisnis dan kebutuhan inventori.' }}</p>
                     </div>
-                    <a href="{{ route('users.index') }}" class="text-sm font-semibold text-[#003441] transition hover:text-[#0f4c5c]">Lihat Semua</a>
+                    <div class="inline-flex rounded-lg border border-[#c0c8cb] bg-white p-1">
+                        <a href="{{ route('dashboard.index', ['trend' => 7]) }}" class="inline-flex h-9 items-center rounded-md px-3 text-sm font-semibold transition {{ $trendPeriod === 7 ? 'bg-[#003441] text-white' : 'text-slate-600 hover:bg-[#f3f4f5]' }}">
+                            7 Hari
+                        </a>
+                        <a href="{{ route('dashboard.index', ['trend' => 30]) }}" class="inline-flex h-9 items-center rounded-md px-3 text-sm font-semibold transition {{ $trendPeriod === 30 ? 'bg-[#003441] text-white' : 'text-slate-600 hover:bg-[#f3f4f5]' }}">
+                            30 Hari
+                        </a>
+                    </div>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-left text-sm">
-                        <thead class="bg-[#f3f4f5] text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                            <tr>
-                                <th class="px-6 py-3">Nama User</th>
-                                <th class="px-6 py-3">{{ $isSimpleMode ? 'Role User' : 'Role' }}</th>
-                                <th class="px-6 py-3">Username</th>
-                                <th class="px-6 py-3 text-right">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-200">
-                            @forelse ($operationalUsers as $operationalUser)
-                                <tr class="transition hover:bg-slate-50">
-                                    <td class="px-6 py-4">
-                                        <div class="flex items-center gap-3">
-                                            <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[#d0e1fb] text-xs font-bold text-[#003441]">
-                                                {{ strtoupper(substr($operationalUser->name, 0, 2)) }}
-                                            </div>
-                                            <div>
-                                                <p class="font-semibold text-slate-900">{{ $operationalUser->name }}</p>
-                                                <p class="text-xs text-slate-500">{{ $operationalUser->store_name ?? 'Tim Operasional' }}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 text-slate-600">{{ ucfirst($operationalUser->role) }}</td>
-                                    <td class="px-6 py-4 font-mono text-xs text-slate-500">{{ $operationalUser->username }}</td>
-                                    <td class="px-6 py-4 text-right">
-                                        <span class="inline-flex items-center gap-2 rounded-full bg-[#d0e1fb]/45 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f4c5c]">
-                                            <span class="h-2 w-2 rounded-full bg-[#0f4c5c]"></span>
-                                            Aktif
-                                        </span>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="4" class="px-6 py-8 text-center text-slate-500">Belum ada user operasional.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div class="space-y-6 px-6 py-6">
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Periode Dipilih</p>
+                            <p class="mt-2 text-sm font-semibold text-slate-900">{{ $trendPeriod }} Hari Terakhir</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Penjualan</p>
+                            <p class="mt-2 text-sm font-semibold text-slate-900">Rp{{ number_format($salesTrendTotal, 0, ',', '.') }}</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Rata-Rata Harian</p>
+                            <p class="mt-2 text-sm font-semibold text-slate-900">Rp{{ number_format($salesTrendAverage, 0, ',', '.') }}</p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl border border-slate-200 bg-[#f9f9fa] p-4">
+                        <svg viewBox="0 0 100 100" class="h-64 w-full">
+                            <line x1="0" y1="92" x2="100" y2="92" stroke="#d6dde1" stroke-width="1" />
+                            <line x1="0" y1="50" x2="100" y2="50" stroke="#ecf0f2" stroke-width="1" stroke-dasharray="3 3" />
+                            <line x1="0" y1="8" x2="100" y2="8" stroke="#ecf0f2" stroke-width="1" stroke-dasharray="3 3" />
+                            <polygon points="{{ $chartAreaPoints }}" fill="#d0e1fb" opacity="0.45" />
+                            <polyline fill="none" stroke="#0f4c5c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="{{ $chartPoints }}" />
+                            @foreach ($salesTrend as $pointIndex => $point)
+                                @php
+                                    $x = $salesTrend->count() === 1 ? 50 : ($pointIndex * (100 / max(1, $salesTrend->count() - 1)));
+                                    $y = 100 - (($point['total'] / $trendMax) * 84) - 8;
+                                @endphp
+                                <circle cx="{{ round($x, 2) }}" cy="{{ round($y, 2) }}" r="2.2" fill="#003441" />
+                            @endforeach
+                        </svg>
+                        <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
+                            <span>{{ $firstPoint['label'] ?? '-' }}</span>
+                            <span>Puncak Rp{{ number_format($trendMax, 0, ',', '.') }}</span>
+                            <span>{{ $lastPoint['label'] ?? '-' }}</span>
+                        </div>
+                    </div>
+
                 </div>
             </article>
 
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-                <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Ringkasan Operasional' : 'Prioritas Hari Ini' }}</h2>
+                <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Prioritas Hari Ini' : 'Insight Inventori' }}</h2>
                 <div class="mt-5 space-y-4">
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                         <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isSimpleMode ? 'Stok Menipis' : 'Stok Kritis' }}</p>
