@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Services\StockMovementService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,18 +15,36 @@ use Illuminate\View\View;
 
 class TransactionController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $user = $request->user();
+        $dateFrom = $request->string('date_from')->toString();
+        $dateTo = $request->string('date_to')->toString();
+
         $transactions = Transaction::query()
             ->with('kasir')
-            ->when(
-                request()->user()?->role === 'kasir',
-                fn ($query) => $query->where('user_id', request()->user()->id),
-            )
+            ->when($user?->role === 'kasir', function (Builder $query) use ($user): void {
+                $query->where('user_id', $user->id);
+            })
+            ->when($user?->role === 'owner', function (Builder $query) use ($user): void {
+                $query->whereHas('kasir', fn (Builder $kasirQuery) => $kasirQuery->where('store_name', $user->store_name));
+            })
+            ->when($dateFrom !== '', function (Builder $query) use ($dateFrom): void {
+                $query->whereDate('tanggal_transaksi', '>=', $dateFrom);
+            })
+            ->when($dateTo !== '', function (Builder $query) use ($dateTo): void {
+                $query->whereDate('tanggal_transaksi', '<=', $dateTo);
+            })
             ->latest('tanggal_transaksi')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('transactions.index', compact('transactions'));
+        return view('transactions.index', [
+            'transactions' => $transactions,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'isKasir' => $user?->role === 'kasir',
+        ]);
     }
 
     public function create(): View
@@ -131,13 +150,19 @@ class TransactionController extends Controller
             ->with('status', 'Transaksi berhasil disimpan.');
     }
 
-    public function show(Transaction $transaction): View
+    public function show(Request $request, Transaction $transaction): View
     {
-        if (request()->user()?->role === 'kasir' && $transaction->user_id !== request()->user()?->id) {
+        $user = $request->user();
+
+        if ($user?->role === 'kasir' && $transaction->user_id !== $user->id) {
             abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
         }
 
-        $transaction->load(['kasir', 'detailItem']);
+        if ($user?->role === 'owner' && $transaction->kasir?->store_name !== $user->store_name) {
+            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
+        }
+
+        $transaction->load(['kasir', 'detailItem.produk']);
 
         return view('transactions.show', compact('transaction'));
     }

@@ -183,6 +183,152 @@ class PosSalesTransactionTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_owner_can_filter_transaction_history_by_period_and_store_scope(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko Utama',
+        ]);
+        $kasirStore = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko Utama',
+            'name' => 'Kasir Store',
+        ]);
+        $kasirOtherStore = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko Lain',
+            'name' => 'Kasir Toko Lain',
+        ]);
+
+        Transaction::create([
+            'kode_transaksi' => 'TRX-MAY-001',
+            'user_id' => $kasirStore->id,
+            'tanggal_transaksi' => now()->subDays(2),
+            'total_item' => 1,
+            'subtotal' => 10000,
+            'total_bayar' => 10000,
+            'nominal_bayar' => 10000,
+            'kembalian' => 0,
+            'metode_pembayaran' => 'tunai',
+            'status' => 'selesai',
+        ]);
+
+        Transaction::create([
+            'kode_transaksi' => 'TRX-OLD-001',
+            'user_id' => $kasirStore->id,
+            'tanggal_transaksi' => now()->subDays(25),
+            'total_item' => 1,
+            'subtotal' => 9000,
+            'total_bayar' => 9000,
+            'nominal_bayar' => 9000,
+            'kembalian' => 0,
+            'metode_pembayaran' => 'tunai',
+            'status' => 'selesai',
+        ]);
+
+        Transaction::create([
+            'kode_transaksi' => 'TRX-OTHER-STORE',
+            'user_id' => $kasirOtherStore->id,
+            'tanggal_transaksi' => now()->subDays(1),
+            'total_item' => 1,
+            'subtotal' => 12000,
+            'total_bayar' => 12000,
+            'nominal_bayar' => 12000,
+            'kembalian' => 0,
+            'metode_pembayaran' => 'transfer',
+            'status' => 'selesai',
+        ]);
+
+        $this->actingAs($owner)
+            ->get(route('transactions.index', [
+                'date_from' => now()->subDays(7)->toDateString(),
+                'date_to' => now()->toDateString(),
+            ]))
+            ->assertOk()
+            ->assertSee('TRX-MAY-001')
+            ->assertDontSee('TRX-OLD-001')
+            ->assertDontSee('TRX-OTHER-STORE');
+    }
+
+    public function test_transaction_detail_shows_item_payment_method_and_cashier_information(): void
+    {
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+            'name' => 'Kasir Detail',
+        ]);
+        $product = $this->createProduct([
+            'nama_produk' => 'Produk Detail',
+            'stok' => 9,
+            'harga_jual' => 14000,
+        ]);
+
+        $transaction = Transaction::create([
+            'kode_transaksi' => 'TRX-DETAIL-001',
+            'user_id' => $kasir->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 2,
+            'subtotal' => 28000,
+            'diskon' => 1000,
+            'pajak' => 500,
+            'total_bayar' => 27500,
+            'nominal_bayar' => 30000,
+            'kembalian' => 2500,
+            'metode_pembayaran' => 'qris',
+            'status' => 'selesai',
+        ]);
+
+        $transaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => 'Produk Detail',
+            'qty' => 2,
+            'harga' => 14000,
+            'subtotal' => 28000,
+        ]);
+
+        $this->actingAs($kasir)
+            ->get(route('transactions.show', $transaction))
+            ->assertOk()
+            ->assertSee('Kasir Detail')
+            ->assertSee('Qris')
+            ->assertSee('Produk Detail')
+            ->assertSee('Rp28.000')
+            ->assertSee('Rp27.500');
+    }
+
+    public function test_owner_cannot_open_transaction_from_other_store(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko A',
+        ]);
+        $kasirOtherStore = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko B',
+        ]);
+
+        $otherStoreTransaction = Transaction::create([
+            'kode_transaksi' => 'TRX-B-001',
+            'user_id' => $kasirOtherStore->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 1,
+            'subtotal' => 10000,
+            'total_bayar' => 10000,
+            'nominal_bayar' => 10000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+
+        $this->actingAs($owner)
+            ->get(route('transactions.show', $otherStoreTransaction))
+            ->assertForbidden();
+    }
+
     private function createProduct(array $attributes = []): Product
     {
         $category = Category::create([
