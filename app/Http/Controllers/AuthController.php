@@ -52,6 +52,16 @@ class AuthController extends Controller
                 ]);
         }
 
+        if (! Auth::user()?->is_active) {
+            Auth::logout();
+
+            return back()
+                ->withInput($request->only('username'))
+                ->withErrors([
+                    'username' => 'Akun user sedang nonaktif.',
+                ]);
+        }
+
         $request->session()->regenerate();
 
         return $this->redirectToRoleHome();
@@ -74,6 +84,7 @@ class AuthController extends Controller
             'password' => $data['password'],
             'role' => 'owner',
             'mode_app' => null,
+            'is_active' => true,
         ]);
 
         Auth::login($user);
@@ -97,6 +108,7 @@ class AuthController extends Controller
         $data['email'] = $data['username'].'@toko.local';
         $data['store_name'] = $request->user()?->store_name;
         $data['mode_app'] = $request->user()?->mode_app;
+        $data['is_active'] = true;
 
         User::create($data);
 

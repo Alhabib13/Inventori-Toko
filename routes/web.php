@@ -32,7 +32,8 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
         Route::get('/register-user', [AuthController::class, 'showUserRegisterForm'])->name('users.register');
         Route::post('/register-user', [AuthController::class, 'registerUser'])->name('users.register.process');
-        Route::resource('users', UserController::class);
+        Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+        Route::resource('users', UserController::class)->only(['index', 'show', 'edit', 'update']);
     });
 
     Route::middleware('mode.access:reports')->group(function (): void {

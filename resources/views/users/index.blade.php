@@ -1,17 +1,9 @@
 @extends('layouts.app')
 
-@php
-    $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
-    $users = \App\Models\User::query()->orderBy('role')->orderBy('name')->get();
-    $ownerCount = $users->where('role', 'owner')->count();
-    $cashierCount = $users->where('role', 'kasir')->count();
-    $warehouseCount = $users->where('role', 'gudang')->count();
-@endphp
-
 @section('page_title', 'Manajemen User')
 @section('page_subtitle', $isSimpleMode
-    ? 'Kelola daftar user, lihat role user, serta aksi edit dan hapus untuk owner mode sederhana.'
-    : 'Kelola daftar user owner, kasir, dan gudang, termasuk role user, status user, dan aksi edit/hapus.')
+    ? 'Kelola user owner dan kasir yang aktif di mode toko sederhana.'
+    : 'Pantau user owner, kasir, dan gudang sesuai mode toko lengkap.')
 
 @section('page_actions')
     <a href="{{ route('users.register') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
@@ -38,8 +30,8 @@
                         <span class="text-sm font-semibold text-slate-900">{{ $cashierCount }}</span>
                     </div>
                     <div class="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
-                        <span class="text-sm text-slate-600">{{ $isSimpleMode ? 'Kasir Aktif' : 'Gudang' }}</span>
-                        <span class="text-sm font-semibold text-slate-900">{{ $isSimpleMode ? $cashierCount : $warehouseCount }}</span>
+                        <span class="text-sm text-slate-600">{{ $isSimpleMode ? 'User Gudang Aktif' : 'Gudang' }}</span>
+                        <span class="text-sm font-semibold text-slate-900">{{ $isSimpleMode ? 0 : $warehouseCount }}</span>
                     </div>
                 </div>
             </div>
@@ -49,7 +41,7 @@
             <div class="flex items-center justify-between border-b border-[#c0c8cb] px-6 py-4">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900">Daftar User</h2>
-                    <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Mode sederhana fokus pada owner dan kasir agar pengelolaan user lebih ringkas.' : 'Status akun ditampilkan untuk memastikan user operasional siap digunakan.' }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Owner mode sederhana hanya mengelola role kasir.' : 'Owner mode lengkap dapat memantau user kasir dan gudang.' }}</p>
                 </div>
                 <span class="rounded-full bg-[#d0e1fb]/35 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f4c5c]">
                     {{ $users->count() }} User
@@ -82,23 +74,28 @@
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">{{ ucfirst($listedUser->role) }}</td>
                                 <td class="px-6 py-4">
-                                    <span class="inline-flex items-center gap-2 rounded-full {{ $listedUser->role === 'owner' ? 'bg-[#d0e1fb]/45 text-[#0f4c5c]' : 'bg-emerald-50 text-emerald-700' }} px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]">
-                                        <span class="h-2 w-2 rounded-full {{ $listedUser->role === 'owner' ? 'bg-[#0f4c5c]' : 'bg-emerald-500' }}"></span>
-                                        Aktif
+                                    <span class="inline-flex items-center gap-2 rounded-full {{ $listedUser->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }} px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]">
+                                        <span class="h-2 w-2 rounded-full {{ $listedUser->is_active ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
+                                        {{ $listedUser->is_active ? 'Aktif' : 'Nonaktif' }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex justify-end gap-2">
-                                        <a href="{{ route('users.edit', $listedUser) }}" class="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-                                            Edit
+                                        <a href="{{ route('users.show', $listedUser) }}" class="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+                                            Detail
                                         </a>
-                                        <form action="{{ route('users.destroy', $listedUser) }}" method="POST">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="inline-flex h-9 items-center rounded-lg border border-red-100 px-3 text-sm font-medium text-red-600 transition hover:bg-red-50">
-                                                Hapus
-                                            </button>
-                                        </form>
+                                        @if ($listedUser->role !== 'owner')
+                                            <a href="{{ route('users.edit', $listedUser) }}" class="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+                                                Edit
+                                            </a>
+                                            <form action="{{ route('users.toggle-status', $listedUser) }}" method="POST">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="inline-flex h-9 items-center rounded-lg border {{ $listedUser->is_active ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' }} px-3 text-sm font-medium transition">
+                                                    {{ $listedUser->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
