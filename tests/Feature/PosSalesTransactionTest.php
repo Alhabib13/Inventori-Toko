@@ -329,6 +329,135 @@ class PosSalesTransactionTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_owner_can_cancel_transaction_and_restore_stock(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko A',
+        ]);
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko A',
+        ]);
+        $product = $this->createProduct([
+            'stok' => 7,
+            'nama_produk' => 'Produk Batal',
+        ]);
+
+        $transaction = Transaction::create([
+            'kode_transaksi' => 'TRX-CANCEL-001',
+            'user_id' => $kasir->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 3,
+            'subtotal' => 45000,
+            'total_bayar' => 45000,
+            'nominal_bayar' => 50000,
+            'kembalian' => 5000,
+            'metode_pembayaran' => 'tunai',
+            'status' => 'selesai',
+        ]);
+
+        $transaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 3,
+            'harga' => 15000,
+            'subtotal' => 45000,
+        ]);
+
+        StockMovement::create([
+            'product_id' => $product->id,
+            'user_id' => $kasir->id,
+            'referensi_tipe' => 'transaction',
+            'referensi_id' => $transaction->id,
+            'jenis_pergerakan' => 'keluar',
+            'qty' => 3,
+            'stok_sebelum' => 10,
+            'stok_sesudah' => 7,
+            'catatan' => 'Transaksi penjualan '.$transaction->kode_transaksi,
+            'tanggal_pergerakan' => now(),
+        ]);
+
+        $this->actingAs($owner)
+            ->delete(route('transactions.destroy', $transaction))
+            ->assertRedirect(route('transactions.show', $transaction));
+
+        $this->assertDatabaseHas('transactions', [
+            'id' => $transaction->id,
+            'status' => 'dibatalkan',
+        ]);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'stok' => 10,
+        ]);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'user_id' => $owner->id,
+            'referensi_tipe' => 'transaction_cancellation',
+            'referensi_id' => $transaction->id,
+            'jenis_pergerakan' => 'masuk',
+            'qty' => 3,
+            'stok_sebelum' => 7,
+            'stok_sesudah' => 10,
+        ]);
+    }
+
+    public function test_kasir_cannot_cancel_transaction(): void
+    {
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+        ]);
+        $transaction = Transaction::create([
+            'kode_transaksi' => 'TRX-KASIR-CANCEL',
+            'user_id' => $kasir->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 1,
+            'subtotal' => 10000,
+            'total_bayar' => 10000,
+            'nominal_bayar' => 10000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+
+        $this->actingAs($kasir)
+            ->delete(route('transactions.destroy', $transaction))
+            ->assertForbidden();
+    }
+
+    public function test_owner_cannot_cancel_transaction_from_other_store(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko A',
+        ]);
+        $kasirOtherStore = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko B',
+        ]);
+        $transaction = Transaction::create([
+            'kode_transaksi' => 'TRX-BATAL-B-001',
+            'user_id' => $kasirOtherStore->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 1,
+            'subtotal' => 10000,
+            'total_bayar' => 10000,
+            'nominal_bayar' => 10000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+
+        $this->actingAs($owner)
+            ->delete(route('transactions.destroy', $transaction))
+            ->assertForbidden();
+    }
+
     private function createProduct(array $attributes = []): Product
     {
         $category = Category::create([
