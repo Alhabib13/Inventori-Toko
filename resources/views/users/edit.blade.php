@@ -17,19 +17,37 @@
             </div>
         @endif
 
+        <section class="mb-6 rounded-2xl border border-[#cde2e8] bg-[#eff7f8] p-5">
+            <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Ringkasan Pengaturan</p>
+                    <h2 class="mt-2 text-lg font-semibold text-slate-900">{{ $user->name }}</h2>
+                    <p class="mt-1 text-sm text-slate-600">
+                        Perbarui role, status aktif, dan password user internal sesuai kebutuhan operasional toko.
+                    </p>
+                </div>
+                <div class="rounded-xl border border-white/70 bg-white/80 px-4 py-3 text-sm text-slate-600">
+                    <p class="font-semibold text-slate-900">Role tersedia</p>
+                    <p class="mt-1">{{ collect($allowedRoles)->values()->join(', ') }}</p>
+                </div>
+            </div>
+        </section>
+
         <section class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
             <form action="{{ route('users.update', $user) }}" method="POST" class="space-y-6">
                 @csrf
                 @method('PUT')
 
-                <div class="space-y-2">
-                    <label for="name" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Nama Lengkap</label>
-                    <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}" required class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" />
-                </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div class="space-y-2">
+                        <label for="name" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Nama Lengkap</label>
+                        <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}" required class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" />
+                    </div>
 
-                <div class="space-y-2">
-                    <label for="username" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Username</label>
-                    <input id="username" name="username" type="text" value="{{ old('username', $user->username) }}" required class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" />
+                    <div class="space-y-2">
+                        <label for="username" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Username</label>
+                        <input id="username" name="username" type="text" value="{{ old('username', $user->username) }}" required class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" />
+                    </div>
                 </div>
 
                 <div class="space-y-3">
@@ -86,7 +104,7 @@
                     <a href="{{ route('users.show', $user) }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-[#c0c8cb] px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
                         Batal
                     </a>
-                    <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                    <button type="submit" data-loading-text="Menyimpan perubahan..." class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
                         Simpan Perubahan
                     </button>
                 </div>

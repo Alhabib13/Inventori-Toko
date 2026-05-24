@@ -17,7 +17,20 @@
             transition: opacity 0.18s ease;
         }
 
+        [data-confirm-dialog] {
+            margin: auto;
+            inset: 0;
+        }
+
+        [data-confirm-dialog]::backdrop {
+            background: rgba(2, 6, 23, 0.45);
+        }
+
         @media (max-width: 767.98px) {
+            [data-sidebar-panel] {
+                width: min(18rem, 88vw);
+            }
+
             [data-sidebar-root][data-sidebar-state='closed'] [data-sidebar-panel] {
                 transform: translateX(-100%);
             }
@@ -34,6 +47,28 @@
             [data-sidebar-root][data-sidebar-state='open'] [data-sidebar-overlay] {
                 opacity: 1;
                 pointer-events: auto;
+            }
+
+            [data-app-main] .overflow-x-auto {
+                margin-inline: -1rem;
+                padding-inline: 1rem;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            [data-page-actions] {
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            [data-page-actions] > * {
+                width: 100%;
+            }
+
+            [data-page-actions] form,
+            [data-page-actions] a,
+            [data-page-actions] button {
+                width: 100%;
             }
         }
 
@@ -138,7 +173,6 @@
                 ]
                 : [
                     ['label' => 'Dashboard', 'route' => 'dashboard.index', 'icon' => 'dashboard'],
-                    ['label' => 'Produk', 'route' => 'products.index', 'icon' => 'products'],
                     ['label' => 'Kategori', 'route' => 'categories.index', 'icon' => 'categories'],
                     ['label' => 'Stok', 'route' => 'stocks.role-home', 'icon' => 'stocks'],
                     ['label' => 'Laporan', 'route' => 'reports.index', 'icon' => 'reports'],
@@ -181,7 +215,74 @@
 
         $pageTitle = trim($__env->yieldContent('page_title')) ?: ($judulHalaman ?? 'Dashboard');
         $pageSubtitle = trim($__env->yieldContent('page_subtitle')) ?: 'Workspace inventori untuk operasional toko mode lengkap.';
+        $feedbackToasts = collect([
+            ['type' => 'success', 'message' => session('success')],
+            ['type' => 'success', 'message' => session('status')],
+            ['type' => 'error', 'message' => session('error')],
+            ['type' => 'error', 'message' => $errors->any() ? $errors->first() : null],
+        ])->filter(fn ($toast) => filled($toast['message']))->values();
     @endphp
+
+    <div class="pointer-events-none fixed inset-x-0 top-0 z-[70] h-1.5 origin-left scale-x-0 bg-gradient-to-r from-[#0f4c5c] via-[#2f7c92] to-[#8ac7d8] transition-transform duration-300" data-page-loader></div>
+
+    @if ($feedbackToasts->isNotEmpty())
+        <div class="pointer-events-none fixed right-4 top-4 z-[80] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3" data-toast-stack>
+            @foreach ($feedbackToasts as $toast)
+                <div
+                    class="pointer-events-auto overflow-hidden rounded-2xl border {{ $toast['type'] === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800' }} shadow-lg"
+                    data-toast
+                    data-toast-type="{{ $toast['type'] }}"
+                >
+                    <div class="flex items-start gap-3 px-4 py-3">
+                        <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full {{ $toast['type'] === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' }}">
+                            @if ($toast['type'] === 'success')
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="m5 13 4 4L19 7" />
+                                </svg>
+                            @else
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            @endif
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-semibold">{{ $toast['type'] === 'success' ? 'Berhasil' : 'Perlu Diperhatikan' }}</p>
+                            <p class="mt-1 text-sm leading-6">{{ $toast['message'] }}</p>
+                        </div>
+                        <button type="button" class="rounded-full p-1 text-current/70 transition hover:bg-black/5 hover:text-current" data-toast-close aria-label="Tutup notifikasi">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 6 12 12M18 6 6 18" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
+    <dialog class="w-[min(28rem,calc(100vw-2rem))] rounded-3xl border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/45" data-confirm-dialog>
+        <div class="px-6 py-5">
+            <div class="flex items-start gap-4">
+                <span class="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M10.04 4.72 3.56 15.53A1.5 1.5 0 0 0 4.85 17.8h14.3a1.5 1.5 0 0 0 1.29-2.27L13.96 4.72a1.5 1.5 0 0 0-2.92 0Z" />
+                    </svg>
+                </span>
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900" data-confirm-title>Konfirmasi Aksi</h2>
+                    <p class="mt-2 text-sm leading-6 text-slate-600" data-confirm-message>Apakah kamu yakin ingin melanjutkan aksi ini?</p>
+                </div>
+            </div>
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" class="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50" data-confirm-cancel>
+                    Batal
+                </button>
+                <button type="button" class="inline-flex h-11 items-center justify-center rounded-xl bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]" data-confirm-accept>
+                    Lanjutkan
+                </button>
+            </div>
+        </div>
+    </dialog>
 
     <div class="flex min-h-screen bg-[#f9f9fa]" data-sidebar-root data-sidebar-state="open">
         <div class="fixed inset-0 z-30 bg-slate-950/35 opacity-0 md:hidden" data-sidebar-overlay></div>
@@ -197,7 +298,9 @@
                         </div>
                         <div data-sidebar-brand-copy>
                             <p class="text-2xl font-extrabold tracking-tight text-white">Sitori</p>
-                            <p class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-300">{{ $modeApp === 'lengkap' ? 'Mode Lengkap' : 'Workspace Toko' }}</p>
+                            <p class="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-300">
+                                {{ $role === 'owner' && $modeApp === 'lengkap' ? 'Mode Monitoring' : ($modeApp === 'lengkap' ? 'Mode Lengkap' : 'Workspace Toko') }}
+                            </p>
                         </div>
                     </div>
 
@@ -252,6 +355,17 @@
             <header class="sticky top-0 z-30 border-b border-[#d6dde1] bg-[#f8fafb]/96 shadow-[0_10px_28px_-22px_rgba(15,39,48,0.48)] backdrop-blur">
                 <div class="flex items-center justify-between gap-4 px-5 py-4 sm:px-8">
                     <div class="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+                        <button
+                            type="button"
+                            class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#d8dee2] bg-white text-slate-700 shadow-[0_8px_18px_-16px_rgba(15,39,48,0.45)] transition hover:bg-[#f3f4f5] md:hidden"
+                            data-sidebar-toggle
+                            aria-label="Buka sidebar"
+                        >
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.75 7.5h14.5M4.75 12h14.5M4.75 16.5h14.5" />
+                            </svg>
+                        </button>
+
                         <div class="relative hidden max-w-md sm:block">
                             <svg class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m21 21-4.35-4.35M10.75 18.5a7.75 7.75 0 1 1 0-15.5 7.75 7.75 0 0 1 0 15.5Z" />
@@ -260,7 +374,9 @@
                         </div>
                         <div class="sm:hidden">
                             <p class="text-xl font-extrabold tracking-tight text-[#003441]">Sitori</p>
-                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $modeApp === 'lengkap' ? 'Mode Lengkap' : 'Workspace Toko' }}</p>
+                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                                {{ $role === 'owner' && $modeApp === 'lengkap' ? 'Mode Monitoring' : ($modeApp === 'lengkap' ? 'Mode Lengkap' : 'Workspace Toko') }}
+                            </p>
                         </div>
                     </div>
 
@@ -280,7 +396,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14.5 17.5h5m-2.5-2.5v5M12 4.75a6 6 0 0 1 6 6v1.37c0 .5.17.98.49 1.37l1 1.2a1 1 0 0 1-.77 1.64H5.28a1 1 0 0 1-.77-1.64l1-1.2c.32-.39.49-.87.49-1.37V10.75a6 6 0 0 1 6-6Zm0 14.5a2.75 2.75 0 0 1-2.58-1.75h5.16A2.75 2.75 0 0 1 12 19.25Z" />
                                 </svg>
                             </summary>
-                            <div class="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-[320px] overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-xl">
+                            <div class="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-xl sm:w-[320px]">
                                 <div class="border-b border-slate-200 px-4 py-3">
                                     <div class="flex items-center justify-between gap-3">
                                         <div>
@@ -333,14 +449,14 @@
                 </div>
             </header>
 
-            <main class="flex-1 p-5 sm:p-8">
+            <main class="flex-1 p-4 sm:p-6 lg:p-8" data-app-main>
                 <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div class="min-w-0">
-                        <h1 class="text-3xl font-bold tracking-tight text-slate-900">{{ $pageTitle }}</h1>
+                        <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{{ $pageTitle }}</h1>
                         <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{{ $pageSubtitle }}</p>
                     </div>
                     @hasSection('page_actions')
-                        <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:w-auto" data-page-actions>
                             @yield('page_actions')
                         </div>
                     @endif
@@ -401,6 +517,130 @@
                 }
             });
         })();
+    </script>
+    <script>
+        (() => {
+            const loader = document.querySelector('[data-page-loader]');
+            const confirmDialog = document.querySelector('[data-confirm-dialog]');
+            const confirmTitle = confirmDialog?.querySelector('[data-confirm-title]');
+            const confirmMessage = confirmDialog?.querySelector('[data-confirm-message]');
+            const confirmAccept = confirmDialog?.querySelector('[data-confirm-accept]');
+            const confirmCancel = confirmDialog?.querySelector('[data-confirm-cancel]');
+            let pendingForm = null;
+
+            const showLoader = () => {
+                if (!loader) return;
+                loader.classList.remove('scale-x-0');
+                loader.classList.add('scale-x-100');
+            };
+
+            window.addEventListener('pageshow', () => {
+                if (!loader) return;
+                loader.classList.add('scale-x-0');
+                loader.classList.remove('scale-x-100');
+            });
+
+            document.querySelectorAll('[data-toast]').forEach((toast) => {
+                const removeToast = () => {
+                    toast.classList.add('opacity-0', 'translate-y-[-6px]');
+                    setTimeout(() => toast.remove(), 180);
+                };
+
+                setTimeout(removeToast, 3600);
+                toast.querySelector('[data-toast-close]')?.addEventListener('click', removeToast);
+            });
+
+            document.addEventListener('click', (event) => {
+                const link = event.target.closest('a[href]');
+                const submitButton = event.target.closest('button[type="submit"], input[type="submit"]');
+
+                if (submitButton?.form) {
+                    submitButton.form.dataset.submitterName = submitButton.getAttribute('name') || '';
+                }
+
+                if (!link) return;
+
+                const href = link.getAttribute('href');
+                if (!href || href.startsWith('#') || link.target === '_blank' || link.hasAttribute('download')) return;
+                showLoader();
+            });
+
+            document.addEventListener('submit', (event) => {
+                const form = event.target;
+                if (!(form instanceof HTMLFormElement)) return;
+
+                if (form.dataset.confirm && !form.dataset.confirmApproved) {
+                    event.preventDefault();
+                    pendingForm = form;
+                    if (confirmTitle) confirmTitle.textContent = form.dataset.confirmTitle || 'Konfirmasi Aksi';
+                    if (confirmMessage) confirmMessage.textContent = form.dataset.confirm;
+                    confirmDialog?.showModal();
+                    return;
+                }
+
+                showLoader();
+
+                if (form.dataset.loadingApplied === 'true') return;
+                form.dataset.loadingApplied = 'true';
+
+                const submitter = event.submitter || form.querySelector('button[type="submit"], input[type="submit"]');
+                const submitButtons = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+
+                submitButtons.forEach((button) => {
+                    button.disabled = true;
+                    if (button instanceof HTMLButtonElement) {
+                        button.dataset.originalHtml = button.innerHTML;
+                    } else {
+                        button.dataset.originalValue = button.value;
+                    }
+                    button.classList.add('cursor-not-allowed', 'opacity-80');
+                });
+
+                if (submitter instanceof HTMLButtonElement) {
+                    const loadingText = submitter.dataset.loadingText || 'Memproses...';
+                    submitter.innerHTML = `<span class="inline-flex items-center gap-2"><svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" class="opacity-25" stroke="currentColor" stroke-width="3"></circle><path d="M21 12a9 9 0 0 0-9-9" class="opacity-90" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path></svg><span>${loadingText}</span></span>`;
+                } else if (submitter instanceof HTMLInputElement) {
+                    submitter.value = submitter.dataset.loadingText || 'Memproses...';
+                }
+            });
+
+            confirmAccept?.addEventListener('click', () => {
+                if (!pendingForm) return;
+                pendingForm.dataset.confirmApproved = 'true';
+                confirmDialog?.close();
+                pendingForm.requestSubmit();
+                pendingForm = null;
+            });
+
+            confirmCancel?.addEventListener('click', () => {
+                confirmDialog?.close();
+                pendingForm = null;
+            });
+
+            confirmDialog?.addEventListener('close', () => {
+                if (pendingForm && pendingForm.dataset.confirmApproved !== 'true') {
+                    pendingForm.dataset.loadingApplied = 'false';
+                }
+            });
+        })();
+    </script>
+    <script>
+        document.querySelectorAll('[data-password-toggle]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const input = document.getElementById(button.dataset.passwordToggle);
+
+                if (!input) {
+                    return;
+                }
+
+                const isHidden = input.type === 'password';
+
+                input.type = isHidden ? 'text' : 'password';
+                button.setAttribute('aria-label', isHidden ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
+                button.querySelector('[data-eye-open]')?.classList.toggle('hidden', !isHidden);
+                button.querySelector('[data-eye-closed]')?.classList.toggle('hidden', isHidden);
+            });
+        });
     </script>
 </body>
 </html>
