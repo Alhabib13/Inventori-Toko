@@ -1,28 +1,23 @@
 @extends('layouts.app')
 
-@php
-    $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
-    $salesTotal = (float) \App\Models\Transaction::query()->sum('total_bayar');
-    $purchaseTotal = (float) \App\Models\Purchase::query()->sum('total_bayar');
-    $stockTotal = (int) \App\Models\Product::query()->sum('stok');
-    $productCount = \App\Models\Product::query()->count();
-    $activeSuppliers = \App\Models\Supplier::query()->where('is_active', true)->count();
-    $criticalProducts = \App\Models\Product::query()->whereColumn('stok', '<=', 'stok_minimum')->count();
-    $operationalUsers = \App\Models\User::query()->whereIn('role', ['owner', 'kasir', 'gudang'])->latest()->take(5)->get();
-@endphp
-
 @section('page_title', 'Dashboard Overview')
 @section('page_subtitle', $isSimpleMode
-    ? 'Ringkasan penjualan, jumlah produk, stok menipis, dan aktivitas terbaru untuk owner mode sederhana.'
-    : 'Ringkasan penjualan, pembelian, stok, supplier, user operasional, dan notifikasi stok kritis untuk owner mode lengkap.')
+    ? 'Ringkasan operasional toko sederhana: penjualan, produk, stok menipis, dan prediksi restock.'
+    : 'Ringkasan monitoring bisnis dan inventori: penjualan, pembelian, nilai stok, supplier, dan prediksi stok.')
 
 @section('page_actions')
     <a href="{{ route('reports.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
         Ekspor Laporan
     </a>
-    <a href="{{ route('products.create') }}" class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-        Produk Baru
-    </a>
+    @if ($canManageInventory)
+        <a href="{{ route('products.create') }}" class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+            Produk Baru
+        </a>
+    @else
+        <a href="{{ route('forecasts.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+            Lihat Prediksi
+        </a>
+    @endif
 @endsection
 
 @section('content')
@@ -78,8 +73,8 @@
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isSimpleMode ? 'Stok Menipis' : 'Total Stok Barang' }}</p>
-                        <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $isSimpleMode ? number_format($criticalProducts, 0, ',', '.') : number_format($stockTotal, 0, ',', '.') }}</h3>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isSimpleMode ? 'Stok Menipis' : 'Nilai Stok' }}</p>
+                        <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $isSimpleMode ? number_format($criticalProductsCount, 0, ',', '.') : 'Rp'.number_format($stockValue, 0, ',', '.') }}</h3>
                     </div>
                     <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#ffdcbe]/40 text-[#623d13]">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,15 +83,15 @@
                     </div>
                 </div>
                 <p class="mt-4 text-sm text-slate-500">
-                    {{ $isSimpleMode ? 'Produk yang perlu diprioritaskan untuk restock sederhana.' : 'Total unit barang aktif yang sedang tersimpan di seluruh inventori.' }}
+                    {{ $isSimpleMode ? 'Produk yang perlu diprioritaskan untuk restock sederhana.' : 'Estimasi nilai modal stok aktif yang sedang dimonitor owner lengkap.' }}
                 </p>
             </article>
 
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isSimpleMode ? 'Aktivitas Terbaru' : 'Supplier Aktif' }}</p>
-                        <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $isSimpleMode ? $operationalUsers->count() : $activeSuppliers }}</h3>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isSimpleMode ? 'Prediksi Restock' : 'Supplier Aktif' }}</p>
+                        <h3 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $isSimpleMode ? $forecastRestockTotal : $activeSuppliers }}</h3>
                     </div>
                     <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#003441]/10 text-[#003441]">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,7 +100,7 @@
                     </div>
                 </div>
                 <p class="mt-4 text-sm text-slate-500">
-                    {{ $isSimpleMode ? 'Ringkasan aktivitas user terakhir yang terlibat di workspace toko.' : 'Jumlah supplier yang masih aktif mendukung pembelian operasional.' }}
+                    {{ $isSimpleMode ? 'Total rekomendasi restock dari prediksi stok yang sudah tersedia.' : 'Jumlah supplier yang masih aktif mendukung pembelian operasional.' }}
                 </p>
             </article>
         </section>
@@ -168,19 +163,78 @@
                 <div class="mt-5 space-y-4">
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                         <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isSimpleMode ? 'Stok Menipis' : 'Stok Kritis' }}</p>
-                        <p class="mt-2 text-2xl font-bold text-slate-900">{{ $criticalProducts }} Produk</p>
+                        <p class="mt-2 text-2xl font-bold text-slate-900">{{ $criticalProductsCount }} Produk</p>
                         <p class="mt-2 text-sm text-slate-500">{{ $isSimpleMode ? 'Pantau produk dengan stok menipis agar transaksi tetap aman.' : 'Butuh tindakan restock atau penyesuaian supplier segera.' }}</p>
                     </div>
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
-                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isSimpleMode ? 'Aktivitas Owner' : 'Performa Bisnis' }}</p>
-                        <p class="mt-2 text-sm leading-6 text-slate-600">
-                            {{ $isSimpleMode
-                                ? 'Gunakan laporan sederhana dan prediksi stok untuk melihat produk terlaris serta kebutuhan restock harian.'
-                                : 'Gunakan halaman laporan untuk membandingkan penjualan dan pembelian per periode, lalu lanjutkan ke prediksi stok untuk menyiapkan restock mingguan.' }}
-                        </p>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isSimpleMode ? 'Prediksi Stok' : 'Prediksi Restock' }}</p>
+                        @if ($forecastHighlights->isNotEmpty())
+                            <div class="mt-3 space-y-3">
+                                @foreach ($forecastHighlights as $forecast)
+                                    <div class="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-900">{{ $forecast->produk?->nama_produk ?? 'Produk tidak ditemukan' }}</p>
+                                                <p class="mt-1 text-xs text-slate-500">Prediksi {{ $forecast->prediksi_stok }} {{ $forecast->produk?->satuan ?? '' }}, stok {{ $forecast->stok_aktual }}</p>
+                                            </div>
+                                            <span class="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] {{ $forecast->selisih_prediksi > 0 ? 'bg-red-50 text-red-600' : 'bg-[#d0e1fb]/40 text-[#0f4c5c]' }}">
+                                                {{ $forecast->selisih_prediksi > 0 ? 'Restock '.$forecast->selisih_prediksi : 'Aman' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="mt-2 text-sm leading-6 text-slate-600">
+                                {{ $isSimpleMode
+                                    ? 'Belum ada data prediksi stok. Gunakan modul prediksi untuk melihat kebutuhan restock harian.'
+                                    : 'Belum ada data prediksi stok. Gunakan modul prediksi untuk menghasilkan rekomendasi restock mingguan.' }}
+                            </p>
+                        @endif
                     </div>
                 </div>
             </article>
         </section>
+
+        @if ($criticalProducts->isNotEmpty())
+            <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
+                <div class="flex items-center justify-between border-b border-[#c0c8cb] px-6 py-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-900">Produk Stok Menipis</h2>
+                        <p class="mt-1 text-sm text-slate-500">Ringkasan produk yang stoknya sudah berada di bawah atau sama dengan batas minimum.</p>
+                    </div>
+                    <a href="{{ route('stocks.notifications') }}" class="text-sm font-semibold text-[#003441] transition hover:text-[#0f4c5c]">Lihat Semua</a>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-[820px] w-full text-left text-sm">
+                        <thead class="bg-[#f3f4f5] text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                            <tr>
+                                <th class="px-6 py-3">Produk</th>
+                                <th class="px-6 py-3">Kode</th>
+                                <th class="px-6 py-3">Stok Saat Ini</th>
+                                <th class="px-6 py-3">Stok Minimum</th>
+                                <th class="px-6 py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            @foreach ($criticalProducts as $criticalProduct)
+                                <tr class="transition hover:bg-slate-50">
+                                    <td class="px-6 py-4 font-semibold text-slate-900">{{ $criticalProduct->nama_produk }}</td>
+                                    <td class="px-6 py-4 font-mono text-xs text-slate-500">{{ $criticalProduct->kode_produk }}</td>
+                                    <td class="px-6 py-4 text-slate-600">{{ $criticalProduct->stok }} {{ $criticalProduct->satuan }}</td>
+                                    <td class="px-6 py-4 text-slate-600">{{ $criticalProduct->stok_minimum }} {{ $criticalProduct->satuan }}</td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-red-600">
+                                            <span class="h-2 w-2 rounded-full bg-red-500"></span>
+                                            Kritis
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        @endif
     </div>
 @endsection
