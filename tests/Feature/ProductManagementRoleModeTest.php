@@ -20,13 +20,12 @@ class ProductManagementRoleModeTest extends TestCase
             'mode_app' => 'sederhana',
         ]);
         $category = $this->createCategory();
-        $supplier = $this->createSupplier();
 
         $this->actingAs($owner)->get('/products')->assertOk();
         $this->actingAs($owner)->get('/products/create')->assertOk();
 
         $this->actingAs($owner)
-            ->post('/products', $this->validProductPayload($category, $supplier, [
+            ->post('/products', $this->validProductPayload($category, null, [
                 'nama_produk' => 'Beras Ramos 5kg',
             ]))
             ->assertRedirect(route('products.index'));
@@ -34,7 +33,7 @@ class ProductManagementRoleModeTest extends TestCase
         $this->assertDatabaseHas('products', [
             'nama_produk' => 'Beras Ramos 5kg',
             'category_id' => $category->id,
-            'supplier_id' => $supplier->id,
+            'supplier_id' => null,
             'satuan' => 'pcs',
             'stok_minimum' => 5,
         ]);
@@ -168,7 +167,6 @@ class ProductManagementRoleModeTest extends TestCase
             ->assertSessionHasErrors([
                 'nama_produk',
                 'category_id',
-                'supplier_id',
                 'harga_beli',
                 'harga_jual',
                 'stok_minimum',
@@ -193,11 +191,11 @@ class ProductManagementRoleModeTest extends TestCase
         ]);
     }
 
-    private function createProduct(Category $category, Supplier $supplier, array $attributes = []): Product
+    private function createProduct(Category $category, ?Supplier $supplier = null, array $attributes = []): Product
     {
         return Product::create($attributes + [
             'category_id' => $category->id,
-            'supplier_id' => $supplier->id,
+            'supplier_id' => $supplier?->id,
             'kode_produk' => 'PRD-TEST-'.fake()->unique()->numberBetween(1000, 9999),
             'nama_produk' => 'Minyak Goreng',
             'slug' => 'minyak-goreng-'.fake()->unique()->numberBetween(1000, 9999),
@@ -213,12 +211,11 @@ class ProductManagementRoleModeTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function validProductPayload(Category $category, Supplier $supplier, array $overrides = []): array
+    private function validProductPayload(Category $category, ?Supplier $supplier = null, array $overrides = []): array
     {
-        return $overrides + [
+        $payload = $overrides + [
             'nama_produk' => 'Minyak Goreng',
             'category_id' => $category->id,
-            'supplier_id' => $supplier->id,
             'harga_beli' => 10000,
             'harga_jual' => 12500,
             'stok_minimum' => 5,
@@ -226,5 +223,11 @@ class ProductManagementRoleModeTest extends TestCase
             'deskripsi' => 'Produk kebutuhan harian.',
             'is_active' => '1',
         ];
+
+        if ($supplier) {
+            $payload['supplier_id'] = $supplier->id;
+        }
+
+        return $payload;
     }
 }

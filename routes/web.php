@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function (): void {
     });
 
     Route::middleware('mode.access:inventory-manage')->group(function (): void {
+        Route::post('/products/import', [ProductController::class, 'import'])->name('products.import');
         Route::resource('categories', CategoryController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
         Route::resource('products', ProductController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
         Route::resource('forecasts', ForecastController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);

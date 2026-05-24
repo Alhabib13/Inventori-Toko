@@ -32,20 +32,22 @@
         @enderror
     </label>
 
-    <label class="block text-sm font-medium text-slate-700">
-        Supplier
-        <select name="supplier_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <option value="">Pilih supplier</option>
-            @foreach ($suppliers as $supplier)
-                <option value="{{ $supplier->id }}" @selected((string) old('supplier_id', $product->supplier_id ?? '') === (string) $supplier->id)>
-                    {{ $supplier->nama_supplier }}
-                </option>
-            @endforeach
-        </select>
-        @error('supplier_id')
-            <span class="mt-1 block text-xs text-red-600">{{ $message }}</span>
-        @enderror
-    </label>
+    @if ($requiresSupplier)
+        <label class="block text-sm font-medium text-slate-700">
+            Supplier
+            <select name="supplier_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="">Pilih supplier</option>
+                @foreach ($suppliers as $supplier)
+                    <option value="{{ $supplier->id }}" @selected((string) old('supplier_id', $product->supplier_id ?? '') === (string) $supplier->id)>
+                        {{ $supplier->nama_supplier }}
+                    </option>
+                @endforeach
+            </select>
+            @error('supplier_id')
+                <span class="mt-1 block text-xs text-red-600">{{ $message }}</span>
+            @enderror
+        </label>
+    @endif
 
     <label class="block text-sm font-medium text-slate-700">
         Harga Beli

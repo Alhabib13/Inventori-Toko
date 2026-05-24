@@ -20,10 +20,12 @@
                 <dt class="text-xs font-semibold uppercase text-slate-500">Kategori</dt>
                 <dd class="mt-1 text-sm text-slate-900">{{ $product->kategori?->nama_kategori ?? '-' }}</dd>
             </div>
-            <div>
-                <dt class="text-xs font-semibold uppercase text-slate-500">Supplier</dt>
-                <dd class="mt-1 text-sm text-slate-900">{{ $product->supplier?->nama_supplier ?? '-' }}</dd>
-            </div>
+            @if ($requiresSupplier)
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-500">Supplier</dt>
+                    <dd class="mt-1 text-sm text-slate-900">{{ $product->supplier?->nama_supplier ?? '-' }}</dd>
+                </div>
+            @endif
             <div>
                 <dt class="text-xs font-semibold uppercase text-slate-500">Harga Beli</dt>
                 <dd class="mt-1 text-sm text-slate-900">Rp{{ number_format((float) $product->harga_beli, 0, ',', '.') }}</dd>

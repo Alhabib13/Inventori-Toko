@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Supplier;
+use App\Services\ProductImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -13,8 +14,14 @@ use Illuminate\View\View;
 
 class ProductController extends Controller
 {
+    public function __construct(
+        private readonly ProductImportService $productImportService,
+    ) {}
+
     public function index(): View
     {
+        $user = request()->user();
+
         $products = Product::query()
             ->with(['kategori', 'supplier'])
             ->latest()
@@ -22,13 +29,32 @@ class ProductController extends Controller
 
         return view('products.index', [
             'products' => $products,
-            'canManageProducts' => $this->canManageProducts(request()->user()?->role, request()->user()?->mode_app),
+            'canManageProducts' => $this->canManageProducts($user?->role, $user?->mode_app),
+            'requiresSupplier' => $user?->mode_app !== 'sederhana',
         ]);
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'import_file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+        ], [
+            'import_file.mimes' => 'File import harus berformat CSV. Untuk file Excel, simpan dulu sebagai CSV.',
+        ]);
+
+        $importedCount = $this->productImportService->importFromCsv(
+            $validated['import_file'],
+            $request->user(),
+        );
+
+        return redirect()
+            ->route('products.index')
+            ->with('status', "Import produk berhasil. {$importedCount} produk ditambahkan.");
     }
 
     public function create(): View
     {
-        return view('products.create', $this->formOptions());
+        return view('products.create', $this->formOptions(request()->user()?->mode_app));
     }
 
     public function store(Request $request): RedirectResponse
@@ -50,16 +76,18 @@ class ProductController extends Controller
     public function show(Product $product): View
     {
         $product->load(['kategori', 'supplier']);
+        $user = request()->user();
 
         return view('products.show', [
             'product' => $product,
-            'canManageProducts' => $this->canManageProducts(request()->user()?->role, request()->user()?->mode_app),
+            'canManageProducts' => $this->canManageProducts($user?->role, $user?->mode_app),
+            'requiresSupplier' => $user?->mode_app !== 'sederhana',
         ]);
     }
 
     public function edit(Product $product): View
     {
-        return view('products.edit', $this->formOptions() + compact('product'));
+        return view('products.edit', $this->formOptions(request()->user()?->mode_app) + compact('product'));
     }
 
     public function update(Request $request, Product $product): RedirectResponse
@@ -90,24 +118,35 @@ class ProductController extends Controller
      */
     private function validateProduct(Request $request): array
     {
-        return $request->validate([
+        $requiresSupplier = $request->user()?->mode_app !== 'sederhana';
+
+        $validated = $request->validate([
             'nama_produk' => ['required', 'string', 'max:255'],
             'category_id' => ['required', Rule::exists('categories', 'id')],
-            'supplier_id' => ['required', Rule::exists('suppliers', 'id')],
+            'supplier_id' => $requiresSupplier
+                ? ['required', Rule::exists('suppliers', 'id')]
+                : ['nullable'],
             'harga_beli' => ['required', 'numeric', 'min:0'],
             'harga_jual' => ['required', 'numeric', 'min:0', 'gte:harga_beli'],
             'stok_minimum' => ['required', 'integer', 'min:0'],
             'satuan' => ['required', 'string', 'max:50'],
             'deskripsi' => ['nullable', 'string'],
         ]);
+
+        if (! $requiresSupplier) {
+            $validated['supplier_id'] = null;
+        }
+
+        return $validated;
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function formOptions(): array
+    private function formOptions(?string $modeApp): array
     {
         return [
+            'requiresSupplier' => $modeApp !== 'sederhana',
             'categories' => Category::query()
                 ->where('is_active', true)
                 ->orderBy('nama_kategori')
