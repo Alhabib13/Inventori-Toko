@@ -34,6 +34,21 @@
                 <p class="text-sm text-slate-600">Status pembelian {{ strtolower($purchase->status) }} pada {{ $purchase->tanggal_pembelian?->format('d/m/Y H:i') }}.</p>
             </div>
 
+            <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Item</p>
+                    <p class="mt-2 text-2xl font-bold text-slate-900">{{ $purchase->detailItem->count() }}</p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Qty</p>
+                    <p class="mt-2 text-2xl font-bold text-slate-900">{{ $purchase->detailItem->sum('qty') }}</p>
+                </div>
+                <div class="rounded-xl border border-[#003441] bg-[#003441] p-4 text-white">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">Total Pembelian</p>
+                    <p class="mt-2 text-2xl font-bold">Rp{{ number_format((float) $purchase->total_bayar, 0, ',', '.') }}</p>
+                </div>
+            </div>
+
             <dl class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <div class="rounded-xl border border-slate-200 p-4">
                     <dt class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Supplier</dt>
@@ -61,7 +76,7 @@
                 </div>
                 <div class="rounded-xl border border-slate-200 p-4">
                     <dt class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Pembelian</dt>
-                    <dd class="mt-2 text-sm font-semibold text-slate-900">Rp{{ number_format((float) $purchase->total_bayar, 0, ',', '.') }}</dd>
+                    <dd class="mt-2 text-sm font-semibold text-[#003441]">Rp{{ number_format((float) $purchase->total_bayar, 0, ',', '.') }}</dd>
                 </div>
             </dl>
         </section>
@@ -85,10 +100,13 @@
                     <tbody class="divide-y divide-slate-100">
                         @foreach ($purchase->detailItem as $item)
                             <tr class="transition hover:bg-slate-50">
-                                <td class="py-3 pr-4 font-medium text-slate-900">{{ $item->nama_produk }}</td>
-                                <td class="py-3 pr-4">{{ $item->qty }}</td>
+                                <td class="py-3 pr-4">
+                                    <p class="font-medium text-slate-900">{{ $item->nama_produk }}</p>
+                                    <p class="mt-1 text-xs text-slate-500">{{ $item->produk?->kode_produk ?? '-' }}</p>
+                                </td>
+                                <td class="py-3 pr-4 font-semibold text-slate-900">{{ $item->qty }}</td>
                                 <td class="py-3 pr-4">Rp{{ number_format((float) $item->harga_beli, 0, ',', '.') }}</td>
-                                <td class="py-3 pr-4">Rp{{ number_format((float) $item->subtotal, 0, ',', '.') }}</td>
+                                <td class="py-3 pr-4 font-semibold text-slate-900">Rp{{ number_format((float) $item->subtotal, 0, ',', '.') }}</td>
                             </tr>
                         @endforeach
                     </tbody>
