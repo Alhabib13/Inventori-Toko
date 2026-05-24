@@ -27,6 +27,10 @@
         }
 
         @media (max-width: 767.98px) {
+            [data-sidebar-panel] {
+                width: min(18rem, 88vw);
+            }
+
             [data-sidebar-root][data-sidebar-state='closed'] [data-sidebar-panel] {
                 transform: translateX(-100%);
             }
@@ -43,6 +47,28 @@
             [data-sidebar-root][data-sidebar-state='open'] [data-sidebar-overlay] {
                 opacity: 1;
                 pointer-events: auto;
+            }
+
+            [data-app-main] .overflow-x-auto {
+                margin-inline: -1rem;
+                padding-inline: 1rem;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            [data-page-actions] {
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            [data-page-actions] > * {
+                width: 100%;
+            }
+
+            [data-page-actions] form,
+            [data-page-actions] a,
+            [data-page-actions] button {
+                width: 100%;
             }
         }
 
@@ -329,6 +355,17 @@
             <header class="sticky top-0 z-30 border-b border-[#d6dde1] bg-[#f8fafb]/96 shadow-[0_10px_28px_-22px_rgba(15,39,48,0.48)] backdrop-blur">
                 <div class="flex items-center justify-between gap-4 px-5 py-4 sm:px-8">
                     <div class="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+                        <button
+                            type="button"
+                            class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#d8dee2] bg-white text-slate-700 shadow-[0_8px_18px_-16px_rgba(15,39,48,0.45)] transition hover:bg-[#f3f4f5] md:hidden"
+                            data-sidebar-toggle
+                            aria-label="Buka sidebar"
+                        >
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.75 7.5h14.5M4.75 12h14.5M4.75 16.5h14.5" />
+                            </svg>
+                        </button>
+
                         <div class="relative hidden max-w-md sm:block">
                             <svg class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m21 21-4.35-4.35M10.75 18.5a7.75 7.75 0 1 1 0-15.5 7.75 7.75 0 0 1 0 15.5Z" />
@@ -359,7 +396,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14.5 17.5h5m-2.5-2.5v5M12 4.75a6 6 0 0 1 6 6v1.37c0 .5.17.98.49 1.37l1 1.2a1 1 0 0 1-.77 1.64H5.28a1 1 0 0 1-.77-1.64l1-1.2c.32-.39.49-.87.49-1.37V10.75a6 6 0 0 1 6-6Zm0 14.5a2.75 2.75 0 0 1-2.58-1.75h5.16A2.75 2.75 0 0 1 12 19.25Z" />
                                 </svg>
                             </summary>
-                            <div class="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-[320px] overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-xl">
+                            <div class="absolute right-0 top-[calc(100%+0.75rem)] z-40 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-xl sm:w-[320px]">
                                 <div class="border-b border-slate-200 px-4 py-3">
                                     <div class="flex items-center justify-between gap-3">
                                         <div>
@@ -412,14 +449,14 @@
                 </div>
             </header>
 
-            <main class="flex-1 p-5 sm:p-8">
+            <main class="flex-1 p-4 sm:p-6 lg:p-8" data-app-main>
                 <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div class="min-w-0">
-                        <h1 class="text-3xl font-bold tracking-tight text-slate-900">{{ $pageTitle }}</h1>
+                        <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{{ $pageTitle }}</h1>
                         <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{{ $pageSubtitle }}</p>
                     </div>
                     @hasSection('page_actions')
-                        <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:w-auto" data-page-actions>
                             @yield('page_actions')
                         </div>
                     @endif

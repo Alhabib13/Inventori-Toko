@@ -4,12 +4,12 @@
 @section('page_subtitle', 'Kelola transaksi penjualan cepat, pilih produk, atur jumlah, pembayaran, lalu simpan ringkasan transaksi kasir.')
 
 @section('content')
-    <form method="POST" action="{{ route('transactions.store') }}" class="grid grid-cols-1 gap-6 xl:grid-cols-[0.38fr_0.62fr]">
+    <form method="POST" action="{{ route('transactions.store') }}" class="grid grid-cols-1 gap-6 2xl:grid-cols-[0.38fr_0.62fr]">
         @csrf
 
-        <section class="flex min-h-[760px] flex-col overflow-hidden rounded-[28px] border border-[#d3dbe0] bg-[#f4f6f7] shadow-sm">
+        <section class="flex min-h-[680px] flex-col overflow-hidden rounded-[28px] border border-[#d3dbe0] bg-[#f4f6f7] shadow-sm lg:min-h-[760px]">
             <div class="px-5 py-5">
-                <div class="mx-auto w-full max-w-[360px] rounded-[28px] border border-[#d7dfe3] bg-white px-6 py-6 shadow-[0_18px_36px_-28px_rgba(15,39,48,0.48)]">
+                <div class="mx-auto w-full max-w-[360px] rounded-[28px] border border-[#d7dfe3] bg-white px-5 py-6 shadow-[0_18px_36px_-28px_rgba(15,39,48,0.48)] sm:px-6">
                     <div class="relative border-b border-dashed border-slate-300 pb-5 text-center before:absolute before:-left-8 before:top-1/2 before:h-5 before:w-5 before:-translate-y-1/2 before:rounded-full before:bg-[#f4f6f7] before:content-[''] after:absolute after:-right-8 after:top-1/2 after:h-5 after:w-5 after:-translate-y-1/2 after:rounded-full after:bg-[#f4f6f7] after:content-['']">
                         <h2 class="text-3xl font-bold tracking-tight text-[#003441]">{{ auth()->user()?->store_name ?? 'Sitori POS' }}</h2>
                         <p class="mt-2 text-sm leading-6 text-slate-500">
@@ -138,7 +138,7 @@
                     <a href="{{ route('transactions.index') }}" class="inline-flex h-12 flex-1 items-center justify-center rounded-xl border border-[#c0c8cb] text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
                         Kembali
                     </a>
-                    <button type="submit" class="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[#003441] text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                    <button type="submit" data-loading-text="Menyimpan transaksi..." class="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[#003441] text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
                         Simpan Transaksi
                     </button>
                 </div>
@@ -192,7 +192,7 @@
                 </div>
 
                 <div class="overflow-hidden rounded-[24px] border border-[#d7dfe3] bg-white">
-                    <div class="grid grid-cols-[1.7fr_0.7fr_0.8fr_0.5fr] border-b border-[#d7dfe3] bg-[#f5f7f8] px-5 py-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                    <div class="hidden grid-cols-[1.7fr_0.7fr_0.8fr_0.5fr] border-b border-[#d7dfe3] bg-[#f5f7f8] px-5 py-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 sm:grid">
                         <div>Product</div>
                         <div>Price</div>
                         <div>Quantity</div>
@@ -201,7 +201,7 @@
 
                     <div class="max-h-[560px] overflow-y-auto" data-product-list>
                         @forelse ($products as $index => $product)
-                            <div class="grid grid-cols-[1.7fr_0.7fr_0.8fr_0.5fr] items-center gap-4 border-b border-slate-200 px-5 py-4 transition hover:bg-slate-50 last:border-b-0" data-product-row data-search="{{ strtolower($product->nama_produk.' '.$product->kode_produk) }}">
+                            <div class="grid grid-cols-1 gap-4 border-b border-slate-200 px-4 py-4 transition hover:bg-slate-50 last:border-b-0 sm:grid-cols-[1.7fr_0.7fr_0.8fr_0.5fr] sm:px-5" data-product-row data-search="{{ strtolower($product->nama_produk.' '.$product->kode_produk) }}">
                                 <div>
                                     <input type="hidden" name="items[{{ $index }}][product_id]" value="{{ $product->id }}">
                                     <div class="flex items-center gap-4">
@@ -219,10 +219,14 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="font-semibold text-slate-900" data-product-price="{{ (float) $product->harga_jual }}">
-                                    Rp{{ number_format((float) $product->harga_jual, 0, ',', '.') }}
+                                <div class="sm:block">
+                                    <p class="mb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 sm:hidden">Harga</p>
+                                    <div class="font-semibold text-slate-900" data-product-price="{{ (float) $product->harga_jual }}">
+                                        Rp{{ number_format((float) $product->harga_jual, 0, ',', '.') }}
+                                    </div>
                                 </div>
                                 <div>
+                                    <p class="mb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 sm:hidden">Jumlah</p>
                                     <div class="inline-flex items-center rounded-xl border border-[#d0d8dc] bg-white shadow-[0_8px_18px_-18px_rgba(15,39,48,0.5)]">
                                         <button type="button" class="inline-flex h-10 w-10 items-center justify-center text-lg text-slate-500 transition hover:bg-[#f3f4f5] hover:text-slate-800" data-qty-decrease aria-label="Kurangi jumlah">
                                             -
@@ -245,6 +249,7 @@
                                     </p>
                                 </div>
                                 <div>
+                                    <p class="mb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 sm:hidden">Aksi</p>
                                     <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-red-500 transition hover:bg-red-50" data-qty-clear aria-label="Hapus item">
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 7.75h12M9.75 7.75v8.5m4.5-8.5v8.5M8.75 4.75h6.5l.5 3H8.25l.5-3Zm-1 3h8.5l-.56 10.03a1.5 1.5 0 0 1-1.5 1.42H9.81a1.5 1.5 0 0 1-1.5-1.42L7.75 7.75Z" />
