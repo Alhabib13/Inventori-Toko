@@ -20,9 +20,14 @@
                 </div>
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Status</p>
-                    <p class="mt-2 text-sm font-semibold {{ $category->is_active ? 'text-emerald-700' : 'text-slate-500' }}">
+                    <span class="mt-2 inline-flex items-center gap-2 rounded-full {{ $category->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' }} px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]">
+                        <span class="h-2 w-2 rounded-full {{ $category->is_active ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
                         {{ $category->is_active ? 'Aktif' : 'Nonaktif' }}
-                    </p>
+                    </span>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Nama Saat Ini</p>
+                    <p class="mt-2 text-sm font-semibold text-slate-900">{{ $category->nama_kategori }}</p>
                 </div>
             </div>
         </section>
@@ -37,6 +42,10 @@
             <form action="{{ route('categories.update', $category) }}" method="POST" class="space-y-6">
                 @csrf
                 @method('PUT')
+                <div class="space-y-2 border-b border-slate-200 pb-5">
+                    <h2 class="text-lg font-semibold text-slate-900">Perbarui Data Kategori</h2>
+                    <p class="text-sm leading-6 text-slate-500">Sesuaikan nama atau deskripsi kategori agar klasifikasi produk tetap jelas dan konsisten.</p>
+                </div>
                 @include('categories._form', ['category' => $category])
 
                 <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-end">

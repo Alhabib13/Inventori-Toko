@@ -14,6 +14,16 @@
         <section class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold text-slate-900">Panduan Tambah Kategori</h2>
             <div class="mt-5 space-y-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Fungsi Utama</p>
+                        <p class="mt-2 text-sm leading-6 text-slate-600">Memisahkan produk per kelompok agar monitoring stok dan laporan lebih mudah dibaca.</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Hasil Akhir</p>
+                        <p class="mt-2 text-sm leading-6 text-slate-600">Kategori baru akan langsung tersedia pada form produk setelah data berhasil disimpan.</p>
+                    </div>
+                </div>
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Tips Penamaan</p>
                     <p class="mt-2 text-sm leading-6 text-slate-600">Gunakan nama kategori yang singkat, jelas, dan mudah dikenali seluruh tim operasional.</p>
@@ -21,6 +31,14 @@
                 <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Slug Otomatis</p>
                     <p class="mt-2 text-sm leading-6 text-slate-600">Slug akan dibuat otomatis dari nama kategori saat data disimpan.</p>
+                </div>
+                <div class="rounded-xl border border-dashed border-slate-300 bg-white p-4">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Alur Cepat</p>
+                    <div class="mt-3 space-y-2 text-sm text-slate-600">
+                        <p>1. Tulis nama kategori yang jelas.</p>
+                        <p>2. Tambahkan deskripsi singkat bila diperlukan.</p>
+                        <p>3. Simpan kategori lalu gunakan pada data produk.</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -34,6 +52,10 @@
 
             <form action="{{ route('categories.store') }}" method="POST" class="space-y-6">
                 @csrf
+                <div class="space-y-2 border-b border-slate-200 pb-5">
+                    <h2 class="text-lg font-semibold text-slate-900">Form Kategori Baru</h2>
+                    <p class="text-sm leading-6 text-slate-500">Isi nama dan deskripsi kategori agar struktur produk lebih rapi dan mudah dipahami.</p>
+                </div>
                 @include('categories._form')
 
                 <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-end">
