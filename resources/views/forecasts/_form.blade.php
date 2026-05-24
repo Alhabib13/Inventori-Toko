@@ -13,6 +13,7 @@
                 </option>
             @endforeach
         </select>
+        <p class="text-xs text-slate-500">Pilih satu produk yang ingin dianalisis berdasarkan histori transaksi penjualannya.</p>
         @error('product_id')
             <p class="text-sm text-red-600">{{ $message }}</p>
         @enderror
@@ -27,6 +28,7 @@
             value="{{ old('periode_akhir', optional($forecast->periode_akhir ?? now())->format('Y-m-d')) }}"
             class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
         />
+        <p class="text-xs text-slate-500">Gunakan tanggal akhir periode analisis yang ingin dijadikan acuan forecast.</p>
         @error('periode_akhir')
             <p class="text-sm text-red-600">{{ $message }}</p>
         @enderror
@@ -34,17 +36,18 @@
 
     <div class="space-y-2">
         <label for="panjang_jendela" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Jendela Moving Average</label>
-        <input
+        <select
             id="panjang_jendela"
             name="panjang_jendela"
-            type="number"
-            min="1"
-            max="12"
-            value="{{ old('panjang_jendela', $forecast->panjang_jendela ?? 3) }}"
-            placeholder="Contoh: 3"
             class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
-        />
-        <p class="text-xs text-slate-500">Gunakan jumlah bulan terakhir yang ingin dihitung. Rekomendasi awal: 3 bulan.</p>
+        >
+            @foreach ([1, 2, 3, 6, 12] as $windowOption)
+                <option value="{{ $windowOption }}" @selected((string) old('panjang_jendela', $forecast->panjang_jendela ?? 3) === (string) $windowOption)>
+                    {{ $windowOption }} bulan
+                </option>
+            @endforeach
+        </select>
+        <p class="text-xs text-slate-500">Pilih jumlah bulan histori yang ingin digunakan. Rekomendasi awal: 3 bulan.</p>
         @error('panjang_jendela')
             <p class="text-sm text-red-600">{{ $message }}</p>
         @enderror
@@ -56,7 +59,7 @@
             id="catatan"
             name="catatan"
             rows="5"
-            placeholder="Tulis insight singkat, rekomendasi restock, atau catatan tren penjualan."
+            placeholder="Tulis insight singkat, asumsi analisis, atau catatan rekomendasi restock."
             class="w-full rounded-lg border border-[#c0c8cb] bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
         >{{ old('catatan', $forecast->catatan ?? '') }}</textarea>
         @error('catatan')
