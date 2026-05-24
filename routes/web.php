@@ -38,6 +38,8 @@ Route::middleware('auth')->group(function (): void {
 
     Route::middleware('mode.access:reports')->group(function (): void {
         Route::resource('reports', ReportController::class)->only(['index']);
+        Route::get('/reports/export/{section}', [ReportController::class, 'export'])->name('reports.export');
+        Route::get('/reports/print/{section}', [ReportController::class, 'print'])->name('reports.print');
     });
 
     Route::middleware('mode.access:inventory-manage')->group(function (): void {
