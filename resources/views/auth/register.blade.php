@@ -97,6 +97,67 @@
             </div>
 
             <div class="space-y-1.5">
+                <label for="email" class="block text-sm font-bold text-slate-700">Email Owner</label>
+                <div class="relative">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z" />
+                        </svg>
+                    </div>
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value="{{ old('email') }}"
+                        placeholder="owner@email.com"
+                        required
+                        class="block h-11 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-[#0b4a5a] focus:ring-2 focus:ring-[#0b4a5a]/10 placeholder:text-slate-400"
+                    />
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <label for="verification_code" class="block text-sm font-bold text-slate-700">Kode Verifikasi</label>
+                <div class="flex gap-2">
+                    <div class="relative flex-1">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M8 4h8l2 3v13H6V7l2-3Z" />
+                            </svg>
+                        </div>
+                        <input
+                            id="verification_code"
+                            name="verification_code"
+                            type="text"
+                            inputmode="numeric"
+                            maxlength="6"
+                            value="{{ old('verification_code') }}"
+                            placeholder="Masukkan kode"
+                            required
+                            class="block h-11 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-[#0b4a5a] focus:ring-2 focus:ring-[#0b4a5a]/10 placeholder:text-slate-400"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        formaction="{{ route('register.owner.send-code') }}"
+                        formmethod="POST"
+                        formnovalidate
+                        data-loading-text="Mengirim..."
+                        data-code-send-button
+                        data-cooldown-seconds="120"
+                        class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md border border-[#0b4a5a] px-4 text-sm font-bold text-[#0b4a5a] transition hover:bg-[#0b4a5a]/5"
+                    >
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z" />
+                        </svg>
+                        <span data-code-send-label>Kirim Kode</span>
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500">Kirim kode ke email owner dulu, lalu masukkan 6 digit verifikasi untuk menyelesaikan registrasi.</p>
+            </div>
+
+            <div class="space-y-1.5">
                 <label for="password" class="block text-sm font-bold text-slate-700">Kata Sandi</label>
                 <div class="relative">
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
@@ -178,4 +239,57 @@
             </div>
         </form>
     </div>
+
+    <script>
+        (() => {
+            const sendButton = document.querySelector('[data-code-send-button]');
+            if (!sendButton) return;
+
+            const label = sendButton.querySelector('[data-code-send-label]');
+            const cooldownSeconds = Number(sendButton.dataset.cooldownSeconds || 120);
+            const storageKey = 'owner-register-code-cooldown-until';
+            let timerId = null;
+
+            const render = () => {
+                const cooldownUntil = Number(sessionStorage.getItem(storageKey) || 0);
+                const remaining = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
+
+                if (remaining <= 0) {
+                    sendButton.disabled = false;
+                    if (label) label.textContent = 'Kirim Kode';
+                    sessionStorage.removeItem(storageKey);
+                    if (timerId) {
+                        clearInterval(timerId);
+                        timerId = null;
+                    }
+                    return;
+                }
+
+                sendButton.disabled = true;
+                if (label) label.textContent = `Kirim Lagi (${remaining}s)`;
+            };
+
+            const startCooldown = () => {
+                sessionStorage.setItem(storageKey, String(Date.now() + cooldownSeconds * 1000));
+                render();
+                if (!timerId) {
+                    timerId = window.setInterval(render, 1000);
+                }
+            };
+
+            sendButton.addEventListener('click', () => {
+                const emailInput = document.getElementById('email');
+                if (!(emailInput instanceof HTMLInputElement) || emailInput.value.trim() === '') {
+                    return;
+                }
+
+                startCooldown();
+            });
+
+            render();
+            if (sessionStorage.getItem(storageKey)) {
+                timerId = window.setInterval(render, 1000);
+            }
+        })();
+    </script>
 @endsection

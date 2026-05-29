@@ -254,6 +254,8 @@
 
         $pageTitle = trim($__env->yieldContent('page_title')) ?: ($judulHalaman ?? 'Dashboard');
         $pageSubtitle = trim($__env->yieldContent('page_subtitle')) ?: 'Workspace inventori untuk operasional toko mode lengkap.';
+        $showTopbarPageHeader = trim($__env->yieldContent('topbar_page_header')) !== 'false';
+        $hidePageHeader = trim($__env->yieldContent('hide_page_header')) !== 'false';
         $feedbackToasts = collect([
             ['type' => 'success', 'message' => session('success')],
             ['type' => 'success', 'message' => session('status')],
@@ -397,8 +399,8 @@
         </aside>
 
         <div class="flex min-w-0 flex-1 flex-col">
-            <header class="sticky top-0 z-30 border-b border-[#d6dde1] bg-[#f8fafb]/96 shadow-[0_10px_28px_-22px_rgba(15,39,48,0.48)] backdrop-blur">
-                <div class="flex items-center justify-between gap-4 px-5 py-4 sm:px-8">
+            <header class="sticky top-0 z-30 border-b border-[#d6dde1] bg-gradient-to-r from-[#f8fafb]/98 via-white/96 to-[#eef5f7]/95 shadow-[0_10px_28px_-22px_rgba(15,39,48,0.48)] backdrop-blur">
+                <div class="flex min-h-[4.75rem] items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-8">
                     <div class="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
                         <button
                             type="button"
@@ -411,15 +413,30 @@
                             </svg>
                         </button>
 
-                        <div class="sm:hidden">
-                            <p class="text-xl font-extrabold tracking-tight text-[#003441]">Sitori</p>
+                        <div class="min-w-0 sm:hidden">
+                            <p class="truncate text-base font-extrabold tracking-tight text-[#003441]">{{ $pageTitle }}</p>
                             <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                 {{ $role === 'owner' && $modeApp === 'lengkap' ? 'Mode Monitoring' : ($modeApp === 'lengkap' ? 'Mode Lengkap' : 'Workspace Toko') }}
                             </p>
                         </div>
+
+                        @if ($showTopbarPageHeader)
+                            <div class="hidden min-w-0 items-center gap-4 lg:flex">
+                                <span class="h-10 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-[#0f4c5c] to-[#8ac7d8] shadow-[0_10px_22px_-14px_rgba(15,76,92,0.9)]"></span>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="rounded-full border border-[#d6dde1] bg-white/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#0f4c5c]">
+                                            {{ $role === 'owner' && $modeApp === 'lengkap' ? 'Monitoring' : ($modeApp === 'lengkap' ? 'Mode Lengkap' : 'Workspace') }}
+                                        </span>
+                                    </div>
+                                    <h1 class="mt-1 truncate text-[1.35rem] font-extrabold leading-tight tracking-tight text-slate-900">{{ $pageTitle }}</h1>
+                                    <p class="mt-0.5 max-w-[min(58vw,56rem)] truncate text-sm leading-5 text-slate-500">{{ $pageSubtitle }}</p>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
-                    <div class="flex items-center gap-2 rounded-full border border-[#d8dee2] bg-white/88 px-2 py-1.5 shadow-[0_12px_28px_-22px_rgba(15,39,48,0.55)] sm:gap-3 sm:px-3">
+                    <div class="flex shrink-0 items-center gap-1.5 rounded-full border border-[#d8dee2] bg-white/90 px-1.5 py-1.5 shadow-[0_12px_28px_-22px_rgba(15,39,48,0.55)] sm:gap-2 sm:px-2">
                         @if (in_array($role, ['owner', 'gudang'], true))
                         <details class="relative">
                             <summary
@@ -479,7 +496,7 @@
                         @if (in_array($role, ['owner', 'gudang'], true))
                         <div class="hidden h-8 w-px bg-[#d8dee2] sm:block"></div>
                         @endif
-                        <div class="flex items-center gap-3 rounded-full px-2 py-1 transition hover:bg-[#f3f4f5]">
+                        <div class="flex items-center gap-3 rounded-full px-1.5 py-1 transition hover:bg-[#f3f4f5] sm:px-2">
                             <div class="hidden text-right sm:block">
                                 <p class="text-sm font-semibold text-slate-800">{{ $user?->name ?? 'Owner Admin' }}</p>
                                 <p class="text-xs text-slate-500">{{ $user?->store_name ?? 'Sitori Workspace' }}</p>
@@ -493,17 +510,23 @@
             </header>
 
             <main class="flex-1 p-4 sm:p-6 lg:p-8" data-app-main>
-                <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div class="min-w-0">
-                        <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{{ $pageTitle }}</h1>
-                        <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{{ $pageSubtitle }}</p>
-                    </div>
-                    @hasSection('page_actions')
-                        <div class="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:w-auto" data-page-actions>
-                            @yield('page_actions')
+                @if (! $hidePageHeader)
+                    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div class="min-w-0">
+                            <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{{ $pageTitle }}</h1>
+                            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{{ $pageSubtitle }}</p>
                         </div>
-                    @endif
-                </div>
+                        @hasSection('page_actions')
+                            <div class="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:w-auto" data-page-actions>
+                                @yield('page_actions')
+                            </div>
+                        @endif
+                    </div>
+                @elseif($__env->hasSection('page_actions'))
+                    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end" data-page-actions>
+                        @yield('page_actions')
+                    </div>
+                @endif
 
                 @yield('content')
             </main>

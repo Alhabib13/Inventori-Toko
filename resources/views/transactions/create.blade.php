@@ -95,6 +95,10 @@
                                 <span class="font-semibold text-slate-900" data-paid-label>Rp0</span>
                             </div>
                             <div class="flex items-center justify-between text-slate-600">
+                                <span>Pembayaran</span>
+                                <span class="font-semibold text-slate-900" data-payment-label>{{ old('metode_pembayaran', 'tunai') === 'qris' ? 'QRIS' : 'Tunai' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-slate-600">
                                 <span>Kembalian</span>
                                 <span class="font-semibold text-emerald-700" data-change-label>Rp0</span>
                             </div>
@@ -366,6 +370,7 @@
                 const totalLabel = document.querySelector('[data-total-label]');
                 const paidLabel = document.querySelector('[data-paid-label]');
                 const changeLabel = document.querySelector('[data-change-label]');
+                const paymentLabel = document.querySelector('[data-payment-label]');
                 const paymentInput = document.querySelector('[data-payment-input]');
                 const paymentButtons = Array.from(document.querySelectorAll('[data-payment-option]'));
                 const receiptEditButton = document.querySelector('[data-receipt-edit]');
@@ -392,10 +397,19 @@
                 const formatCurrency = (value) => `Rp${currency.format(Math.max(0, Number(value) || 0))}`;
 
                 const updatePaymentButtons = () => {
+                    const paymentNames = {
+                        tunai: 'Tunai',
+                        qris: 'QRIS',
+                    };
+
                     paymentButtons.forEach((button) => {
                         const active = button.dataset.paymentValue === paymentInput.value;
                         button.className = `rounded-2xl border px-4 py-3 text-center text-sm font-semibold transition ${active ? 'border-[#003441] bg-[#d0e1fb]/35 text-[#003441]' : 'border-[#c0c8cb] bg-white text-slate-600 hover:border-[#003441] hover:text-[#003441]'}`;
                     });
+
+                    if (paymentLabel) {
+                        paymentLabel.textContent = paymentNames[paymentInput.value] || 'Tunai';
+                    }
                 };
 
                 const updateSummary = () => {
