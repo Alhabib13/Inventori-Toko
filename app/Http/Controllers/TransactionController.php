@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Transaction;
+use App\Models\User;
 use App\Services\StockMovementService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -93,6 +94,11 @@ class TransactionController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $storeProfile = User::query()
+            ->where('store_name', $storeName)
+            ->where('role', 'owner')
+            ->first(['store_name', 'alamat_toko']);
+
         $posSummary = [
             'active_products_count' => (clone $activeProductsQuery)->count(),
             'low_stock_count' => Product::query()
@@ -112,6 +118,7 @@ class TransactionController extends Controller
         return view('transactions.create', [
             'products' => $products,
             'posSummary' => $posSummary,
+            'storeProfile' => $storeProfile,
         ]);
     }
 

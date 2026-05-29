@@ -71,6 +71,7 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'store_name' => ['required', 'string', 'max:255'],
+            'alamat_toko' => ['required', 'string', 'max:1000'],
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:50', 'alpha_dash:ascii', 'unique:users,username'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
@@ -79,6 +80,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $data['name'],
             'store_name' => $data['store_name'],
+            'alamat_toko' => $data['alamat_toko'],
             'username' => $data['username'],
             'email' => $data['username'].'@toko.local',
             'password' => $data['password'],
@@ -107,6 +109,7 @@ class AuthController extends Controller
 
         $data['email'] = $data['username'].'@toko.local';
         $data['store_name'] = $request->user()?->store_name;
+        $data['alamat_toko'] = $request->user()?->alamat_toko;
         $data['mode_app'] = $request->user()?->mode_app;
         $data['is_active'] = true;
 

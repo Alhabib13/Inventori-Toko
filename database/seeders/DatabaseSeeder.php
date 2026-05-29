@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
 
         $owner->fill([
             'name' => 'Owner Toko',
+            'store_name' => 'Toko Demo',
+            'alamat_toko' => 'Jl. Mawar No. 1, Jakarta',
             'username' => 'owner',
             'email' => 'owner@toko.local',
             'password' => Hash::make('password'),

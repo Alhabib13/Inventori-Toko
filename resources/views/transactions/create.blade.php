@@ -30,9 +30,12 @@
             <div class="px-5 py-5">
                 <div class="mx-auto w-full max-w-[360px] rounded-[28px] border border-[#d7dfe3] bg-white px-5 py-6 shadow-[0_18px_36px_-28px_rgba(15,39,48,0.48)] sm:px-6">
                     <div class="relative border-b border-dashed border-slate-300 pb-5 text-center before:absolute before:-left-8 before:top-1/2 before:h-5 before:w-5 before:-translate-y-1/2 before:rounded-full before:bg-[#f4f6f7] before:content-[''] after:absolute after:-right-8 after:top-1/2 after:h-5 after:w-5 after:-translate-y-1/2 after:rounded-full after:bg-[#f4f6f7] after:content-['']">
-                        <h2 class="text-3xl font-bold tracking-tight text-[#003441]">{{ auth()->user()?->store_name ?? 'Sitori POS' }}</h2>
+                        <h2 class="text-3xl font-bold tracking-tight text-[#003441]">{{ $storeProfile?->store_name ?? auth()->user()?->store_name ?? 'Sitori POS' }}</h2>
+                        @if (filled($storeProfile?->alamat_toko))
+                            <p class="mt-2 text-sm leading-6 text-slate-500">{{ $storeProfile->alamat_toko }}</p>
+                        @endif
                         <p class="mt-2 text-sm leading-6 text-slate-500">
-                            {{ auth()->user()?->name ?? 'Kasir Aktif' }}<br>
+                            Kasir: {{ auth()->user()?->name ?? 'Kasir Aktif' }}<br>
                             {{ now()->format('d M Y') }} - {{ now()->format('H:i') }}
                         </p>
                     </div>
@@ -70,25 +73,7 @@
                         </div>
                     </div>
 
-                    <div class="space-y-4 py-5 text-sm">
-                        <div class="rounded-2xl border border-[#c0c8cb] bg-white p-4">
-                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div class="space-y-2 font-sans">
-                                    <label for="transaction_discount" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Diskon</label>
-                                    <input id="transaction_discount" type="number" name="diskon" min="0" step="0.01" value="{{ old('diskon', 0) }}" class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" data-discount-input>
-                                </div>
-                                <div class="space-y-2 font-sans">
-                                    <label for="transaction_tax" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Pajak</label>
-                                    <input id="transaction_tax" type="number" name="pajak" min="0" step="0.01" value="{{ old('pajak', 0) }}" class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" data-tax-input>
-                                </div>
-                                <div class="space-y-2 font-sans sm:col-span-2">
-                                    <label for="transaction_paid_amount" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Nominal Bayar</label>
-                                    <input id="transaction_paid_amount" type="number" name="nominal_bayar" min="0" step="0.01" value="{{ old('nominal_bayar', 0) }}" class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" data-paid-input>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="space-y-3 font-mono">
+                    <div class="space-y-3 py-5 font-mono text-sm">
                             <div class="flex items-center justify-between text-slate-600">
                                 <span>Subtotal</span>
                                 <span class="font-semibold text-slate-900" data-subtotal-label>Rp0</span>
@@ -113,36 +98,6 @@
                                 <span>Kembalian</span>
                                 <span class="font-semibold text-emerald-700" data-change-label>Rp0</span>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-4 border-t border-dashed border-slate-300 pt-5">
-                        <div>
-                            <div class="flex items-center justify-between gap-3">
-                                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Metode Pembayaran</p>
-                                <button type="button" class="inline-flex items-center rounded-full border border-[#c0c8cb] px-3 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-[#f3f4f5]" data-receipt-edit>
-                                    Edit Struk
-                                </button>
-                            </div>
-                            <input type="hidden" name="metode_pembayaran" value="{{ old('metode_pembayaran', 'tunai') }}" data-payment-input>
-                            <div class="mt-3 grid grid-cols-2 gap-3">
-                                @foreach (['tunai' => 'Tunai', 'qris' => 'QRIS'] as $paymentValue => $paymentLabel)
-                                    <button
-                                        type="button"
-                                        class="rounded-2xl border border-[#c0c8cb] bg-white px-4 py-3 text-center text-sm font-semibold text-slate-600 transition hover:border-[#003441] hover:text-[#003441]"
-                                        data-payment-option
-                                        data-payment-value="{{ $paymentValue }}"
-                                    >
-                                        {{ $paymentLabel }}
-                                    </button>
-                                @endforeach
-                            </div>
-                        </div>
-
-                        <div class="space-y-2 font-sans">
-                            <label for="transaction_note" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Catatan</label>
-                            <textarea id="transaction_note" name="catatan" rows="3" class="w-full rounded-2xl border border-[#c0c8cb] bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10">{{ old('catatan') }}</textarea>
-                        </div>
                     </div>
 
                     <div class="mt-5 border-t border-dashed border-slate-300 pt-5 text-center text-xs text-slate-500">
@@ -209,6 +164,44 @@
                         <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Transaksi Hari Ini</p>
                         <p class="mt-2 text-2xl font-bold text-slate-900">{{ $posSummary['today_transaction_count'] ?? 0 }}</p>
                         <p class="mt-2 text-sm font-semibold text-slate-900">Transaksi selesai yang sudah kamu proses hari ini.</p>
+                    </div>
+                </div>
+
+                <div class="mb-5 rounded-2xl border border-[#c0c8cb] bg-[#f9f9fa] p-4">
+                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Metode Pembayaran</p>
+                            <input type="hidden" name="metode_pembayaran" value="{{ old('metode_pembayaran', 'tunai') }}" data-payment-input>
+                            <div class="mt-3 grid grid-cols-2 gap-3">
+                                @foreach (['tunai' => 'Tunai', 'qris' => 'QRIS'] as $paymentValue => $paymentLabel)
+                                    <button
+                                        type="button"
+                                        class="rounded-2xl border border-[#c0c8cb] bg-white px-4 py-3 text-center text-sm font-semibold text-slate-600 transition hover:border-[#003441] hover:text-[#003441]"
+                                        data-payment-option
+                                        data-payment-value="{{ $paymentValue }}"
+                                    >
+                                        {{ $paymentLabel }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                <div class="space-y-2 font-sans">
+                                    <label for="transaction_discount" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Diskon</label>
+                                    <input id="transaction_discount" type="number" name="diskon" min="0" step="0.01" value="{{ old('diskon', 0) }}" class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" data-discount-input>
+                                </div>
+                                <div class="space-y-2 font-sans">
+                                    <label for="transaction_tax" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Pajak</label>
+                                    <input id="transaction_tax" type="number" name="pajak" min="0" step="0.01" value="{{ old('pajak', 0) }}" class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" data-tax-input>
+                                </div>
+                                <div class="space-y-2 font-sans">
+                                    <label for="transaction_paid_amount" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Nominal Bayar</label>
+                                    <input id="transaction_paid_amount" type="number" name="nominal_bayar" min="0" step="0.01" value="{{ old('nominal_bayar', 0) }}" class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" data-paid-input>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

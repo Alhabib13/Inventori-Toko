@@ -119,6 +119,31 @@ class PosSalesTransactionTest extends TestCase
         $this->actingAs($owner)->get('/transactions')->assertOk();
     }
 
+    public function test_pos_receipt_shows_store_name_and_store_address_from_owner_profile(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+            'store_name' => 'Toko Sukses Jaya',
+            'alamat_toko' => 'Jl. Kenanga No. 15, Bandung',
+        ]);
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+            'store_name' => 'Toko Sukses Jaya',
+            'alamat_toko' => 'Alamat Lama Kasir',
+        ]);
+
+        $this->createProduct($kasir->store_name, ['stok' => 5]);
+
+        $this->actingAs($kasir)
+            ->get('/pos')
+            ->assertOk()
+            ->assertSee('Toko Sukses Jaya')
+            ->assertSee('Jl. Kenanga No. 15, Bandung')
+            ->assertDontSee('Alamat Lama Kasir');
+    }
+
     public function test_kasir_pos_shows_active_pos_summary(): void
     {
         $kasir = User::factory()->create([

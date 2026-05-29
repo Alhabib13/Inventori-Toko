@@ -47,6 +47,7 @@ class AuthRoleTest extends TestCase
     {
         $response = $this->post('/register', [
             'store_name' => 'Toko Sentosa',
+            'alamat_toko' => 'Jl. Melati No. 10, Surabaya',
             'name' => 'Owner Baru',
             'username' => 'ownerbaru',
             'password' => 'password123',
@@ -59,6 +60,7 @@ class AuthRoleTest extends TestCase
         $this->assertDatabaseHas('users', [
             'name' => 'Owner Baru',
             'store_name' => 'Toko Sentosa',
+            'alamat_toko' => 'Jl. Melati No. 10, Surabaya',
             'username' => 'ownerbaru',
             'email' => 'ownerbaru@toko.local',
             'role' => 'owner',
@@ -70,6 +72,7 @@ class AuthRoleTest extends TestCase
     {
         $this->from('/register')->post('/register', [
             'store_name' => 'Toko Sentosa',
+            'alamat_toko' => 'Jl. Melati No. 10, Surabaya',
             'name' => 'Owner Baru',
             'username' => 'ownerbaru',
             'password' => 'pendek',

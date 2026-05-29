@@ -14,6 +14,7 @@ class DemoUserSeeder extends Seeder
             [
                 'name' => 'Owner Sederhana',
                 'store_name' => 'Toko Sederhana',
+                'alamat_toko' => 'Jl. Melati No. 10, Surabaya',
                 'username' => 'owner_sederhana',
                 'email' => 'owner_sederhana@demo.local',
                 'role' => 'owner',
@@ -22,6 +23,7 @@ class DemoUserSeeder extends Seeder
             [
                 'name' => 'Kasir Sederhana',
                 'store_name' => 'Toko Sederhana',
+                'alamat_toko' => 'Jl. Melati No. 10, Surabaya',
                 'username' => 'kasir_sederhana',
                 'email' => 'kasir_sederhana@demo.local',
                 'role' => 'kasir',
@@ -30,6 +32,7 @@ class DemoUserSeeder extends Seeder
             [
                 'name' => 'Owner Lengkap',
                 'store_name' => 'Toko Lengkap',
+                'alamat_toko' => 'Jl. Kenanga No. 15, Bandung',
                 'username' => 'owner_lengkap',
                 'email' => 'owner_lengkap@demo.local',
                 'role' => 'owner',
@@ -38,6 +41,7 @@ class DemoUserSeeder extends Seeder
             [
                 'name' => 'Kasir Lengkap',
                 'store_name' => 'Toko Lengkap',
+                'alamat_toko' => 'Jl. Kenanga No. 15, Bandung',
                 'username' => 'kasir_lengkap',
                 'email' => 'kasir_lengkap@demo.local',
                 'role' => 'kasir',
@@ -46,6 +50,7 @@ class DemoUserSeeder extends Seeder
             [
                 'name' => 'Gudang Lengkap',
                 'store_name' => 'Toko Lengkap',
+                'alamat_toko' => 'Jl. Kenanga No. 15, Bandung',
                 'username' => 'gudang_lengkap',
                 'email' => 'gudang_lengkap@demo.local',
                 'role' => 'gudang',

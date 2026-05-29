@@ -37,6 +37,26 @@
             </div>
 
             <div class="space-y-1.5">
+                <label for="alamat_toko" class="block text-sm font-bold text-slate-700">Alamat Toko</label>
+                <div class="relative">
+                    <div class="pointer-events-none absolute left-0 top-0 flex items-center pl-3 pt-3 text-slate-400">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21s-6-5.33-6-11a6 6 0 1 1 12 0c0 5.67-6 11-6 11Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
+                        </svg>
+                    </div>
+                    <textarea
+                        id="alamat_toko"
+                        name="alamat_toko"
+                        rows="3"
+                        placeholder="Masukkan alamat toko Anda"
+                        required
+                        class="block w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0b4a5a] focus:ring-2 focus:ring-[#0b4a5a]/10 placeholder:text-slate-400"
+                    >{{ old('alamat_toko') }}</textarea>
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
                 <label for="name" class="block text-sm font-bold text-slate-700">Nama Lengkap</label>
                 <div class="relative">
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">

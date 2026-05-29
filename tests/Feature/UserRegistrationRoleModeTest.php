@@ -71,6 +71,7 @@ class UserRegistrationRoleModeTest extends TestCase
         $this->assertDatabaseHas('users', [
             'username' => 'userbaru',
             'store_name' => 'Toko Lengkap',
+            'alamat_toko' => $owner->alamat_toko,
             'role' => 'gudang',
             'mode_app' => 'lengkap',
         ]);
