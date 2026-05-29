@@ -5,10 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $judulHalaman ?? 'Sitori' }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script>
+        (() => {
+            try {
+                const desktop = window.matchMedia('(min-width: 768px)').matches;
+                const stored = localStorage.getItem('sitori-sidebar-desktop-state');
+                document.documentElement.dataset.sidebarInitialState = desktop && stored === 'collapsed' ? 'collapsed' : 'open';
+            } catch (error) {
+                document.documentElement.dataset.sidebarInitialState = 'open';
+            }
+        })();
+    </script>
     <style>
         [data-sidebar-panel],
         [data-sidebar-overlay] {
             transition: transform 0.22s ease, opacity 0.22s ease, width 0.22s ease;
+        }
+
+        [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-panel],
+        [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-overlay],
+        [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-label],
+        [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-brand-copy],
+        [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-logout-label] {
+            transition: none !important;
         }
 
         [data-sidebar-label],
@@ -73,19 +92,25 @@
         }
 
         @media (min-width: 768px) {
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-panel],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-panel] {
                 width: 5.5rem;
                 min-width: 5.5rem;
             }
 
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-brand],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-brand] {
                 justify-content: center;
             }
 
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-brand-leading],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-brand-leading] {
                 display: none;
             }
 
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-brand-copy],
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-label],
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-logout-label],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-brand-copy],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-label],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-logout-label] {
@@ -95,6 +120,7 @@
                 overflow: hidden;
             }
 
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-link],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-link] {
                 justify-content: center;
                 gap: 0;
@@ -103,25 +129,30 @@
                 min-height: 3rem;
             }
 
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-header],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-header] {
                 padding-left: 1rem;
                 padding-right: 1rem;
             }
 
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-footer],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-footer] {
                 padding-left: 0.75rem;
                 padding-right: 0.75rem;
             }
 
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-nav],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-nav] {
                 padding-left: 0.75rem;
                 padding-right: 0.75rem;
             }
 
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-toggle],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-toggle] {
                 margin-inline: auto;
             }
 
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-logout],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-logout] {
                 justify-content: center;
                 gap: 0;
@@ -129,10 +160,12 @@
                 padding-right: 0.75rem;
             }
 
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-logout-icon],
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-logout-icon] {
                 margin-inline: auto;
             }
 
+            html[data-sidebar-initial-state='collapsed'] [data-sidebar-root]:not([data-sidebar-ready]) [data-sidebar-link].is-active,
             [data-sidebar-root][data-sidebar-state='collapsed'] [data-sidebar-link].is-active {
                 border-left-width: 0;
                 border-width: 1px;
@@ -230,6 +263,15 @@
     @endphp
 
     <div class="pointer-events-none fixed inset-x-0 top-0 z-[70] h-1.5 origin-left scale-x-0 bg-gradient-to-r from-[#0f4c5c] via-[#2f7c92] to-[#8ac7d8] transition-transform duration-300" data-page-loader></div>
+    <div class="pointer-events-none fixed inset-0 z-[90] hidden items-center justify-center bg-slate-950/35 backdrop-blur-sm" data-route-loader-overlay>
+        <div class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-700 shadow-2xl">
+            <svg class="h-5 w-5 animate-spin text-[#003441]" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" class="opacity-25" stroke="currentColor" stroke-width="3"></circle>
+                <path d="M21 12a9 9 0 0 0-9-9" class="opacity-90" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+            </svg>
+            <span>Keluar dari akun...</span>
+        </div>
+    </div>
 
     @if ($feedbackToasts->isNotEmpty())
         <div class="pointer-events-none fixed right-4 top-4 z-[80] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3" data-toast-stack>
@@ -343,17 +385,14 @@
             </nav>
 
             <div class="mt-auto border-t border-white/12 bg-[#102d37]/92 px-3 py-4 backdrop-blur" data-sidebar-footer>
-                <form action="{{ route('logout') }}" method="POST" data-instant-submit>
-                    @csrf
-                    <button type="submit" class="flex w-full items-center gap-3 rounded-xl border border-white/55 bg-white/6 px-4 py-3 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:bg-white/12" data-sidebar-logout data-loading-text="Keluar..." title="Keluar">
-                        <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-[#f4f8f9] text-[#123743]" data-sidebar-logout-icon>
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.75 7.75V6.5A1.75 1.75 0 0 1 12.5 4.75h4A1.75 1.75 0 0 1 18.25 6.5v11A1.75 1.75 0 0 1 16.5 19.25h-4a1.75 1.75 0 0 1-1.75-1.75v-1.25M14 12H4.75m0 0 2.75-2.75M4.75 12l2.75 2.75" />
-                            </svg>
-                        </span>
-                        <span data-sidebar-logout-label>Keluar</span>
-                    </button>
-                </form>
+                <a href="{{ route('logout.get') }}" class="flex w-full items-center gap-3 rounded-xl border border-white/55 bg-white/6 px-4 py-3 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:bg-white/12" data-sidebar-logout data-force-loader title="Keluar">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-[#f4f8f9] text-[#123743]" data-sidebar-logout-icon>
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.75 7.75V6.5A1.75 1.75 0 0 1 12.5 4.75h4A1.75 1.75 0 0 1 18.25 6.5v11A1.75 1.75 0 0 1 16.5 19.25h-4a1.75 1.75 0 0 1-1.75-1.75v-1.25M14 12H4.75m0 0 2.75-2.75M4.75 12l2.75 2.75" />
+                        </svg>
+                    </span>
+                    <span data-sidebar-logout-label>Keluar</span>
+                </a>
             </div>
         </aside>
 
@@ -372,25 +411,6 @@
                             </svg>
                         </button>
 
-                        @if ($role === 'kasir')
-                            <form action="{{ route('stocks.role-home') }}" method="GET" class="hidden max-w-md sm:block">
-                                <div class="relative">
-                                    <svg class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m21 21-4.35-4.35M10.75 18.5a7.75 7.75 0 1 1 0-15.5 7.75 7.75 0 0 1 0 15.5Z" />
-                                    </svg>
-                                    <input
-                                        type="text"
-                                        name="search"
-                                        value="{{ request('search') }}"
-                                        placeholder="Cari barang di stok..."
-                                        class="h-12 w-full rounded-full border border-[#d2dadd] bg-white pl-11 pr-24 text-sm text-slate-700 shadow-[0_8px_18px_-16px_rgba(15,39,48,0.55)] outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
-                                    />
-                                    <button type="submit" class="absolute right-1.5 top-1/2 inline-flex h-9 -translate-y-1/2 items-center rounded-full bg-[#003441] px-4 text-xs font-semibold text-white transition hover:bg-[#0f4c5c]">
-                                        Cari
-                                    </button>
-                                </div>
-                            </form>
-                        @endif
                         <div class="sm:hidden">
                             <p class="text-xl font-extrabold tracking-tight text-[#003441]">Sitori</p>
                             <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
@@ -503,10 +523,12 @@
             const syncSidebarState = () => {
                 if (desktopQuery.matches) {
                     root.dataset.sidebarState = localStorage.getItem(storageKey) === 'collapsed' ? 'collapsed' : 'open';
+                    root.dataset.sidebarReady = 'true';
                     return;
                 }
 
                 root.dataset.sidebarState = 'closed';
+                root.dataset.sidebarReady = 'true';
             };
 
             const persistDesktopState = () => {
@@ -544,6 +566,7 @@
     <script>
         (() => {
             const loader = document.querySelector('[data-page-loader]');
+            const routeLoaderOverlay = document.querySelector('[data-route-loader-overlay]');
             const confirmDialog = document.querySelector('[data-confirm-dialog]');
             const confirmTitle = confirmDialog?.querySelector('[data-confirm-title]');
             const confirmMessage = confirmDialog?.querySelector('[data-confirm-message]');
@@ -557,10 +580,18 @@
                 loader.classList.add('scale-x-100');
             };
 
+            const showRouteLoaderOverlay = () => {
+                showLoader();
+                routeLoaderOverlay?.classList.remove('hidden');
+                routeLoaderOverlay?.classList.add('flex');
+            };
+
             window.addEventListener('pageshow', () => {
                 if (!loader) return;
                 loader.classList.add('scale-x-0');
                 loader.classList.remove('scale-x-100');
+                routeLoaderOverlay?.classList.add('hidden');
+                routeLoaderOverlay?.classList.remove('flex');
             });
 
             document.querySelectorAll('[data-toast]').forEach((toast) => {
@@ -585,6 +616,16 @@
 
                 const href = link.getAttribute('href');
                 if (!href || href.startsWith('#') || link.target === '_blank' || link.hasAttribute('download')) return;
+
+                if (link.matches('[data-force-loader]')) {
+                    event.preventDefault();
+                    showRouteLoaderOverlay();
+                    window.setTimeout(() => {
+                        window.location.href = href;
+                    }, 450);
+                    return;
+                }
+
                 showLoader();
             });
 

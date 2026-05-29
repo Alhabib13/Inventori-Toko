@@ -19,6 +19,10 @@
         $completedCount = $pageTransactions->where('status', 'selesai')->count();
         $cancelledCount = $pageTransactions->where('status', 'dibatalkan')->count();
         $salesTotal = $pageTransactions->sum('total_bayar');
+        $lastPage = $transactions->lastPage();
+        $currentPage = $transactions->currentPage();
+        $startPage = max(1, min($currentPage - 3, max(1, $lastPage - 6)));
+        $endPage = min($lastPage, $startPage + 6);
         $filterLabel = $dateFrom || $dateTo
             ? 'Filter aktif: ' . ($dateFrom ? \Illuminate\Support\Carbon::parse($dateFrom)->format('d M Y') : 'awal') . ' - ' . ($dateTo ? \Illuminate\Support\Carbon::parse($dateTo)->format('d M Y') : 'akhir')
             : 'Belum ada filter periode aktif.';
@@ -63,9 +67,9 @@
             </section>
         @endif
 
-        <section class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+        <section class="rounded-2xl border border-[#c0c8cb] bg-white px-6 pb-6 pt-4 shadow-sm">
             <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-                <div class="space-y-3">
+                <div class="space-y-2">
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="inline-flex items-center rounded-full border border-[#cde2e8] bg-[#eff7f8] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#003441]">
                             {{ $isKasir ? 'Transaksi Milik Saya' : 'Monitoring Owner' }}
@@ -200,8 +204,81 @@
                 </table>
             </div>
 
-            <div class="mt-4">
-                {{ $transactions->links() }}
+            <div class="mt-4 border-t border-slate-200 pt-4">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="text-sm text-slate-500">
+                        Menampilkan
+                        <span class="font-semibold text-slate-700">{{ $transactions->firstItem() ?? 0 }}</span>
+                        -
+                        <span class="font-semibold text-slate-700">{{ $transactions->lastItem() ?? 0 }}</span>
+                        dari
+                        <span class="font-semibold text-slate-700">{{ $transactions->total() }}</span>
+                        transaksi
+                    </div>
+                </div>
+
+                @if ($lastPage > 1)
+                    <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                        <form method="GET" action="{{ route('transactions.index') }}" class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                            @if (($search ?? '') !== '')
+                                <input type="hidden" name="search" value="{{ $search }}">
+                            @endif
+                            @if ($dateFrom !== '')
+                                <input type="hidden" name="date_from" value="{{ $dateFrom }}">
+                            @endif
+                            @if ($dateTo !== '')
+                                <input type="hidden" name="date_to" value="{{ $dateTo }}">
+                            @endif
+                            <span>Lompat ke halaman</span>
+                            <input
+                                type="number"
+                                name="page"
+                                min="1"
+                                max="{{ $lastPage }}"
+                                value="{{ $currentPage }}"
+                                class="h-10 w-20 rounded-lg border border-slate-200 bg-white px-3 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0f4c5c] focus:ring-2 focus:ring-[#d0e1fb]"
+                            >
+                            <span>dari {{ $lastPage }}</span>
+                            <button type="submit" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                Buka
+                            </button>
+                        </form>
+
+                        <div class="flex flex-wrap items-center justify-center gap-2 xl:justify-end">
+                            @if ($transactions->onFirstPage())
+                                <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">
+                                    Sebelumnya
+                                </span>
+                            @else
+                                <a href="{{ $transactions->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                    Sebelumnya
+                                </a>
+                            @endif
+
+                            @for ($page = $startPage; $page <= $endPage; $page++)
+                                @if ($page === $currentPage)
+                                    <span class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-[#0f4c5c] bg-[#003441] px-3 text-sm font-semibold text-white">
+                                        {{ $page }}
+                                    </span>
+                                @else
+                                    <a href="{{ $transactions->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                        {{ $page }}
+                                    </a>
+                                @endif
+                            @endfor
+
+                            @if ($transactions->hasMorePages())
+                                <a href="{{ $transactions->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                    Berikutnya
+                                </a>
+                            @else
+                                <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">
+                                    Berikutnya
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
             </div>
         </section>
     </div>

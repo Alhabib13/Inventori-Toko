@@ -22,14 +22,27 @@ class ForecastController extends Controller
         $user = $request->user();
         $isSimpleMode = $user?->mode_app === 'sederhana';
         $canManageForecasts = $this->canManageForecasts($user?->role, $user?->mode_app);
+        $forecastSearch = trim((string) $request->string('forecast_search'));
 
         $forecastRows = SalesForecast::query()
             ->with('produk')
             ->whereHas('produk', function ($query) use ($user): void {
                 $query->where('store_name', $user?->store_name);
             })
+            ->when($forecastSearch !== '', function ($query) use ($forecastSearch): void {
+                $query->where(function ($forecastQuery) use ($forecastSearch): void {
+                    $forecastQuery
+                        ->where('panjang_jendela', 'like', "%{$forecastSearch}%")
+                        ->orWhereHas('produk', function ($productQuery) use ($forecastSearch): void {
+                            $productQuery
+                                ->where('nama_produk', 'like', "%{$forecastSearch}%")
+                                ->orWhere('kode_produk', 'like', "%{$forecastSearch}%");
+                        });
+                });
+            })
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         $restockProducts = Product::query()
             ->where('store_name', $user?->store_name)
@@ -60,6 +73,7 @@ class ForecastController extends Controller
                 ->whereHas('kasir', fn ($query) => $query->where('store_name', $user?->store_name))
                 ->count(),
             'canManageForecasts' => $canManageForecasts,
+            'forecastSearch' => $forecastSearch,
         ]);
     }
 

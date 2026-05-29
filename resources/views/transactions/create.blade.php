@@ -4,6 +4,25 @@
 @section('page_subtitle', 'Kelola transaksi penjualan cepat, pilih produk, atur jumlah, pembayaran, lalu simpan ringkasan transaksi kasir.')
 
 @section('content')
+    <style>
+        .pos-quantity-input::-webkit-outer-spin-button,
+        .pos-quantity-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .pos-quantity-input {
+            -moz-appearance: textfield;
+        }
+    </style>
+
+    @php
+        $lastPage = $products->lastPage();
+        $currentPage = $products->currentPage();
+        $startPage = max(1, min($currentPage - 3, max(1, $lastPage - 6)));
+        $endPage = min($lastPage, $startPage + 6);
+    @endphp
+
     <form method="POST" action="{{ route('transactions.store') }}" class="grid grid-cols-1 gap-6 2xl:grid-cols-[0.38fr_0.62fr]">
         @csrf
 
@@ -239,7 +258,7 @@
                                             max="{{ $product->stok }}"
                                             name="items[{{ $index }}][qty]"
                                             value="{{ old('items.'.$index.'.qty', 0) }}"
-                                            class="h-10 w-14 border-x border-[#d0d8dc] bg-white text-center text-sm font-semibold text-slate-900 outline-none"
+                                            class="pos-quantity-input h-10 w-14 border-x border-[#d0d8dc] bg-white text-center text-sm font-semibold text-slate-900 outline-none"
                                             data-qty-input
                                         >
                                         <button type="button" class="inline-flex h-10 w-10 items-center justify-center text-lg text-slate-500 transition hover:bg-[#f3f4f5] hover:text-slate-800" data-qty-increase aria-label="Tambah jumlah">
@@ -263,6 +282,74 @@
                             <div class="px-6 py-10 text-center text-slate-500">Belum ada produk aktif dengan stok tersedia.</div>
                         @endforelse
                     </div>
+                </div>
+
+                <div class="mt-4 border-t border-slate-200 pt-4">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="text-sm text-slate-500">
+                            Menampilkan
+                            <span class="font-semibold text-slate-700">{{ $products->firstItem() ?? 0 }}</span>
+                            -
+                            <span class="font-semibold text-slate-700">{{ $products->lastItem() ?? 0 }}</span>
+                            dari
+                            <span class="font-semibold text-slate-700">{{ $products->total() }}</span>
+                            produk
+                        </div>
+                    </div>
+
+                    @if ($lastPage > 1)
+                        <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                            <div class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                                <span>Lompat ke halaman</span>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="{{ $lastPage }}"
+                                    value="{{ $currentPage }}"
+                                    class="h-10 w-20 rounded-lg border border-slate-200 bg-white px-3 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0f4c5c] focus:ring-2 focus:ring-[#d0e1fb]"
+                                    data-pos-page-input
+                                >
+                                <span>dari {{ $lastPage }}</span>
+                                <button type="button" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50" data-pos-page-jump>
+                                    Buka
+                                </button>
+                            </div>
+
+                            <div class="flex flex-wrap items-center justify-center gap-2 xl:justify-end">
+                                @if ($products->onFirstPage())
+                                    <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">
+                                        Sebelumnya
+                                    </span>
+                                @else
+                                    <a href="{{ $products->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                        Sebelumnya
+                                    </a>
+                                @endif
+
+                                @for ($page = $startPage; $page <= $endPage; $page++)
+                                    @if ($page === $currentPage)
+                                        <span class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-[#0f4c5c] bg-[#003441] px-3 text-sm font-semibold text-white">
+                                            {{ $page }}
+                                        </span>
+                                    @else
+                                        <a href="{{ $products->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                            {{ $page }}
+                                        </a>
+                                    @endif
+                                @endfor
+
+                                @if ($products->hasMorePages())
+                                    <a href="{{ $products->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                        Berikutnya
+                                    </a>
+                                @else
+                                    <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">
+                                        Berikutnya
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </section>
@@ -290,6 +377,8 @@
                 const paymentButtons = Array.from(document.querySelectorAll('[data-payment-option]'));
                 const receiptEditButton = document.querySelector('[data-receipt-edit]');
                 const posItemError = document.querySelector('[data-pos-item-error]');
+                const posPageInput = document.querySelector('[data-pos-page-input]');
+                const posPageJump = document.querySelector('[data-pos-page-jump]');
 
                 const updateClock = () => {
                     if (!liveClock) {
@@ -441,6 +530,13 @@
                         const haystack = row.dataset.search || '';
                         row.classList.toggle('hidden', keyword !== '' && !haystack.includes(keyword));
                     });
+                });
+
+                posPageJump?.addEventListener('click', () => {
+                    const targetPage = Math.max(1, Math.min(Number(posPageInput?.max || 1), Number(posPageInput?.value || 1)));
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('page', targetPage);
+                    window.location.href = url.toString();
                 });
 
                 form?.addEventListener('submit', (event) => {

@@ -25,7 +25,22 @@
 
 @section('content')
     @php
-        $stockLowCount = $stockProducts->filter(fn ($product) => $product->stok <= $product->stok_minimum)->count();
+        $stockLowCount = $stockLowCount ?? $stockProducts->getCollection()->filter(fn ($product) => $product->stok <= $product->stok_minimum)->count();
+        $salesSearch = $salesSearch ?? '';
+        $purchaseSearch = $purchaseSearch ?? '';
+        $stockSearch = $stockSearch ?? '';
+
+        $paginationWindow = function ($paginator) {
+            $lastPage = $paginator->lastPage();
+            $currentPage = $paginator->currentPage();
+            $startPage = max(1, min($currentPage - 1, max(1, $lastPage - 2)));
+            $endPage = min($lastPage, $startPage + 2);
+
+            return [$startPage, $endPage];
+        };
+        [$salesStartPage, $salesEndPage] = $paginationWindow($sales);
+        [$purchaseStartPage, $purchaseEndPage] = $paginationWindow($purchases);
+        [$stockStartPage, $stockEndPage] = $paginationWindow($stockProducts);
     @endphp
 
     <div class="space-y-6">
@@ -112,7 +127,7 @@
                         </a>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 gap-4 p-6 md:grid-cols-2 xl:grid-cols-4">
+                <div class="grid grid-cols-1 gap-4 border-b border-slate-200 p-6 md:grid-cols-2 xl:grid-cols-4">
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                         <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Pendapatan</p>
                         <p class="mt-2 text-xl font-bold text-slate-900">Rp{{ number_format($revenue, 0, ',', '.') }}</p>
@@ -130,6 +145,28 @@
                         <p class="mt-2 text-xl font-bold text-slate-900">{{ number_format($margin, 1, ',', '.') }}%</p>
                     </div>
                 </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-[760px] w-full text-left text-sm">
+                        <thead class="bg-[#f3f4f5] text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                            <tr>
+                                <th class="px-6 py-3">Periode</th>
+                                <th class="px-6 py-3">Pendapatan</th>
+                                <th class="px-6 py-3">Modal</th>
+                                <th class="px-6 py-3">Keuntungan</th>
+                                <th class="px-6 py-3">Margin</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            <tr class="transition hover:bg-slate-50">
+                                <td class="px-6 py-4 font-semibold text-slate-900">{{ $periodLabel }}</td>
+                                <td class="px-6 py-4 font-semibold text-slate-900">Rp{{ number_format((float) $revenue, 0, ',', '.') }}</td>
+                                <td class="px-6 py-4 text-slate-600">Rp{{ number_format((float) $capital, 0, ',', '.') }}</td>
+                                <td class="px-6 py-4 font-semibold {{ $grossProfit >= 0 ? 'text-emerald-700' : 'text-red-600' }}">Rp{{ number_format((float) $grossProfit, 0, ',', '.') }}</td>
+                                <td class="px-6 py-4 text-slate-600">{{ number_format((float) $margin, 1, ',', '.') }}%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </section>
         @endif
 
@@ -140,13 +177,34 @@
                         <h2 class="text-lg font-semibold text-slate-900">Laporan Penjualan</h2>
                         <p class="mt-1 text-sm text-slate-500">Transaksi penjualan pada periode {{ $periodLabel }}.</p>
                     </div>
-                    <div class="flex flex-wrap gap-2">
-                        <a href="{{ route('reports.export', ['section' => 'sales', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
-                            Export CSV
-                        </a>
-                        <a href="{{ route('reports.print', ['section' => 'sales', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-                            Cetak
-                        </a>
+                    <div class="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[26rem] lg:flex-row lg:items-center lg:justify-end">
+                        <form method="GET" class="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto lg:flex-1">
+                            <input type="hidden" name="period" value="{{ $period }}">
+                            @if ($purchaseSearch !== '')<input type="hidden" name="purchase_search" value="{{ $purchaseSearch }}">@endif
+                            @if ($stockSearch !== '')<input type="hidden" name="stock_search" value="{{ $stockSearch }}">@endif
+                            <div class="relative flex-1">
+                                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+                                    </svg>
+                                </span>
+                                <input type="search" name="sales_search" value="{{ $salesSearch }}" placeholder="Cari penjualan..." class="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0f4c5c] focus:bg-white focus:ring-2 focus:ring-[#d0e1fb]">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="submit" class="inline-flex h-10 items-center rounded-xl border border-[#003441]/20 bg-white px-4 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">Cari</button>
+                                @if ($salesSearch !== '')
+                                    <a href="{{ route('reports.index', array_filter(['period' => $period, 'purchase_search' => $purchaseSearch, 'stock_search' => $stockSearch])) }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Reset</a>
+                                @endif
+                            </div>
+                        </form>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{{ route('reports.export', ['section' => 'sales', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
+                                Export CSV
+                            </a>
+                            <a href="{{ route('reports.print', ['section' => 'sales', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                                Cetak
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
@@ -179,6 +237,52 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="border-t border-slate-200 px-6 py-4">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="text-sm text-slate-500">
+                            Menampilkan
+                            <span class="font-semibold text-slate-700">{{ $sales->firstItem() ?? 0 }}</span>
+                            -
+                            <span class="font-semibold text-slate-700">{{ $sales->lastItem() ?? 0 }}</span>
+                            dari
+                            <span class="font-semibold text-slate-700">{{ $sales->total() }}</span>
+                            transaksi
+                        </div>
+                    </div>
+                    @if ($sales->lastPage() > 1)
+                        <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                            <form method="GET" class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                                <input type="hidden" name="period" value="{{ $period }}">
+                                @if ($salesSearch !== '')<input type="hidden" name="sales_search" value="{{ $salesSearch }}">@endif
+                                @if ($purchaseSearch !== '')<input type="hidden" name="purchase_search" value="{{ $purchaseSearch }}">@endif
+                                @if ($stockSearch !== '')<input type="hidden" name="stock_search" value="{{ $stockSearch }}">@endif
+                                <span>Lompat ke halaman</span>
+                                <input type="number" name="sales_page" min="1" max="{{ $sales->lastPage() }}" value="{{ $sales->currentPage() }}" class="h-10 w-20 rounded-lg border border-slate-200 bg-white px-3 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0f4c5c] focus:ring-2 focus:ring-[#d0e1fb]">
+                                <span>dari {{ $sales->lastPage() }}</span>
+                                <button type="submit" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Buka</button>
+                            </form>
+                            <div class="flex flex-wrap items-center justify-center gap-2 xl:justify-end">
+                                @if ($sales->onFirstPage())
+                                    <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Sebelumnya</span>
+                                @else
+                                    <a href="{{ $sales->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Sebelumnya</a>
+                                @endif
+                                @for ($page = $salesStartPage; $page <= $salesEndPage; $page++)
+                                    @if ($page === $sales->currentPage())
+                                        <span class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-[#0f4c5c] bg-[#003441] px-3 text-sm font-semibold text-white">{{ $page }}</span>
+                                    @else
+                                        <a href="{{ $sales->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ $page }}</a>
+                                    @endif
+                                @endfor
+                                @if ($sales->hasMorePages())
+                                    <a href="{{ $sales->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Berikutnya</a>
+                                @else
+                                    <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Berikutnya</span>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+                </div>
             </section>
         @endif
 
@@ -189,13 +293,34 @@
                         <h2 class="text-lg font-semibold text-slate-900">Laporan Pembelian</h2>
                         <p class="mt-1 text-sm text-slate-500">Pembelian supplier pada periode {{ $periodLabel }}.</p>
                     </div>
-                    <div class="flex flex-wrap gap-2">
-                        <a href="{{ route('reports.export', ['section' => 'purchases', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
-                            Export CSV
-                        </a>
-                        <a href="{{ route('reports.print', ['section' => 'purchases', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-                            Cetak
-                        </a>
+                    <div class="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[26rem] lg:flex-row lg:items-center lg:justify-end">
+                        <form method="GET" class="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto lg:flex-1">
+                            <input type="hidden" name="period" value="{{ $period }}">
+                            @if ($salesSearch !== '')<input type="hidden" name="sales_search" value="{{ $salesSearch }}">@endif
+                            @if ($stockSearch !== '')<input type="hidden" name="stock_search" value="{{ $stockSearch }}">@endif
+                            <div class="relative flex-1">
+                                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+                                    </svg>
+                                </span>
+                                <input type="search" name="purchase_search" value="{{ $purchaseSearch }}" placeholder="Cari pembelian..." class="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0f4c5c] focus:bg-white focus:ring-2 focus:ring-[#d0e1fb]">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="submit" class="inline-flex h-10 items-center rounded-xl border border-[#003441]/20 bg-white px-4 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">Cari</button>
+                                @if ($purchaseSearch !== '')
+                                    <a href="{{ route('reports.index', array_filter(['period' => $period, 'sales_search' => $salesSearch, 'stock_search' => $stockSearch])) }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Reset</a>
+                                @endif
+                            </div>
+                        </form>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{{ route('reports.export', ['section' => 'purchases', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
+                                Export CSV
+                            </a>
+                            <a href="{{ route('reports.print', ['section' => 'purchases', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                                Cetak
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
@@ -228,6 +353,52 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="border-t border-slate-200 px-6 py-4">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="text-sm text-slate-500">
+                            Menampilkan
+                            <span class="font-semibold text-slate-700">{{ $purchases->firstItem() ?? 0 }}</span>
+                            -
+                            <span class="font-semibold text-slate-700">{{ $purchases->lastItem() ?? 0 }}</span>
+                            dari
+                            <span class="font-semibold text-slate-700">{{ $purchases->total() }}</span>
+                            pembelian
+                        </div>
+                    </div>
+                    @if ($purchases->lastPage() > 1)
+                        <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                            <form method="GET" class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                                <input type="hidden" name="period" value="{{ $period }}">
+                                @if ($salesSearch !== '')<input type="hidden" name="sales_search" value="{{ $salesSearch }}">@endif
+                                @if ($purchaseSearch !== '')<input type="hidden" name="purchase_search" value="{{ $purchaseSearch }}">@endif
+                                @if ($stockSearch !== '')<input type="hidden" name="stock_search" value="{{ $stockSearch }}">@endif
+                                <span>Lompat ke halaman</span>
+                                <input type="number" name="purchase_page" min="1" max="{{ $purchases->lastPage() }}" value="{{ $purchases->currentPage() }}" class="h-10 w-20 rounded-lg border border-slate-200 bg-white px-3 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0f4c5c] focus:ring-2 focus:ring-[#d0e1fb]">
+                                <span>dari {{ $purchases->lastPage() }}</span>
+                                <button type="submit" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Buka</button>
+                            </form>
+                            <div class="flex flex-wrap items-center justify-center gap-2 xl:justify-end">
+                                @if ($purchases->onFirstPage())
+                                    <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Sebelumnya</span>
+                                @else
+                                    <a href="{{ $purchases->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Sebelumnya</a>
+                                @endif
+                                @for ($page = $purchaseStartPage; $page <= $purchaseEndPage; $page++)
+                                    @if ($page === $purchases->currentPage())
+                                        <span class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-[#0f4c5c] bg-[#003441] px-3 text-sm font-semibold text-white">{{ $page }}</span>
+                                    @else
+                                        <a href="{{ $purchases->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ $page }}</a>
+                                    @endif
+                                @endfor
+                                @if ($purchases->hasMorePages())
+                                    <a href="{{ $purchases->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Berikutnya</a>
+                                @else
+                                    <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Berikutnya</span>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+                </div>
             </section>
         @endif
 
@@ -237,13 +408,34 @@
                     <h2 class="text-lg font-semibold text-slate-900">Laporan Stok</h2>
                     <p class="mt-1 text-sm text-slate-500">Kondisi stok produk aktif saat ini.</p>
                 </div>
-                <div class="flex flex-wrap gap-2">
-                    <a href="{{ route('reports.export', ['section' => 'stock', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
-                        Export CSV
-                    </a>
-                    <a href="{{ route('reports.print', ['section' => 'stock', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-                        Cetak
-                    </a>
+                <div class="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[26rem] lg:flex-row lg:items-center lg:justify-end">
+                    <form method="GET" class="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto lg:flex-1">
+                        <input type="hidden" name="period" value="{{ $period }}">
+                        @if ($salesSearch !== '')<input type="hidden" name="sales_search" value="{{ $salesSearch }}">@endif
+                        @if ($purchaseSearch !== '')<input type="hidden" name="purchase_search" value="{{ $purchaseSearch }}">@endif
+                        <div class="relative flex-1">
+                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+                                </svg>
+                            </span>
+                            <input type="search" name="stock_search" value="{{ $stockSearch }}" placeholder="Cari stok..." class="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0f4c5c] focus:bg-white focus:ring-2 focus:ring-[#d0e1fb]">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="submit" class="inline-flex h-10 items-center rounded-xl border border-[#003441]/20 bg-white px-4 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">Cari</button>
+                            @if ($stockSearch !== '')
+                                <a href="{{ route('reports.index', array_filter(['period' => $period, 'sales_search' => $salesSearch, 'purchase_search' => $purchaseSearch])) }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Reset</a>
+                            @endif
+                        </div>
+                    </form>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ route('reports.export', ['section' => 'stock', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
+                            Export CSV
+                        </a>
+                        <a href="{{ route('reports.print', ['section' => 'stock', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                            Cetak
+                        </a>
+                    </div>
                 </div>
             </div>
             <div class="overflow-x-auto">
@@ -282,6 +474,52 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+            <div class="border-t border-slate-200 px-6 py-4">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="text-sm text-slate-500">
+                        Menampilkan
+                        <span class="font-semibold text-slate-700">{{ $stockProducts->firstItem() ?? 0 }}</span>
+                        -
+                        <span class="font-semibold text-slate-700">{{ $stockProducts->lastItem() ?? 0 }}</span>
+                        dari
+                        <span class="font-semibold text-slate-700">{{ $stockProducts->total() }}</span>
+                        stok
+                    </div>
+                </div>
+                @if ($stockProducts->lastPage() > 1)
+                    <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                        <form method="GET" class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                            <input type="hidden" name="period" value="{{ $period }}">
+                            @if ($salesSearch !== '')<input type="hidden" name="sales_search" value="{{ $salesSearch }}">@endif
+                            @if ($purchaseSearch !== '')<input type="hidden" name="purchase_search" value="{{ $purchaseSearch }}">@endif
+                            @if ($stockSearch !== '')<input type="hidden" name="stock_search" value="{{ $stockSearch }}">@endif
+                            <span>Lompat ke halaman</span>
+                            <input type="number" name="stock_page" min="1" max="{{ $stockProducts->lastPage() }}" value="{{ $stockProducts->currentPage() }}" class="h-10 w-20 rounded-lg border border-slate-200 bg-white px-3 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0f4c5c] focus:ring-2 focus:ring-[#d0e1fb]">
+                            <span>dari {{ $stockProducts->lastPage() }}</span>
+                            <button type="submit" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Buka</button>
+                        </form>
+                        <div class="flex flex-wrap items-center justify-center gap-2 xl:justify-end">
+                            @if ($stockProducts->onFirstPage())
+                                <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Sebelumnya</span>
+                            @else
+                                <a href="{{ $stockProducts->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Sebelumnya</a>
+                            @endif
+                            @for ($page = $stockStartPage; $page <= $stockEndPage; $page++)
+                                @if ($page === $stockProducts->currentPage())
+                                    <span class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-[#0f4c5c] bg-[#003441] px-3 text-sm font-semibold text-white">{{ $page }}</span>
+                                @else
+                                    <a href="{{ $stockProducts->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ $page }}</a>
+                                @endif
+                            @endfor
+                            @if ($stockProducts->hasMorePages())
+                                <a href="{{ $stockProducts->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Berikutnya</a>
+                            @else
+                                <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Berikutnya</span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
             </div>
         </section>
     </div>

@@ -89,28 +89,51 @@ class StockController extends Controller
     private function stockListingView(bool $showLowStockOnly = false): View
     {
         $search = trim((string) request()->query('search', ''));
+        $movementSearch = trim((string) request()->query('movement_search', ''));
 
-        $products = Product::query()
-            ->with(['kategori', 'supplier'])
+        $baseProductsQuery = Product::query()
             ->where('store_name', request()->user()?->store_name)
             ->when($showLowStockOnly, fn ($query) => $query->whereColumn('stok', '<=', 'stok_minimum'))
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($productQuery) use ($search): void {
                     $productQuery
                         ->where('nama_produk', 'like', "%{$search}%")
-                        ->orWhere('kode_produk', 'like', "%{$search}%");
+                        ->orWhere('kode_produk', 'like', "%{$search}%")
+                        ->orWhereHas('kategori', fn ($categoryQuery) => $categoryQuery->where('nama_kategori', 'like', "%{$search}%"))
+                        ->orWhereHas('supplier', fn ($supplierQuery) => $supplierQuery->where('nama_supplier', 'like', "%{$search}%"));
                 });
-            })
+            });
+
+        $products = (clone $baseProductsQuery)
+            ->with(['kategori', 'supplier'])
             ->orderBy('nama_produk')
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
+
+        $totalProducts = (clone $baseProductsQuery)->count();
+        $lowStockCount = (clone $baseProductsQuery)->whereColumn('stok', '<=', 'stok_minimum')->count();
+        $safeStockCount = max($totalProducts - $lowStockCount, 0);
 
         $movements = StockMovement::query()
             ->with(['produk', 'pengguna'])
             ->whereHas('produk', function ($query): void {
                 $query->where('store_name', request()->user()?->store_name);
             })
+            ->when($movementSearch !== '', function ($query) use ($movementSearch): void {
+                $query->where(function ($movementQuery) use ($movementSearch): void {
+                    $movementQuery
+                        ->where('jenis_pergerakan', 'like', "%{$movementSearch}%")
+                        ->orWhere('catatan', 'like', "%{$movementSearch}%")
+                        ->orWhereHas('produk', function ($productQuery) use ($movementSearch): void {
+                            $productQuery
+                                ->where('nama_produk', 'like', "%{$movementSearch}%")
+                                ->orWhere('kode_produk', 'like', "%{$movementSearch}%");
+                        });
+                });
+            })
             ->latest('tanggal_pergerakan')
-            ->paginate(10);
+            ->paginate(10, ['*'], 'movements_page')
+            ->withQueryString();
 
         return view('stocks.index', [
             'products' => $products,
@@ -118,6 +141,10 @@ class StockController extends Controller
             'canManageStock' => $this->canManageStock(request()->user()?->role, request()->user()?->mode_app),
             'showLowStockOnly' => $showLowStockOnly,
             'search' => $search,
+            'movementSearch' => $movementSearch,
+            'totalProducts' => $totalProducts,
+            'lowStockCount' => $lowStockCount,
+            'safeStockCount' => $safeStockCount,
         ]);
     }
 

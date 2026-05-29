@@ -21,6 +21,7 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
+    Route::get('/logout', [AuthController::class, 'logout'])->name('logout.get');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/', [AuthController::class, 'redirectAuthenticatedUser'])->name('home');
     Route::middleware('role:owner')->group(function (): void {

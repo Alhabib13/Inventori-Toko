@@ -2,7 +2,12 @@
 
 @php
     $canManageSuppliers = auth()->user()?->role === 'gudang' && auth()->user()?->mode_app === 'lengkap';
-    $inactiveSupplierCount = $suppliers->count() - $activeSupplierCount;
+    $search = $search ?? '';
+    $lastPage = $suppliers->lastPage();
+    $currentPage = $suppliers->currentPage();
+    $startPage = max(1, min($currentPage - 3, max(1, $lastPage - 6)));
+    $endPage = min($lastPage, $startPage + 6);
+    $inactiveSupplierCount = $inactiveSupplierCount ?? 0;
 @endphp
 
 @section('page_title', 'Supplier')
@@ -36,7 +41,7 @@
         <section class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-5 shadow-sm">
                 <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Supplier</p>
-                <p class="mt-2 text-3xl font-bold text-[#003441]">{{ $suppliers->count() }}</p>
+                <p class="mt-2 text-3xl font-bold text-[#003441]">{{ $suppliers->total() }}</p>
                 <p class="mt-1 text-sm text-slate-500">Daftar supplier untuk operasional pembelian dan restock.</p>
             </article>
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-5 shadow-sm">
@@ -52,14 +57,35 @@
         </section>
 
         <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
-            <div class="border-b border-[#c0c8cb] px-6 py-4">
-                <h2 class="text-lg font-semibold text-slate-900">Daftar Supplier</h2>
-                <p class="mt-1 text-sm text-slate-500">Pantau kontak supplier dan status aktifnya untuk mendukung pembelian operasional.</p>
-                @if (! $canManageSuppliers)
-                    <p class="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600">
-                        Mode Read Only
-                    </p>
-                @endif
+            <div class="flex flex-col gap-4 border-b border-[#c0c8cb] px-6 py-4 lg:flex-row lg:items-start lg:justify-between">
+                <div class="min-w-0">
+                    <h2 class="text-lg font-semibold text-slate-900">Daftar Supplier</h2>
+                    <p class="mt-1 text-sm text-slate-500">Pantau kontak supplier dan status aktifnya untuk mendukung pembelian operasional.</p>
+                    @if (! $canManageSuppliers)
+                        <p class="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                            Mode Read Only
+                        </p>
+                    @endif
+                </div>
+                <div class="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[22rem]">
+                    <form method="GET" action="{{ route('suppliers.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <label for="suppliers-search" class="sr-only">Cari supplier</label>
+                        <div class="relative flex-1">
+                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+                                </svg>
+                            </span>
+                            <input id="suppliers-search" type="search" name="search" value="{{ $search }}" placeholder="Cari supplier, kontak, telepon, atau email..." class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0f4c5c] focus:bg-white focus:ring-2 focus:ring-[#d0e1fb]">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="submit" class="inline-flex h-11 items-center justify-center rounded-xl bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">Cari</button>
+                            @if ($search !== '')
+                                <a href="{{ route('suppliers.index') }}" class="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Reset</a>
+                            @endif
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <div class="overflow-x-auto">
@@ -132,6 +158,55 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+            <div class="border-t border-slate-200 px-6 py-4">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="text-sm text-slate-500">
+                        Menampilkan
+                        <span class="font-semibold text-slate-700">{{ $suppliers->firstItem() ?? 0 }}</span>
+                        -
+                        <span class="font-semibold text-slate-700">{{ $suppliers->lastItem() ?? 0 }}</span>
+                        dari
+                        <span class="font-semibold text-slate-700">{{ $suppliers->total() }}</span>
+                        supplier
+                    </div>
+                </div>
+
+                @if ($lastPage > 1)
+                    <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                        <form method="GET" action="{{ route('suppliers.index') }}" class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                            @if ($search !== '')
+                                <input type="hidden" name="search" value="{{ $search }}">
+                            @endif
+                            <span>Lompat ke halaman</span>
+                            <input type="number" name="page" min="1" max="{{ $lastPage }}" value="{{ $currentPage }}" class="h-10 w-20 rounded-lg border border-slate-200 bg-white px-3 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0f4c5c] focus:ring-2 focus:ring-[#d0e1fb]">
+                            <span>dari {{ $lastPage }}</span>
+                            <button type="submit" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Buka</button>
+                        </form>
+
+                        <div class="flex flex-wrap items-center justify-center gap-2 xl:justify-end">
+                            @if ($suppliers->onFirstPage())
+                                <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Sebelumnya</span>
+                            @else
+                                <a href="{{ $suppliers->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Sebelumnya</a>
+                            @endif
+
+                            @for ($page = $startPage; $page <= $endPage; $page++)
+                                @if ($page === $currentPage)
+                                    <span class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-[#0f4c5c] bg-[#003441] px-3 text-sm font-semibold text-white">{{ $page }}</span>
+                                @else
+                                    <a href="{{ $suppliers->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ $page }}</a>
+                                @endif
+                            @endfor
+
+                            @if ($suppliers->hasMorePages())
+                                <a href="{{ $suppliers->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Berikutnya</a>
+                            @else
+                                <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Berikutnya</span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
             </div>
         </section>
     </div>
