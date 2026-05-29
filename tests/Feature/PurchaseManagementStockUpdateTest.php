@@ -21,9 +21,9 @@ class PurchaseManagementStockUpdateTest extends TestCase
             'role' => 'gudang',
             'mode_app' => 'lengkap',
         ]);
-        $supplier = $this->createSupplier();
-        $firstProduct = $this->createProduct(['stok' => 4, 'harga_beli' => 10000]);
-        $secondProduct = $this->createProduct(['stok' => 2, 'harga_beli' => 7000]);
+        $supplier = $this->createSupplier($gudang->store_name);
+        $firstProduct = $this->createProduct($gudang->store_name, ['stok' => 4, 'harga_beli' => 10000]);
+        $secondProduct = $this->createProduct($gudang->store_name, ['stok' => 2, 'harga_beli' => 7000]);
 
         $response = $this->actingAs($gudang)->post('/purchases', [
             'supplier_id' => $supplier->id,
@@ -116,8 +116,8 @@ class PurchaseManagementStockUpdateTest extends TestCase
             'role' => 'gudang',
             'mode_app' => 'lengkap',
         ]);
-        $supplier = $this->createSupplier();
-        $product = $this->createProduct(['stok' => 1]);
+        $supplier = $this->createSupplier($gudang->store_name);
+        $product = $this->createProduct($gudang->store_name, ['stok' => 1]);
 
         $this->actingAs($gudang)->post('/purchases', [
             'supplier_id' => $supplier->id,
@@ -154,8 +154,8 @@ class PurchaseManagementStockUpdateTest extends TestCase
             'role' => 'gudang',
             'mode_app' => 'lengkap',
         ]);
-        $supplier = $this->createSupplier();
-        $product = $this->createProduct();
+        $supplier = $this->createSupplier($gudang->store_name);
+        $product = $this->createProduct($gudang->store_name);
 
         $this->actingAs($gudang)
             ->from('/purchases/create')
@@ -189,7 +189,7 @@ class PurchaseManagementStockUpdateTest extends TestCase
             'mode_app' => 'lengkap',
             'store_name' => 'Toko Monitoring',
         ]);
-        $supplier = $this->createSupplier();
+        $supplier = $this->createSupplier($owner->store_name);
 
         $purchase = Purchase::create([
             'kode_pembelian' => 'PO-MONITOR-001',
@@ -217,8 +217,8 @@ class PurchaseManagementStockUpdateTest extends TestCase
             'store_name' => 'Toko Gudang',
             'name' => 'Gudang Utama',
         ]);
-        $supplier = $this->createSupplier();
-        $product = $this->createProduct(['nama_produk' => 'Produk Pembelian Detail']);
+        $supplier = $this->createSupplier($gudang->store_name);
+        $product = $this->createProduct($gudang->store_name, ['nama_produk' => 'Produk Pembelian Detail']);
 
         $recentPurchase = Purchase::create([
             'kode_pembelian' => 'PO-RECENT-001',
@@ -278,8 +278,8 @@ class PurchaseManagementStockUpdateTest extends TestCase
             'mode_app' => 'lengkap',
             'store_name' => 'Toko Gudang',
         ]);
-        $supplier = $this->createSupplier();
-        $product = $this->createProduct([
+        $supplier = $this->createSupplier($gudang->store_name);
+        $product = $this->createProduct($gudang->store_name, [
             'stok' => 9,
             'nama_produk' => 'Produk Cancel Purchase',
         ]);
@@ -350,8 +350,8 @@ class PurchaseManagementStockUpdateTest extends TestCase
             'mode_app' => 'lengkap',
             'store_name' => 'Toko Gudang',
         ]);
-        $supplier = $this->createSupplier();
-        $product = $this->createProduct([
+        $supplier = $this->createSupplier($gudang->store_name);
+        $product = $this->createProduct($gudang->store_name, [
             'stok' => 2,
             'nama_produk' => 'Produk Rollback Invalid',
         ]);
@@ -411,7 +411,7 @@ class PurchaseManagementStockUpdateTest extends TestCase
             'mode_app' => 'lengkap',
             'store_name' => 'Toko Monitoring',
         ]);
-        $supplier = $this->createSupplier();
+        $supplier = $this->createSupplier($owner->store_name);
 
         $purchase = Purchase::create([
             'kode_pembelian' => 'PO-OWNER-FORBIDDEN',
@@ -430,30 +430,33 @@ class PurchaseManagementStockUpdateTest extends TestCase
             ->assertForbidden();
     }
 
-    private function createSupplier(): Supplier
+    private function createSupplier(string $storeName): Supplier
     {
         return Supplier::create([
             'nama_supplier' => fake()->unique()->company(),
             'nama_kontak' => fake()->name(),
             'telepon' => fake()->numerify('08##########'),
             'alamat' => fake()->address(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
     }
 
-    private function createProduct(array $attributes = []): Product
+    private function createProduct(string $storeName, array $attributes = []): Product
     {
         $category = Category::create([
             'nama_kategori' => fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
-        $supplier = $this->createSupplier();
+        $supplier = $this->createSupplier($storeName);
 
         return Product::create($attributes + [
             'category_id' => $category->id,
             'supplier_id' => $supplier->id,
+            'store_name' => $storeName,
             'kode_produk' => 'PRD-'.fake()->unique()->numerify('####'),
             'nama_produk' => 'Produk '.fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),

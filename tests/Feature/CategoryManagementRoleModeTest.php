@@ -67,6 +67,7 @@ class CategoryManagementRoleModeTest extends TestCase
         $category = Category::create([
             'nama_kategori' => 'Minuman',
             'slug' => 'minuman',
+            'store_name' => $gudang->store_name,
         ]);
 
         $this->actingAs($gudang)->get('/categories')->assertOk();
@@ -103,6 +104,7 @@ class CategoryManagementRoleModeTest extends TestCase
         $category = Category::create([
             'nama_kategori' => 'Frozen Food',
             'slug' => 'frozen-food',
+            'store_name' => $owner->store_name,
         ]);
 
         $this->actingAs($owner)
@@ -135,6 +137,7 @@ class CategoryManagementRoleModeTest extends TestCase
         $category = Category::create([
             'nama_kategori' => 'Snack',
             'slug' => 'snack',
+            'store_name' => $gudang->store_name,
         ]);
 
         $this->actingAs($gudang)->get('/categories')->assertForbidden();
@@ -153,6 +156,7 @@ class CategoryManagementRoleModeTest extends TestCase
         $category = Category::create([
             'nama_kategori' => 'Rokok',
             'slug' => 'rokok',
+            'store_name' => $kasir->store_name,
         ]);
 
         $this->actingAs($kasir)->get('/categories')->assertForbidden();
@@ -173,6 +177,7 @@ class CategoryManagementRoleModeTest extends TestCase
         Category::create([
             'nama_kategori' => 'Sayuran',
             'slug' => 'sayuran',
+            'store_name' => $owner->store_name,
         ]);
 
         $this->actingAs($owner)

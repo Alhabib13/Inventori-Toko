@@ -51,12 +51,16 @@ class PurchaseController extends Controller
 
     public function create(): View
     {
+        $storeName = request()->user()?->store_name;
+
         return view('purchases.create', [
             'suppliers' => Supplier::query()
+                ->where('store_name', $storeName)
                 ->where('is_active', true)
                 ->orderBy('nama_supplier')
                 ->get(),
             'products' => Product::query()
+                ->where('store_name', $storeName)
                 ->where('is_active', true)
                 ->orderBy('nama_produk')
                 ->get(),
@@ -88,11 +92,29 @@ class PurchaseController extends Controller
             ]);
         }
 
+        $supplier = Supplier::query()
+            ->whereKey($data['supplier_id'])
+            ->where('store_name', $request->user()?->store_name)
+            ->first();
+
+        if (! $supplier) {
+            throw ValidationException::withMessages([
+                'supplier_id' => 'Supplier tidak valid untuk toko ini.',
+            ]);
+        }
+
         $purchase = DB::transaction(function () use ($items, $data, $request, $stockMovementService): Purchase {
             $products = Product::query()
                 ->whereIn('id', $items->pluck('product_id'))
+                ->where('store_name', $request->user()?->store_name)
                 ->get()
                 ->keyBy('id');
+
+            if ($products->count() !== $items->pluck('product_id')->unique()->count()) {
+                throw ValidationException::withMessages([
+                    'items' => 'Salah satu produk tidak valid untuk toko ini.',
+                ]);
+            }
 
             $subtotal = 0;
 

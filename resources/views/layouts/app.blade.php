@@ -148,11 +148,16 @@
         $user = auth()->user();
         $role = $user?->role;
         $modeApp = $user?->mode_app;
+        $storeName = $user?->store_name;
         $criticalProductsCount = in_array($role, ['owner', 'gudang'], true)
-            ? \App\Models\Product::query()->whereColumn('stok', '<=', 'stok_minimum')->count()
+            ? \App\Models\Product::query()
+                ->where('store_name', $storeName)
+                ->whereColumn('stok', '<=', 'stok_minimum')
+                ->count()
             : 0;
         $criticalProductsPreview = $criticalProductsCount > 0
             ? \App\Models\Product::query()
+                ->where('store_name', $storeName)
                 ->whereColumn('stok', '<=', 'stok_minimum')
                 ->orderByRaw('(stok_minimum - stok) DESC')
                 ->take(5)
@@ -173,6 +178,7 @@
                 ]
                 : [
                     ['label' => 'Dashboard', 'route' => 'dashboard.index', 'icon' => 'dashboard'],
+                    ['label' => 'Produk', 'route' => 'products.index', 'icon' => 'products'],
                     ['label' => 'Kategori', 'route' => 'categories.index', 'icon' => 'categories'],
                     ['label' => 'Stok', 'route' => 'stocks.role-home', 'icon' => 'stocks'],
                     ['label' => 'Laporan', 'route' => 'reports.index', 'icon' => 'reports'],

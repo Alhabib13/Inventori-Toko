@@ -21,7 +21,7 @@ class PosSalesTransactionTest extends TestCase
             'role' => 'kasir',
             'mode_app' => 'sederhana',
         ]);
-        $product = $this->createProduct([
+        $product = $this->createProduct($kasir->store_name, [
             'stok' => 10,
             'harga_jual' => 12000,
         ]);
@@ -84,7 +84,7 @@ class PosSalesTransactionTest extends TestCase
             'role' => 'kasir',
             'mode_app' => 'sederhana',
         ]);
-        $product = $this->createProduct(['stok' => 2]);
+        $product = $this->createProduct($kasir->store_name, ['stok' => 2]);
 
         $this->actingAs($kasir)
             ->from('/pos')
@@ -260,7 +260,7 @@ class PosSalesTransactionTest extends TestCase
             'mode_app' => 'sederhana',
             'name' => 'Kasir Detail',
         ]);
-        $product = $this->createProduct([
+        $product = $this->createProduct($kasir->store_name, [
             'nama_produk' => 'Produk Detail',
             'stok' => 9,
             'harga_jual' => 14000,
@@ -341,7 +341,7 @@ class PosSalesTransactionTest extends TestCase
             'mode_app' => 'lengkap',
             'store_name' => 'Toko A',
         ]);
-        $product = $this->createProduct([
+        $product = $this->createProduct($kasir->store_name, [
             'stok' => 7,
             'nama_produk' => 'Produk Batal',
         ]);
@@ -458,11 +458,12 @@ class PosSalesTransactionTest extends TestCase
             ->assertForbidden();
     }
 
-    private function createProduct(array $attributes = []): Product
+    private function createProduct(string $storeName, array $attributes = []): Product
     {
         $category = Category::create([
             'nama_kategori' => fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
@@ -471,12 +472,14 @@ class PosSalesTransactionTest extends TestCase
             'nama_kontak' => fake()->name(),
             'telepon' => fake()->numerify('08##########'),
             'alamat' => fake()->address(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
         return Product::create($attributes + [
             'category_id' => $category->id,
             'supplier_id' => $supplier->id,
+            'store_name' => $storeName,
             'kode_produk' => 'PRD-'.fake()->unique()->numerify('####'),
             'nama_produk' => 'Produk '.fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),

@@ -20,13 +20,13 @@ class LowStockNotificationTest extends TestCase
             'mode_app' => 'sederhana',
         ]);
 
-        $criticalProduct = $this->createProduct([
+        $criticalProduct = $this->createProduct($owner->store_name, [
             'nama_produk' => 'Beras Kritis',
             'stok' => 2,
             'stok_minimum' => 2,
         ]);
 
-        $safeProduct = $this->createProduct([
+        $safeProduct = $this->createProduct($owner->store_name, [
             'nama_produk' => 'Gula Aman',
             'stok' => 8,
             'stok_minimum' => 2,
@@ -47,7 +47,7 @@ class LowStockNotificationTest extends TestCase
             'mode_app' => 'lengkap',
         ]);
 
-        $criticalProduct = $this->createProduct([
+        $criticalProduct = $this->createProduct($gudang->store_name, [
             'nama_produk' => 'Minyak Kritis',
             'stok' => 1,
             'stok_minimum' => 3,
@@ -71,11 +71,12 @@ class LowStockNotificationTest extends TestCase
             ->assertForbidden();
     }
 
-    private function createProduct(array $attributes = []): Product
+    private function createProduct(string $storeName, array $attributes = []): Product
     {
         $category = Category::create([
             'nama_kategori' => fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
@@ -84,12 +85,14 @@ class LowStockNotificationTest extends TestCase
             'nama_kontak' => fake()->name(),
             'telepon' => fake()->numerify('08##########'),
             'alamat' => fake()->address(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
         return Product::create($attributes + [
             'category_id' => $category->id,
             'supplier_id' => $supplier->id,
+            'store_name' => $storeName,
             'kode_produk' => 'PRD-'.fake()->unique()->numerify('####'),
             'nama_produk' => 'Produk '.fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),

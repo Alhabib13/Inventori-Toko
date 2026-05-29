@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\SalesForecast;
+use App\Models\StockMovement;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,7 +21,7 @@ class ProductManagementRoleModeTest extends TestCase
             'role' => 'owner',
             'mode_app' => 'sederhana',
         ]);
-        $category = $this->createCategory();
+        $category = $this->createCategory(['store_name' => $owner->store_name]);
 
         $this->actingAs($owner)->get('/products')->assertOk();
         $this->actingAs($owner)->get('/products/create')->assertOk();
@@ -45,9 +47,10 @@ class ProductManagementRoleModeTest extends TestCase
             'role' => 'gudang',
             'mode_app' => 'lengkap',
         ]);
-        $category = $this->createCategory();
-        $supplier = $this->createSupplier();
+        $category = $this->createCategory(['store_name' => $gudang->store_name]);
+        $supplier = $this->createSupplier(['store_name' => $gudang->store_name]);
         $product = $this->createProduct($category, $supplier, [
+            'store_name' => $gudang->store_name,
             'nama_produk' => 'Gula Pasir',
         ]);
 
@@ -78,15 +81,140 @@ class ProductManagementRoleModeTest extends TestCase
         ]);
     }
 
+    public function test_owner_sederhana_can_update_product_stock_from_edit_form_and_records_stock_movement(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+        ]);
+        $category = $this->createCategory(['store_name' => $owner->store_name]);
+        $product = $this->createProduct($category, null, [
+            'store_name' => $owner->store_name,
+            'stok' => 4,
+        ]);
+
+        $this->actingAs($owner)
+            ->put(route('products.update', $product), $this->validProductPayload($category, null, [
+                'stok' => 11,
+            ]))
+            ->assertRedirect(route('products.index'));
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'stok' => 11,
+        ]);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'jenis_pergerakan' => 'masuk',
+            'qty' => 7,
+            'referensi_tipe' => 'manual',
+        ]);
+    }
+
+    public function test_owner_sederhana_and_gudang_lengkap_can_download_csv_template(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+        ]);
+
+        $responseSederhana = $this->actingAs($owner)
+            ->get(route('products.template.download'))
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+
+        $this->assertStringContainsString(
+            'nama_produk,kategori,satuan,harga_beli,harga_jual,stok_awal,stok_minimum',
+            $responseSederhana->streamedContent(),
+        );
+
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+        ]);
+
+        $responseLengkap = $this->actingAs($gudang)
+            ->get(route('products.template.download'))
+            ->assertOk();
+
+        $this->assertStringContainsString(
+            'nama_produk,kategori,supplier,satuan,harga_beli,harga_jual,stok_awal,stok_minimum',
+            $responseLengkap->streamedContent(),
+        );
+    }
+
+    public function test_owner_sederhana_can_destroy_all_products_when_unreferenced(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+        ]);
+        $category = $this->createCategory(['store_name' => $owner->store_name]);
+        $product = $this->createProduct($category, null, ['store_name' => $owner->store_name]);
+
+        StockMovement::create([
+            'product_id' => $product->id,
+            'user_id' => $owner->id,
+            'referensi_tipe' => 'manual',
+            'referensi_id' => null,
+            'jenis_pergerakan' => 'masuk',
+            'qty' => 3,
+            'stok_sebelum' => 0,
+            'stok_sesudah' => 3,
+            'catatan' => 'Seed test.',
+            'tanggal_pergerakan' => now(),
+        ]);
+
+        SalesForecast::create([
+            'product_id' => $product->id,
+            'user_id' => $owner->id,
+            'periode_awal' => now()->subDays(30)->toDateString(),
+            'periode_akhir' => now()->toDateString(),
+            'panjang_jendela' => 3,
+            'nilai_moving_average' => 12,
+            'prediksi_stok' => 12,
+            'stok_aktual' => 3,
+            'selisih_prediksi' => 9,
+            'catatan' => 'Seed test.',
+        ]);
+
+        $this->actingAs($owner)
+            ->delete(route('products.destroy-all'))
+            ->assertRedirect(route('products.index'));
+
+        $this->assertDatabaseCount('products', 0);
+        $this->assertDatabaseCount('stock_movements', 0);
+        $this->assertDatabaseCount('sales_forecasts', 0);
+    }
+
+    public function test_gudang_lengkap_can_destroy_all_products(): void
+    {
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+        ]);
+        $category = $this->createCategory(['store_name' => $gudang->store_name]);
+        $supplier = $this->createSupplier(['store_name' => $gudang->store_name]);
+        $this->createProduct($category, $supplier, ['store_name' => $gudang->store_name]);
+
+        $this->actingAs($gudang)
+            ->delete(route('products.destroy-all'))
+            ->assertRedirect(route('products.index'));
+
+        $this->assertDatabaseCount('products', 0);
+    }
+
     public function test_owner_lengkap_can_only_view_product_data(): void
     {
         $owner = User::factory()->create([
             'role' => 'owner',
             'mode_app' => 'lengkap',
         ]);
-        $category = $this->createCategory(['nama_kategori' => 'Minuman', 'slug' => 'minuman']);
-        $supplier = $this->createSupplier(['nama_supplier' => 'Supplier Monitoring']);
+        $category = $this->createCategory(['nama_kategori' => 'Minuman', 'slug' => 'minuman', 'store_name' => $owner->store_name]);
+        $supplier = $this->createSupplier(['nama_supplier' => 'Supplier Monitoring', 'store_name' => $owner->store_name]);
         $product = $this->createProduct($category, $supplier, [
+            'store_name' => $owner->store_name,
             'nama_produk' => 'Teh Botol',
         ]);
 
@@ -116,9 +244,9 @@ class ProductManagementRoleModeTest extends TestCase
             'role' => 'kasir',
             'mode_app' => 'sederhana',
         ]);
-        $category = $this->createCategory();
-        $supplier = $this->createSupplier();
-        $product = $this->createProduct($category, $supplier);
+        $category = $this->createCategory(['store_name' => $kasir->store_name]);
+        $supplier = $this->createSupplier(['store_name' => $kasir->store_name]);
+        $product = $this->createProduct($category, $supplier, ['store_name' => $kasir->store_name]);
 
         $this->actingAs($kasir)
             ->get('/products')
@@ -143,9 +271,9 @@ class ProductManagementRoleModeTest extends TestCase
             'role' => 'gudang',
             'mode_app' => 'sederhana',
         ]);
-        $category = $this->createCategory();
-        $supplier = $this->createSupplier();
-        $product = $this->createProduct($category, $supplier);
+        $category = $this->createCategory(['store_name' => $gudang->store_name]);
+        $supplier = $this->createSupplier(['store_name' => $gudang->store_name]);
+        $product = $this->createProduct($category, $supplier, ['store_name' => $gudang->store_name]);
 
         $this->actingAs($gudang)->get('/products')->assertForbidden();
         $this->actingAs($gudang)->get('/products/create')->assertForbidden();
@@ -172,6 +300,58 @@ class ProductManagementRoleModeTest extends TestCase
                 'stok_minimum',
                 'satuan',
             ]);
+    }
+
+    public function test_products_are_scoped_per_store_between_sederhana_and_lengkap(): void
+    {
+        $ownerSederhana = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+            'store_name' => 'Toko Sederhana',
+        ]);
+        $gudangLengkap = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko Lengkap',
+        ]);
+
+        $simpleCategory = $this->createCategory([
+            'nama_kategori' => 'Sembako',
+            'slug' => 'sembako-sederhana',
+            'store_name' => $ownerSederhana->store_name,
+        ]);
+        $completeCategory = $this->createCategory([
+            'nama_kategori' => 'Elektronik',
+            'slug' => 'elektronik-lengkap',
+            'store_name' => $gudangLengkap->store_name,
+        ]);
+        $completeSupplier = $this->createSupplier([
+            'nama_supplier' => 'Supplier Lengkap',
+            'store_name' => $gudangLengkap->store_name,
+        ]);
+
+        $simpleProduct = $this->createProduct($simpleCategory, null, [
+            'store_name' => $ownerSederhana->store_name,
+            'nama_produk' => 'Produk Sederhana',
+            'slug' => 'produk-sederhana',
+        ]);
+        $completeProduct = $this->createProduct($completeCategory, $completeSupplier, [
+            'store_name' => $gudangLengkap->store_name,
+            'nama_produk' => 'Produk Lengkap',
+            'slug' => 'produk-lengkap',
+        ]);
+
+        $this->actingAs($ownerSederhana)
+            ->get('/products')
+            ->assertOk()
+            ->assertSee($simpleProduct->nama_produk)
+            ->assertDontSee($completeProduct->nama_produk);
+
+        $this->actingAs($gudangLengkap)
+            ->get('/products')
+            ->assertOk()
+            ->assertSee($completeProduct->nama_produk)
+            ->assertDontSee($simpleProduct->nama_produk);
     }
 
     private function createCategory(array $attributes = []): Category

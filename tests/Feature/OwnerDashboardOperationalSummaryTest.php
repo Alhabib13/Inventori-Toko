@@ -22,7 +22,7 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             'role' => 'owner',
             'mode_app' => 'sederhana',
         ]);
-        $product = $this->createProduct([
+        $product = $this->createProduct($owner->store_name, [
             'nama_produk' => 'Produk Sederhana',
             'stok' => 1,
             'stok_minimum' => 2,
@@ -75,7 +75,7 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             'role' => 'owner',
             'mode_app' => 'lengkap',
         ]);
-        $product = $this->createProduct([
+        $product = $this->createProduct($owner->store_name, [
             'nama_produk' => 'Produk Lengkap',
             'stok' => 3,
             'stok_minimum' => 5,
@@ -150,11 +150,12 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             ->assertSee('Total Penjualan');
     }
 
-    private function createProduct(array $attributes = []): Product
+    private function createProduct(string $storeName, array $attributes = []): Product
     {
         $category = Category::create([
             'nama_kategori' => fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
@@ -163,12 +164,14 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             'nama_kontak' => fake()->name(),
             'telepon' => fake()->numerify('08##########'),
             'alamat' => fake()->address(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
         return Product::create($attributes + [
             'category_id' => $category->id,
             'supplier_id' => $supplier->id,
+            'store_name' => $storeName,
             'kode_produk' => 'PRD-'.fake()->unique()->numerify('####'),
             'nama_produk' => 'Produk '.fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),

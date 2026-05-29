@@ -15,9 +15,18 @@
 
 @section('page_actions')
     @if ($canManageCategories)
-        <a href="{{ route('categories.create') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-            Tambah Kategori
-        </a>
+        <div class="flex flex-wrap items-center justify-end gap-3">
+            <a href="{{ route('categories.create') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                Tambah Kategori
+            </a>
+            <form action="{{ route('categories.destroy-all') }}" method="POST" data-confirm="Semua kategori toko ini yang belum dipakai produk akan dihapus. Lanjutkan?" data-confirm-title="Hapus Semua Kategori">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-100">
+                    Hapus Semua Kategori
+                </button>
+            </form>
+        </div>
     @endif
 @endsection
 

@@ -49,8 +49,11 @@ class TransactionController extends Controller
 
     public function create(): View
     {
+        $storeName = request()->user()?->store_name;
+
         return view('transactions.create', [
             'products' => Product::query()
+                ->where('store_name', $storeName)
                 ->where('is_active', true)
                 ->where('stok', '>', 0)
                 ->orderBy('nama_produk')
@@ -84,8 +87,15 @@ class TransactionController extends Controller
         $transaction = DB::transaction(function () use ($items, $data, $request, $stockMovementService): Transaction {
             $products = Product::query()
                 ->whereIn('id', $items->pluck('product_id'))
+                ->where('store_name', $request->user()?->store_name)
                 ->get()
                 ->keyBy('id');
+
+            if ($products->count() !== $items->pluck('product_id')->unique()->count()) {
+                throw ValidationException::withMessages([
+                    'items' => 'Salah satu produk tidak valid untuk toko ini.',
+                ]);
+            }
 
             $subtotal = 0;
             $totalItem = 0;

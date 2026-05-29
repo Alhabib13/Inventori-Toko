@@ -1,0 +1,38 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('categories', function (Blueprint $table): void {
+            $table->string('store_name')->nullable()->after('nama_kategori')->index();
+        });
+
+        Schema::table('suppliers', function (Blueprint $table): void {
+            $table->string('store_name')->nullable()->after('nama_supplier')->index();
+        });
+
+        Schema::table('products', function (Blueprint $table): void {
+            $table->string('store_name')->nullable()->after('nama_produk')->index();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('products', function (Blueprint $table): void {
+            $table->dropColumn('store_name');
+        });
+
+        Schema::table('suppliers', function (Blueprint $table): void {
+            $table->dropColumn('store_name');
+        });
+
+        Schema::table('categories', function (Blueprint $table): void {
+            $table->dropColumn('store_name');
+        });
+    }
+};

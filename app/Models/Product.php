@@ -16,6 +16,7 @@ class Product extends Model
         'supplier_id',
         'kode_produk',
         'nama_produk',
+        'store_name',
         'slug',
         'deskripsi',
         'satuan',

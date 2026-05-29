@@ -4,6 +4,8 @@
     $hasCategories = $categories->isNotEmpty();
     $hasSuppliers = ! $requiresSupplier || $suppliers->isNotEmpty();
     $isFormReady = $hasCategories && $hasSuppliers;
+    $canEditStockFromProductForm = (auth()->user()?->role === 'owner' && auth()->user()?->mode_app === 'sederhana')
+        || (auth()->user()?->role === 'gudang' && auth()->user()?->mode_app === 'lengkap');
 @endphp
 
 @if (! $hasCategories || ! $hasSuppliers)
@@ -111,6 +113,19 @@
             <p class="text-sm text-red-600">{{ $message }}</p>
         @enderror
     </div>
+
+    @isset($product)
+        @if ($canEditStockFromProductForm)
+        <div class="space-y-2">
+            <label for="product_stock" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Stok Saat Ini</label>
+            <input id="product_stock" type="number" name="stok" min="0" value="{{ old('stok', $product->stok ?? 0) }}" @disabled(! $isFormReady) class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
+            <p class="text-xs text-slate-500">Perubahan stok dari form ini akan tercatat sebagai pergerakan stok manual.</p>
+            @error('stok')
+                <p class="text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
+        @endif
+    @endisset
 
     <div class="flex items-end">
         <label class="inline-flex items-center gap-3 rounded-xl border border-[#c0c8cb] bg-[#f9f9fa] px-4 py-3 text-sm font-medium text-slate-700">

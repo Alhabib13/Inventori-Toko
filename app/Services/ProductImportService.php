@@ -17,7 +17,10 @@ class ProductImportService
         private readonly StockMovementService $stockMovementService,
     ) {}
 
-    public function importFromCsv(UploadedFile $file, User $user): int
+    /**
+     * @return array{imported:int, skipped:int}
+     */
+    public function importFromCsv(UploadedFile $file, User $user): array
     {
         $rows = $this->parseCsvRows($file, $user->mode_app === 'sederhana');
 
@@ -27,34 +30,70 @@ class ProductImportService
             ]);
         }
 
-        return DB::transaction(function () use ($rows, $user): int {
+        return DB::transaction(function () use ($rows, $user): array {
             $importedCount = 0;
+            $skippedCount = 0;
+            $seenProducts = [];
+            $storeName = $user->store_name;
+            $categoriesByNormalizedName = Category::query()
+                ->where('store_name', $storeName)
+                ->get()
+                ->mapWithKeys(fn (Category $category) => [$this->normalizeEntityName($category->nama_kategori) => $category]);
+            $suppliersByNormalizedName = Supplier::query()
+                ->where('store_name', $storeName)
+                ->get()
+                ->mapWithKeys(fn (Supplier $supplier) => [$this->normalizeEntityName($supplier->nama_supplier) => $supplier]);
+            $productsByNormalizedName = Product::query()
+                ->where('store_name', $storeName)
+                ->get()
+                ->mapWithKeys(fn (Product $product) => [$this->normalizeEntityName($product->nama_produk) => $product]);
+            $existingCategorySlugs = array_fill_keys(Category::query()
+                ->pluck('slug')
+                ->all(), true);
+            $existingProductSlugs = array_fill_keys(Product::query()->pluck('slug')->all(), true);
+            $existingProductCodes = array_fill_keys(Product::query()->pluck('kode_produk')->all(), true);
 
             foreach ($rows as $index => $row) {
                 $line = $index + 2;
                 $validated = $this->validateRow($row, $line);
+                $normalizedProductName = $this->normalizeEntityName($validated['nama_produk']);
 
-                $category = $this->findOrCreateCategory($validated['kategori']);
+                if (isset($seenProducts[$normalizedProductName])) {
+                    $skippedCount++;
+
+                    continue;
+                }
+
+                $category = $this->findOrCreateCategory(
+                    $validated['kategori'],
+                    $categoriesByNormalizedName,
+                    $existingCategorySlugs,
+                    $storeName,
+                );
                 $supplier = $validated['supplier'] !== null
-                    ? $this->findOrCreateSupplier($validated['supplier'])
+                    ? $this->findOrCreateSupplier(
+                        $validated['supplier'],
+                        $suppliersByNormalizedName,
+                        $storeName,
+                    )
                     : null;
 
-                $existingProduct = Product::query()
-                    ->get()
-                    ->first(fn (Product $product) => $this->normalizeEntityName($product->nama_produk) === $this->normalizeEntityName($validated['nama_produk']));
+                $existingProduct = $productsByNormalizedName->get($normalizedProductName);
 
                 if ($existingProduct) {
-                    throw ValidationException::withMessages([
-                        'import_file' => "Baris {$line}: produk {$validated['nama_produk']} sudah ada. Import hanya untuk produk baru.",
-                    ]);
+                    $seenProducts[$normalizedProductName] = true;
+                    $skippedCount++;
+
+                    continue;
                 }
 
                 $product = Product::create([
                     'category_id' => $category->id,
                     'supplier_id' => $supplier?->id,
-                    'kode_produk' => $this->makeProductCode(),
+                    'kode_produk' => $this->makeProductCode($existingProductCodes),
                     'nama_produk' => $validated['nama_produk'],
-                    'slug' => $this->makeUniqueSlug($validated['nama_produk']),
+                    'store_name' => $storeName,
+                    'slug' => $this->makeUniqueSlug($validated['nama_produk'], $existingProductSlugs),
                     'deskripsi' => $validated['deskripsi'],
                     'satuan' => $validated['satuan'],
                     'harga_beli' => $validated['harga_beli'],
@@ -76,9 +115,14 @@ class ProductImportService
                 }
 
                 $importedCount++;
+                $seenProducts[$normalizedProductName] = true;
+                $productsByNormalizedName->put($normalizedProductName, $product);
             }
 
-            return $importedCount;
+            return [
+                'imported' => $importedCount,
+                'skipped' => $skippedCount,
+            ];
         });
     }
 
@@ -233,12 +277,19 @@ class ProductImportService
         ];
     }
 
-    private function findOrCreateCategory(string $name): Category
+    /**
+     * @param  \Illuminate\Support\Collection<string, Category>  $categoriesByNormalizedName
+     * @param  array<string, bool>  $existingCategorySlugs
+     */
+    private function findOrCreateCategory(
+        string $name,
+        $categoriesByNormalizedName,
+        array &$existingCategorySlugs,
+        string $storeName,
+    ): Category
     {
         $normalizedName = $this->normalizeEntityName($name);
-        $existing = Category::query()
-            ->get()
-            ->first(fn (Category $category) => $this->normalizeEntityName($category->nama_kategori) === $normalizedName);
+        $existing = $categoriesByNormalizedName->get($normalizedName);
 
         if ($existing) {
             if (! $existing->is_active) {
@@ -248,19 +299,29 @@ class ProductImportService
             return $existing;
         }
 
-        return Category::create([
+        $category = Category::create([
             'nama_kategori' => $name,
-            'slug' => $this->makeUniqueCategorySlug($name),
+            'store_name' => $storeName,
+            'slug' => $this->makeUniqueCategorySlug($name, $existingCategorySlugs),
             'is_active' => true,
         ]);
+
+        $categoriesByNormalizedName->put($normalizedName, $category);
+
+        return $category;
     }
 
-    private function findOrCreateSupplier(string $name): Supplier
+    /**
+     * @param  \Illuminate\Support\Collection<string, Supplier>  $suppliersByNormalizedName
+     */
+    private function findOrCreateSupplier(
+        string $name,
+        $suppliersByNormalizedName,
+        string $storeName,
+    ): Supplier
     {
         $normalizedName = $this->normalizeEntityName($name);
-        $existing = Supplier::query()
-            ->get()
-            ->first(fn (Supplier $supplier) => $this->normalizeEntityName($supplier->nama_supplier) === $normalizedName);
+        $existing = $suppliersByNormalizedName->get($normalizedName);
 
         if ($existing) {
             if (! $existing->is_active) {
@@ -270,45 +331,65 @@ class ProductImportService
             return $existing;
         }
 
-        return Supplier::create([
+        $supplier = Supplier::create([
             'nama_supplier' => $name,
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
+
+        $suppliersByNormalizedName->put($normalizedName, $supplier);
+
+        return $supplier;
     }
 
-    private function makeProductCode(): string
+    /**
+     * @param  array<string, bool>  $existingProductCodes
+     */
+    private function makeProductCode(array &$existingProductCodes): string
     {
         do {
             $code = 'PRD-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
-        } while (Product::query()->where('kode_produk', $code)->exists());
+        } while (isset($existingProductCodes[$code]));
+
+        $existingProductCodes[$code] = true;
 
         return $code;
     }
 
-    private function makeUniqueSlug(string $name): string
+    /**
+     * @param  array<string, bool>  $existingProductSlugs
+     */
+    private function makeUniqueSlug(string $name, array &$existingProductSlugs): string
     {
         $baseSlug = Str::slug($name);
         $slug = $baseSlug;
         $counter = 2;
 
-        while (Product::query()->where('slug', $slug)->exists()) {
+        while (isset($existingProductSlugs[$slug])) {
             $slug = $baseSlug.'-'.$counter;
             $counter++;
         }
+
+        $existingProductSlugs[$slug] = true;
 
         return $slug;
     }
 
-    private function makeUniqueCategorySlug(string $name): string
+    /**
+     * @param  array<string, bool>  $existingCategorySlugs
+     */
+    private function makeUniqueCategorySlug(string $name, array &$existingCategorySlugs): string
     {
         $baseSlug = Str::slug($name);
         $slug = $baseSlug;
         $counter = 2;
 
-        while (Category::query()->where('slug', $slug)->exists()) {
+        while (isset($existingCategorySlugs[$slug])) {
             $slug = $baseSlug.'-'.$counter;
             $counter++;
         }
+
+        $existingCategorySlugs[$slug] = true;
 
         return $slug;
     }

@@ -23,6 +23,8 @@ class RouteRoleModeAccessTest extends TestCase
 
         $this->actingAs($kasir)->get('/products/create')->assertForbidden();
         $this->actingAs($kasir)->post('/products')->assertForbidden();
+        $this->actingAs($kasir)->get('/products/template/download')->assertForbidden();
+        $this->actingAs($kasir)->delete('/products')->assertForbidden();
         $this->actingAs($kasir)->get('/stocks/create')->assertForbidden();
         $this->actingAs($kasir)->post('/stocks')->assertForbidden();
         $this->actingAs($kasir)->get('/suppliers')->assertForbidden();
@@ -38,6 +40,7 @@ class RouteRoleModeAccessTest extends TestCase
         ]);
 
         $this->actingAs($gudang)->get('/products')->assertOk();
+        $this->actingAs($gudang)->get('/products/template/download')->assertOk();
         $this->actingAs($gudang)->get('/stocks')->assertOk();
         $this->actingAs($gudang)->get('/suppliers')->assertOk();
         $this->actingAs($gudang)->get('/purchases')->assertOk();
@@ -71,6 +74,7 @@ class RouteRoleModeAccessTest extends TestCase
 
         $this->actingAs($ownerSederhana)->get('/dashboard')->assertOk();
         $this->actingAs($ownerSederhana)->get('/products')->assertOk();
+        $this->actingAs($ownerSederhana)->get('/products/template/download')->assertOk();
         $this->actingAs($ownerSederhana)->get('/stok')->assertOk();
         $this->actingAs($ownerSederhana)->get('/suppliers')->assertForbidden();
         $this->actingAs($ownerSederhana)->get('/purchases')->assertForbidden();
@@ -82,6 +86,7 @@ class RouteRoleModeAccessTest extends TestCase
 
         $this->actingAs($ownerLengkap)->get('/dashboard')->assertOk();
         $this->actingAs($ownerLengkap)->get('/products')->assertOk();
+        $this->actingAs($ownerLengkap)->get('/products/template/download')->assertForbidden();
         $this->actingAs($ownerLengkap)->get('/categories')->assertOk();
         $this->actingAs($ownerLengkap)->get('/reports')->assertOk();
         $this->actingAs($ownerLengkap)->get('/forecasts')->assertOk();
