@@ -152,7 +152,7 @@
                         <h2 class="text-3xl font-bold tracking-tight text-[#003441]">Point of Sale</h2>
                         <p class="mt-1 text-sm text-slate-500">Cari produk aktif, atur kuantitas, lalu lanjutkan ke pembayaran.</p>
                     </div>
-                    <div class="rounded-full bg-[#f3f4f5] px-4 py-2 text-sm font-medium text-slate-600">
+                    <div class="rounded-full bg-[#f3f4f5] px-4 py-2 text-sm font-medium text-slate-600" data-live-clock>
                         {{ now()->format('H:i:s') }}
                     </div>
                 </div>
@@ -179,15 +179,17 @@
                 <div class="mb-5 grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div class="rounded-2xl border border-[#c0c8cb] bg-[#f9f9fa] p-4">
                         <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Produk Aktif</p>
-                        <p class="mt-2 text-2xl font-bold text-slate-900">{{ $products->count() }}</p>
+                        <p class="mt-2 text-2xl font-bold text-slate-900">{{ $posSummary['active_products_count'] ?? $products->count() }}</p>
                     </div>
                     <div class="rounded-2xl border border-[#c0c8cb] bg-[#f9f9fa] p-4">
-                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Fokus Kasir</p>
-                        <p class="mt-2 text-sm font-semibold text-slate-900">Pilih item, atur qty, dan simpan transaksi lebih cepat.</p>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Stok Rendah</p>
+                        <p class="mt-2 text-2xl font-bold text-slate-900">{{ $posSummary['low_stock_count'] ?? 0 }}</p>
+                        <p class="mt-2 text-sm font-semibold text-slate-900">Produk yang perlu diperhatikan saat melayani transaksi.</p>
                     </div>
                     <div class="rounded-2xl border border-[#c0c8cb] bg-[#f9f9fa] p-4">
-                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Cek Stok</p>
-                        <p class="mt-2 text-sm font-semibold text-slate-900">Sistem membatasi qty sesuai stok yang tersedia.</p>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Transaksi Hari Ini</p>
+                        <p class="mt-2 text-2xl font-bold text-slate-900">{{ $posSummary['today_transaction_count'] ?? 0 }}</p>
+                        <p class="mt-2 text-sm font-semibold text-slate-900">Transaksi selesai yang sudah kamu proses hari ini.</p>
                     </div>
                 </div>
 
@@ -267,6 +269,7 @@
 
         <script>
             (() => {
+                const liveClock = document.querySelector('[data-live-clock]');
                 const currency = new Intl.NumberFormat('id-ID');
                 const form = document.querySelector('form');
                 const productSearch = document.querySelector('[data-product-search]');
@@ -287,6 +290,22 @@
                 const paymentButtons = Array.from(document.querySelectorAll('[data-payment-option]'));
                 const receiptEditButton = document.querySelector('[data-receipt-edit]');
                 const posItemError = document.querySelector('[data-pos-item-error]');
+
+                const updateClock = () => {
+                    if (!liveClock) {
+                        return;
+                    }
+
+                    liveClock.textContent = new Intl.DateTimeFormat('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false,
+                    }).format(new Date());
+                };
+
+                updateClock();
+                setInterval(updateClock, 1000);
 
                 const formatCurrency = (value) => `Rp${currency.format(Math.max(0, Number(value) || 0))}`;
 

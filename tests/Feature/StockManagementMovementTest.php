@@ -108,6 +108,30 @@ class StockManagementMovementTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_kasir_can_search_products_from_stock_page(): void
+    {
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+        ]);
+
+        $matchingProduct = $this->createProduct($kasir->store_name, [
+            'kode_produk' => 'PRD-LED-001',
+            'nama_produk' => 'Lampu LED Philips',
+        ]);
+        $this->createProduct($kasir->store_name, [
+            'kode_produk' => 'PRD-KBL-002',
+            'nama_produk' => 'Kabel NYM Supreme',
+        ]);
+
+        $this->actingAs($kasir)
+            ->get('/stok?search=Philips')
+            ->assertOk()
+            ->assertSee($matchingProduct->nama_produk)
+            ->assertDontSee('Kabel NYM Supreme')
+            ->assertSee('Hasil pencarian: Philips');
+    }
+
     public function test_sales_transaction_reduces_stock_and_creates_stock_movement_records(): void
     {
         $kasir = User::factory()->create([

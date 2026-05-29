@@ -88,10 +88,19 @@ class StockController extends Controller
 
     private function stockListingView(bool $showLowStockOnly = false): View
     {
+        $search = trim((string) request()->query('search', ''));
+
         $products = Product::query()
             ->with(['kategori', 'supplier'])
             ->where('store_name', request()->user()?->store_name)
             ->when($showLowStockOnly, fn ($query) => $query->whereColumn('stok', '<=', 'stok_minimum'))
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($productQuery) use ($search): void {
+                    $productQuery
+                        ->where('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produk', 'like', "%{$search}%");
+                });
+            })
             ->orderBy('nama_produk')
             ->get();
 
@@ -108,6 +117,7 @@ class StockController extends Controller
             'movements' => $movements,
             'canManageStock' => $this->canManageStock(request()->user()?->role, request()->user()?->mode_app),
             'showLowStockOnly' => $showLowStockOnly,
+            'search' => $search,
         ]);
     }
 

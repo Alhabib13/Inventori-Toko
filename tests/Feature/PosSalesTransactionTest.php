@@ -119,6 +119,46 @@ class PosSalesTransactionTest extends TestCase
         $this->actingAs($owner)->get('/transactions')->assertOk();
     }
 
+    public function test_kasir_pos_shows_active_pos_summary(): void
+    {
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+        ]);
+
+        $this->createProduct($kasir->store_name, [
+            'nama_produk' => 'Produk Aman',
+            'stok' => 10,
+            'stok_minimum' => 2,
+        ]);
+        $this->createProduct($kasir->store_name, [
+            'nama_produk' => 'Produk Menipis',
+            'stok' => 2,
+            'stok_minimum' => 2,
+        ]);
+
+        Transaction::create([
+            'kode_transaksi' => 'TRX-POS-001',
+            'user_id' => $kasir->id,
+            'tanggal_transaksi' => now()->subHour(),
+            'total_item' => 1,
+            'subtotal' => 15000,
+            'total_bayar' => 15000,
+            'nominal_bayar' => 15000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+
+        $this->actingAs($kasir)
+            ->get('/pos')
+            ->assertOk()
+            ->assertSee('Produk Aktif')
+            ->assertSee('Stok Rendah')
+            ->assertSee('Transaksi Hari Ini')
+            ->assertSee('2')
+            ->assertSee('1');
+    }
+
     public function test_gudang_cannot_access_pos_routes(): void
     {
         $gudang = User::factory()->create([
@@ -181,6 +221,70 @@ class PosSalesTransactionTest extends TestCase
         $this->actingAs($kasir)
             ->get(route('transactions.show', $otherTransaction))
             ->assertForbidden();
+    }
+
+    public function test_kasir_can_search_transaction_history_by_code_and_product_name(): void
+    {
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+        ]);
+        $productA = $this->createProduct($kasir->store_name, [
+            'nama_produk' => 'Lampu Philips 12W',
+        ]);
+        $productB = $this->createProduct($kasir->store_name, [
+            'nama_produk' => 'Kabel Supreme 2x1.5',
+        ]);
+
+        $transactionByCode = Transaction::create([
+            'kode_transaksi' => 'TRX-CARI-001',
+            'user_id' => $kasir->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 1,
+            'subtotal' => 12000,
+            'total_bayar' => 12000,
+            'nominal_bayar' => 12000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+        $transactionByCode->detailItem()->create([
+            'product_id' => $productA->id,
+            'nama_produk' => $productA->nama_produk,
+            'qty' => 1,
+            'harga' => 12000,
+            'subtotal' => 12000,
+        ]);
+
+        $transactionByProduct = Transaction::create([
+            'kode_transaksi' => 'TRX-KBL-002',
+            'user_id' => $kasir->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 2,
+            'subtotal' => 30000,
+            'total_bayar' => 30000,
+            'nominal_bayar' => 30000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+        $transactionByProduct->detailItem()->create([
+            'product_id' => $productB->id,
+            'nama_produk' => $productB->nama_produk,
+            'qty' => 2,
+            'harga' => 15000,
+            'subtotal' => 30000,
+        ]);
+
+        $this->actingAs($kasir)
+            ->get('/transactions?search=TRX-CARI')
+            ->assertOk()
+            ->assertSee('TRX-CARI-001')
+            ->assertDontSee('TRX-KBL-002');
+
+        $this->actingAs($kasir)
+            ->get('/transactions?search=Supreme')
+            ->assertOk()
+            ->assertSee('TRX-KBL-002')
+            ->assertDontSee('TRX-CARI-001');
     }
 
     public function test_owner_can_filter_transaction_history_by_period_and_store_scope(): void
@@ -251,6 +355,76 @@ class PosSalesTransactionTest extends TestCase
             ->assertSee('TRX-MAY-001')
             ->assertDontSee('TRX-OLD-001')
             ->assertDontSee('TRX-OTHER-STORE');
+    }
+
+    public function test_kasir_sees_daily_operational_summary_on_transaction_history(): void
+    {
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+            'name' => 'Kasir Ringkasan',
+        ]);
+
+        Transaction::create([
+            'kode_transaksi' => 'TRX-TODAY-001',
+            'user_id' => $kasir->id,
+            'tanggal_transaksi' => now()->subHour(),
+            'total_item' => 2,
+            'subtotal' => 25000,
+            'total_bayar' => 25000,
+            'nominal_bayar' => 25000,
+            'kembalian' => 0,
+            'metode_pembayaran' => 'tunai',
+            'status' => 'selesai',
+        ]);
+
+        Transaction::create([
+            'kode_transaksi' => 'TRX-TODAY-002',
+            'user_id' => $kasir->id,
+            'tanggal_transaksi' => now()->subMinutes(20),
+            'total_item' => 3,
+            'subtotal' => 40000,
+            'total_bayar' => 40000,
+            'nominal_bayar' => 40000,
+            'kembalian' => 0,
+            'metode_pembayaran' => 'qris',
+            'status' => 'selesai',
+        ]);
+
+        Transaction::create([
+            'kode_transaksi' => 'TRX-TODAY-CANCEL',
+            'user_id' => $kasir->id,
+            'tanggal_transaksi' => now()->subMinutes(5),
+            'total_item' => 4,
+            'subtotal' => 100000,
+            'total_bayar' => 100000,
+            'nominal_bayar' => 100000,
+            'kembalian' => 0,
+            'metode_pembayaran' => 'tunai',
+            'status' => 'dibatalkan',
+        ]);
+
+        Transaction::create([
+            'kode_transaksi' => 'TRX-YESTERDAY-001',
+            'user_id' => $kasir->id,
+            'tanggal_transaksi' => now()->subDay(),
+            'total_item' => 10,
+            'subtotal' => 150000,
+            'total_bayar' => 150000,
+            'nominal_bayar' => 150000,
+            'kembalian' => 0,
+            'metode_pembayaran' => 'tunai',
+            'status' => 'selesai',
+        ]);
+
+        $this->actingAs($kasir)
+            ->get('/transactions')
+            ->assertOk()
+            ->assertSee('Transaksi Hari Ini')
+            ->assertSee('Total Penjualan Hari Ini')
+            ->assertSee('Item Terjual Hari Ini')
+            ->assertSee('Rp65.000')
+            ->assertSee('1 transaksi dibatalkan hari ini.');
     }
 
     public function test_transaction_detail_shows_item_payment_method_and_cashier_information(): void
