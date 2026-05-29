@@ -39,7 +39,7 @@
             </div>
         </div>
 
-        <div class="mt-6 space-y-3">
+        <div class="mt-6 space-y-3 text-center">
             <a
                 href="{{ route('password.owner-reset') }}"
                 class="inline-flex h-11 w-full items-center justify-center rounded-md bg-[#083d4b] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#062f39]"

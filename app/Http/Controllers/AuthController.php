@@ -2,11 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\OwnerPasswordResetCodeMail;
+use App\Mail\OwnerRegistrationVerificationCodeMail;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -26,9 +33,16 @@ class AuthController extends Controller
         return view('auth.forgot-password');
     }
 
-    public function showOwnerPasswordResetForm(): View
+    public function showOwnerPasswordResetForm(Request $request): View
     {
-        return view('auth.reset-owner-password');
+        return $this->showResetPasswordForm($request);
+    }
+
+    public function showResetPasswordForm(Request $request): View
+    {
+        return view('auth.reset-password', [
+            'email' => old('email', $request->query('email')),
+        ]);
     }
 
     public function showUserRegisterForm(): View
@@ -77,25 +91,112 @@ class AuthController extends Controller
         return $this->redirectToRoleHome();
     }
 
+    public function sendPasswordResetCode(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $owner = User::query()
+            ->where('email', $data['email'])
+            ->where('role', 'owner')
+            ->where('is_active', true)
+            ->first();
+
+        if ($owner) {
+            $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            DB::table(config('auth.passwords.users.table'))
+                ->updateOrInsert(
+                    ['email' => $owner->email],
+                    ['token' => Hash::make($code), 'created_at' => now()]
+                );
+
+            Mail::to($owner->email)->send(new OwnerPasswordResetCodeMail(
+                ownerName: $owner->name,
+                storeName: $owner->store_name,
+                code: $code,
+                expiresInMinutes: (int) config('auth.passwords.users.expire', 60),
+            ));
+        }
+
+        return redirect()
+            ->route('password.owner-reset', ['email' => $data['email']])
+            ->with('status', 'Jika email owner ditemukan, kode verifikasi sudah dikirim. Pada local dev, cek log Laravel bila mailer masih menggunakan log.');
+    }
+
+    public function sendOwnerRegistrationCode(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'unique:users,email'],
+        ]);
+
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        DB::table(config('auth.passwords.users.table'))
+            ->updateOrInsert(
+                ['email' => $data['email']],
+                ['token' => Hash::make($code), 'created_at' => now()]
+            );
+
+        Mail::to($data['email'])->send(new OwnerRegistrationVerificationCodeMail(
+            ownerName: $request->input('name', 'Owner Baru'),
+            storeName: $request->input('store_name'),
+            code: $code,
+            expiresInMinutes: (int) config('auth.passwords.users.expire', 60),
+        ));
+
+        return back()
+            ->withInput($request->except(['password', 'password_confirmation']))
+            ->with('status', 'Kode verifikasi registrasi sudah dikirim ke email owner. Pada local dev, cek log Laravel bila mailer masih menggunakan log.');
+    }
+
     public function registerOwner(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'store_name' => ['required', 'string', 'max:255'],
+            'alamat_toko' => ['required', 'string', 'max:1000'],
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:50', 'alpha_dash:ascii', 'unique:users,username'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'verification_code' => ['required', 'digits:6'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
+
+        $registerToken = DB::table(config('auth.passwords.users.table'))
+            ->where('email', $data['email'])
+            ->first();
+
+        $expiresAt = $registerToken?->created_at
+            ? Carbon::parse($registerToken->created_at)->addMinutes((int) config('auth.passwords.users.expire', 60))
+            : null;
+
+        $isCodeInvalid = ! $registerToken
+            || ! Hash::check($data['verification_code'], $registerToken->token)
+            || ! $expiresAt
+            || $expiresAt->isPast();
+
+        if ($isCodeInvalid) {
+            throw ValidationException::withMessages([
+                'verification_code' => 'Kode verifikasi registrasi tidak valid atau sudah kedaluwarsa.',
+            ]);
+        }
 
         $user = User::create([
             'name' => $data['name'],
             'store_name' => $data['store_name'],
+            'alamat_toko' => $data['alamat_toko'],
             'username' => $data['username'],
-            'email' => $data['username'].'@toko.local',
+            'email' => $data['email'],
             'password' => $data['password'],
             'role' => 'owner',
             'mode_app' => null,
             'is_active' => true,
         ]);
+
+        DB::table(config('auth.passwords.users.table'))
+            ->where('email', $data['email'])
+            ->delete();
 
         Auth::login($user);
 
@@ -117,6 +218,7 @@ class AuthController extends Controller
 
         $data['email'] = $data['username'].'@toko.local';
         $data['store_name'] = $request->user()?->store_name;
+        $data['alamat_toko'] = $request->user()?->alamat_toko;
         $data['mode_app'] = $request->user()?->mode_app;
         $data['is_active'] = true;
 
@@ -125,6 +227,58 @@ class AuthController extends Controller
         return redirect()
             ->route('users.index')
             ->with('status', 'Pengguna berhasil dibuat.');
+    }
+
+    public function resetPasswordWithCode(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+            'verification_code' => ['required', 'digits:6'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $owner = User::query()
+            ->where('email', $data['email'])
+            ->where('role', 'owner')
+            ->first();
+
+        if (! $owner) {
+            throw ValidationException::withMessages([
+                'email' => 'Email owner tidak ditemukan.',
+            ]);
+        }
+
+        $resetToken = DB::table(config('auth.passwords.users.table'))
+            ->where('email', $owner->email)
+            ->first();
+
+        $expiresAt = $resetToken?->created_at
+            ? Carbon::parse($resetToken->created_at)->addMinutes((int) config('auth.passwords.users.expire', 60))
+            : null;
+
+        $isCodeInvalid = ! $resetToken
+            || ! Hash::check($data['verification_code'], $resetToken->token)
+            || ! $expiresAt
+            || $expiresAt->isPast();
+
+        if ($isCodeInvalid) {
+            throw ValidationException::withMessages([
+                'verification_code' => 'Kode verifikasi tidak valid atau sudah kedaluwarsa.',
+            ]);
+        }
+
+        $owner->forceFill([
+            'password' => $data['password'],
+            'remember_token' => null,
+        ])->save();
+
+        DB::table(config('auth.passwords.users.table'))
+            ->where('email', $owner->email)
+            ->delete();
+
+        return redirect()
+            ->route('login')
+            ->with('status', 'Password owner berhasil diperbarui. Silakan login kembali.');
     }
 
     public function redirectAuthenticatedUser(): RedirectResponse

@@ -415,7 +415,7 @@
 
                         <div class="min-w-0 sm:hidden">
                             <p class="truncate text-base font-extrabold tracking-tight text-[#003441]">{{ $pageTitle }}</p>
-                            <p class="truncate text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                                 {{ $role === 'owner' && $modeApp === 'lengkap' ? 'Mode Monitoring' : ($modeApp === 'lengkap' ? 'Mode Lengkap' : 'Workspace Toko') }}
                             </p>
                         </div>

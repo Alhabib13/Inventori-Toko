@@ -19,6 +19,11 @@ Route::get('/reset-sandi-owner', [AuthController::class, 'showOwnerPasswordReset
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.process');
+    Route::post('/register/send-code', [AuthController::class, 'sendOwnerRegistrationCode'])->name('register.owner.send-code');
+    Route::get('/forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('password.owner.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendPasswordResetCode'])->name('password.owner.email');
+    Route::get('/reset-password', [AuthController::class, 'showResetPasswordForm'])->name('password.owner.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPasswordWithCode'])->name('password.owner.update');
     Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
     Route::post('/register', [AuthController::class, 'registerOwner'])->name('register.process');
 });
