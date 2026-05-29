@@ -127,6 +127,21 @@ class AuthRoleTest extends TestCase
         ]);
     }
 
+    public function test_authenticated_user_can_logout_via_get_route(): void
+    {
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($kasir)
+            ->get('/logout')
+            ->assertRedirect(route('login'));
+
+        $this->assertGuest();
+    }
+
     private function userWithRole(string $role, ?string $modeApp = null): User
     {
         return new User([

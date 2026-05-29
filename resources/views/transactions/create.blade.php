@@ -4,6 +4,18 @@
 @section('page_subtitle', 'Kelola transaksi penjualan cepat, pilih produk, atur jumlah, pembayaran, lalu simpan ringkasan transaksi kasir.')
 
 @section('content')
+    <style>
+        .pos-quantity-input::-webkit-outer-spin-button,
+        .pos-quantity-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .pos-quantity-input {
+            -moz-appearance: textfield;
+        }
+    </style>
+
     @php
         $lastPage = $products->lastPage();
         $currentPage = $products->currentPage();
@@ -246,7 +258,7 @@
                                             max="{{ $product->stok }}"
                                             name="items[{{ $index }}][qty]"
                                             value="{{ old('items.'.$index.'.qty', 0) }}"
-                                            class="h-10 w-14 border-x border-[#d0d8dc] bg-white text-center text-sm font-semibold text-slate-900 outline-none"
+                                            class="pos-quantity-input h-10 w-14 border-x border-[#d0d8dc] bg-white text-center text-sm font-semibold text-slate-900 outline-none"
                                             data-qty-input
                                         >
                                         <button type="button" class="inline-flex h-10 w-10 items-center justify-center text-lg text-slate-500 transition hover:bg-[#f3f4f5] hover:text-slate-800" data-qty-increase aria-label="Tambah jumlah">
