@@ -21,6 +21,16 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
+    public function showForgotPasswordForm(): View
+    {
+        return view('auth.forgot-password');
+    }
+
+    public function showOwnerPasswordResetForm(): View
+    {
+        return view('auth.reset-owner-password');
+    }
+
     public function showUserRegisterForm(): View
     {
         return view('auth.register-user', [
