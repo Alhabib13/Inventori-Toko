@@ -57,6 +57,12 @@ class DashboardController extends Controller
 
         $forecastCount = $forecastHighlights->count();
         $forecastRestockTotal = (int) $forecastHighlights->sum('selisih_prediksi');
+        $forecastRestockCount = $forecastHighlights->where('selisih_prediksi', '>', 0)->count();
+        $criticalStockGapTotal = (int) $criticalProducts->sum(fn ($product) => max(0, $product->stok_minimum - $product->stok));
+        $latestPurchase = Purchase::query()
+            ->whereHas('pengguna', fn ($query) => $query->where('store_name', $storeName))
+            ->latest('tanggal_pembelian')
+            ->first(['kode_pembelian', 'tanggal_pembelian', 'total_bayar']);
         $canManageInventory = $user?->mode_app === 'sederhana';
         $salesTrend = collect(range($trendPeriod - 1, 0))
             ->map(function (int $daysAgo) use ($storeName) {
@@ -73,6 +79,12 @@ class DashboardController extends Controller
             });
         $salesTrendTotal = (float) $salesTrend->sum('total');
         $salesTrendAverage = (float) $salesTrend->avg('total');
+        $todaySalesScope = Transaction::query()
+            ->whereHas('kasir', fn ($query) => $query->where('store_name', $storeName))
+            ->whereDate('tanggal_transaksi', now()->toDateString())
+            ->where('status', '!=', 'dibatalkan');
+        $todaySalesCount = (clone $todaySalesScope)->count();
+        $todaySalesTotal = (float) (clone $todaySalesScope)->sum('total_bayar');
 
         return view('dashboard.index', [
             'isSimpleMode' => $isSimpleMode,
@@ -87,11 +99,16 @@ class DashboardController extends Controller
             'forecastHighlights' => $forecastHighlights,
             'forecastCount' => $forecastCount,
             'forecastRestockTotal' => $forecastRestockTotal,
+            'forecastRestockCount' => $forecastRestockCount,
+            'criticalStockGapTotal' => $criticalStockGapTotal,
+            'latestPurchase' => $latestPurchase,
             'canManageInventory' => $canManageInventory,
             'salesTrend' => $salesTrend,
             'trendPeriod' => $trendPeriod,
             'salesTrendTotal' => $salesTrendTotal,
             'salesTrendAverage' => $salesTrendAverage,
+            'todaySalesCount' => $todaySalesCount,
+            'todaySalesTotal' => $todaySalesTotal,
         ]);
     }
 }

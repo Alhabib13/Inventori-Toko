@@ -390,13 +390,6 @@
                                     </button>
                                 </div>
                             </form>
-                        @else
-                            <div class="relative hidden max-w-md sm:block">
-                                <svg class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m21 21-4.35-4.35M10.75 18.5a7.75 7.75 0 1 1 0-15.5 7.75 7.75 0 0 1 0 15.5Z" />
-                                </svg>
-                                <input type="text" placeholder="Cari produk, kategori, supplier, atau user..." class="h-12 w-full rounded-full border border-[#d2dadd] bg-white pl-11 pr-4 text-sm text-slate-700 shadow-[0_8px_18px_-16px_rgba(15,39,48,0.55)] outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" />
-                            </div>
                         @endif
                         <div class="sm:hidden">
                             <p class="text-xl font-extrabold tracking-tight text-[#003441]">Sitori</p>

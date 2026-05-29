@@ -164,12 +164,58 @@
                     <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Prioritas Hari Ini' : 'Insight Inventori' }}</h2>
                     <div class="mt-5 space-y-4">
                         <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
-                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Prioritas Hari Ini</p>
-                            <p class="mt-2 text-sm leading-6 text-slate-600">
-                                {{ $isSimpleMode
-                                    ? 'Pantau penjualan, pembelian, dan produk yang mulai menipis agar toko tetap berjalan lancar sepanjang hari.'
-                                    : 'Pantau nilai stok, pembelian supplier, serta produk kritis untuk menjaga keseimbangan inventori dan performa bisnis.' }}
-                            </p>
+                            @if ($isSimpleMode)
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div class="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Stok Menipis</p>
+                                        <p class="mt-2 text-lg font-semibold text-slate-900">{{ $criticalProductsCount }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">Produk perlu dicek lebih dulu.</p>
+                                    </div>
+                                    <div class="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Restock Disarankan</p>
+                                        <p class="mt-2 text-lg font-semibold text-slate-900">{{ $forecastRestockTotal }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">Unit tambahan dari prediksi stok.</p>
+                                    </div>
+                                    <div class="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Transaksi Hari Ini</p>
+                                        <p class="mt-2 text-lg font-semibold text-slate-900">{{ $todaySalesCount }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">Transaksi selesai yang sudah tercatat.</p>
+                                    </div>
+                                    <div class="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Penjualan Hari Ini</p>
+                                        <p class="mt-2 text-lg font-semibold text-slate-900">Rp{{ number_format($todaySalesTotal, 0, ',', '.') }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">Penjualan yang perlu dijaga ritmenya hari ini.</p>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div class="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Produk Kritis</p>
+                                        <p class="mt-2 text-lg font-semibold text-slate-900">{{ $criticalProductsCount }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">Butuh perhatian segera.</p>
+                                    </div>
+                                    <div class="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Gap Restock</p>
+                                        <p class="mt-2 text-lg font-semibold text-slate-900">{{ $criticalStockGapTotal }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">Unit minimum yang perlu ditutup.</p>
+                                    </div>
+                                    <div class="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Forecast Restock</p>
+                                        <p class="mt-2 text-lg font-semibold text-slate-900">{{ $forecastRestockCount }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">Produk dengan sinyal restock.</p>
+                                    </div>
+                                    <div class="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Pembelian Terakhir</p>
+                                        @if ($latestPurchase)
+                                            <p class="mt-2 text-sm font-semibold text-slate-900">{{ $latestPurchase->tanggal_pembelian?->format('d M Y') }}</p>
+                                            <p class="mt-1 text-xs text-slate-500">Rp{{ number_format((float) $latestPurchase->total_bayar, 0, ',', '.') }}</p>
+                                        @else
+                                            <p class="mt-2 text-sm font-semibold text-slate-900">Belum ada</p>
+                                            <p class="mt-1 text-xs text-slate-500">Belum ada pembelian tercatat.</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
                         </div>
 
                         <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
