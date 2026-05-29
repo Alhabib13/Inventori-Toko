@@ -153,4 +153,35 @@ class SupplierManagementRoleModeTest extends TestCase
             ->assertRedirect('/suppliers/create')
             ->assertSessionHasErrors(['nama_supplier', 'nama_kontak', 'telepon', 'alamat']);
     }
+
+    public function test_gudang_lengkap_can_destroy_all_suppliers_when_unreferenced(): void
+    {
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+        ]);
+
+        Supplier::create([
+            'nama_supplier' => 'Supplier A',
+            'nama_kontak' => 'Kontak A',
+            'telepon' => '081234567890',
+            'alamat' => 'Alamat A',
+            'store_name' => $gudang->store_name,
+            'is_active' => true,
+        ]);
+        Supplier::create([
+            'nama_supplier' => 'Supplier B',
+            'nama_kontak' => 'Kontak B',
+            'telepon' => '081234567891',
+            'alamat' => 'Alamat B',
+            'store_name' => $gudang->store_name,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($gudang)
+            ->delete(route('suppliers.destroy-all'))
+            ->assertRedirect(route('suppliers.index'));
+
+        $this->assertDatabaseCount('suppliers', 0);
+    }
 }

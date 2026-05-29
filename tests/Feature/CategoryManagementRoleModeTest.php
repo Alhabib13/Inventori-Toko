@@ -196,4 +196,31 @@ class CategoryManagementRoleModeTest extends TestCase
             ->assertRedirect('/categories/create')
             ->assertSessionHasErrors(['nama_kategori']);
     }
+
+    public function test_owner_sederhana_can_destroy_all_categories_when_unreferenced(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+        ]);
+
+        Category::create([
+            'nama_kategori' => 'Bumbu',
+            'slug' => 'bumbu',
+            'store_name' => $owner->store_name,
+            'is_active' => true,
+        ]);
+        Category::create([
+            'nama_kategori' => 'Makanan Ringan',
+            'slug' => 'makanan-ringan',
+            'store_name' => $owner->store_name,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($owner)
+            ->delete(route('categories.destroy-all'))
+            ->assertRedirect(route('categories.index'));
+
+        $this->assertDatabaseCount('categories', 0);
+    }
 }
