@@ -75,7 +75,7 @@
                     <input type="checkbox" name="remember" value="1" class="h-4 w-4 rounded border-slate-300 text-[#0b4a5a] focus:ring-[#0b4a5a]" />
                     <span>Ingat saya</span>
                 </label>
-                <a href="#" class="text-xs font-bold text-[#0b4a5a] hover:underline">Lupa kata sandi?</a>
+                <a href="/lupa-kata-sandi" class="text-xs font-bold text-[#0b4a5a] hover:underline">Lupa kata sandi?</a>
             </div>
 
             <button type="submit" data-loading-text="Masuk..." class="mt-1 h-11 w-full rounded-md bg-[#083d4b] text-sm font-bold text-white transition hover:bg-[#062f39]">
