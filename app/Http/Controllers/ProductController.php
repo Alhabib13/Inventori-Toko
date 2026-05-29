@@ -24,20 +24,33 @@ class ProductController extends Controller
         private readonly ProductImportService $productImportService,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $user = request()->user();
+        $user = $request->user();
+        $search = trim((string) $request->string('search'));
 
         $products = Product::query()
             ->with(['kategori', 'supplier'])
             ->where('store_name', $user?->store_name)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($productQuery) use ($search) {
+                    $productQuery
+                        ->where('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produk', 'like', "%{$search}%")
+                        ->orWhere('satuan', 'like', "%{$search}%")
+                        ->orWhereHas('kategori', fn ($categoryQuery) => $categoryQuery->where('nama_kategori', 'like', "%{$search}%"))
+                        ->orWhereHas('supplier', fn ($supplierQuery) => $supplierQuery->where('nama_supplier', 'like', "%{$search}%"));
+                });
+            })
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('products.index', [
             'products' => $products,
             'canManageProducts' => $this->canManageProducts($user?->role, $user?->mode_app),
             'requiresSupplier' => $user?->mode_app !== 'sederhana',
+            'search' => $search,
         ]);
     }
 

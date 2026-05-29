@@ -343,17 +343,14 @@
             </nav>
 
             <div class="mt-auto border-t border-white/12 bg-[#102d37]/92 px-3 py-4 backdrop-blur" data-sidebar-footer>
-                <form action="{{ route('logout') }}" method="POST" data-instant-submit>
-                    @csrf
-                    <button type="submit" class="flex w-full items-center gap-3 rounded-xl border border-white/55 bg-white/6 px-4 py-3 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:bg-white/12" data-sidebar-logout data-loading-text="Keluar..." title="Keluar">
-                        <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-[#f4f8f9] text-[#123743]" data-sidebar-logout-icon>
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.75 7.75V6.5A1.75 1.75 0 0 1 12.5 4.75h4A1.75 1.75 0 0 1 18.25 6.5v11A1.75 1.75 0 0 1 16.5 19.25h-4a1.75 1.75 0 0 1-1.75-1.75v-1.25M14 12H4.75m0 0 2.75-2.75M4.75 12l2.75 2.75" />
-                            </svg>
-                        </span>
-                        <span data-sidebar-logout-label>Keluar</span>
-                    </button>
-                </form>
+                <a href="{{ route('logout.get') }}" class="flex w-full items-center gap-3 rounded-xl border border-white/55 bg-white/6 px-4 py-3 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:bg-white/12" data-sidebar-logout title="Keluar">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-[#f4f8f9] text-[#123743]" data-sidebar-logout-icon>
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.75 7.75V6.5A1.75 1.75 0 0 1 12.5 4.75h4A1.75 1.75 0 0 1 18.25 6.5v11A1.75 1.75 0 0 1 16.5 19.25h-4a1.75 1.75 0 0 1-1.75-1.75v-1.25M14 12H4.75m0 0 2.75-2.75M4.75 12l2.75 2.75" />
+                        </svg>
+                    </span>
+                    <span data-sidebar-logout-label>Keluar</span>
+                </a>
             </div>
         </aside>
 
@@ -372,25 +369,6 @@
                             </svg>
                         </button>
 
-                        @if ($role === 'kasir')
-                            <form action="{{ route('stocks.role-home') }}" method="GET" class="hidden max-w-md sm:block">
-                                <div class="relative">
-                                    <svg class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m21 21-4.35-4.35M10.75 18.5a7.75 7.75 0 1 1 0-15.5 7.75 7.75 0 0 1 0 15.5Z" />
-                                    </svg>
-                                    <input
-                                        type="text"
-                                        name="search"
-                                        value="{{ request('search') }}"
-                                        placeholder="Cari barang di stok..."
-                                        class="h-12 w-full rounded-full border border-[#d2dadd] bg-white pl-11 pr-24 text-sm text-slate-700 shadow-[0_8px_18px_-16px_rgba(15,39,48,0.55)] outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
-                                    />
-                                    <button type="submit" class="absolute right-1.5 top-1/2 inline-flex h-9 -translate-y-1/2 items-center rounded-full bg-[#003441] px-4 text-xs font-semibold text-white transition hover:bg-[#0f4c5c]">
-                                        Cari
-                                    </button>
-                                </div>
-                            </form>
-                        @endif
                         <div class="sm:hidden">
                             <p class="text-xl font-extrabold tracking-tight text-[#003441]">Sitori</p>
                             <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">

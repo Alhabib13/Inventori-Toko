@@ -21,6 +21,7 @@ class PurchaseController extends Controller
         $user = $request->user();
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
+        $search = trim((string) $request->string('search'));
 
         $purchases = Purchase::query()
             ->with(['supplier', 'pengguna'])
@@ -36,6 +37,15 @@ class PurchaseController extends Controller
             ->when($dateTo !== '', function (Builder $query) use ($dateTo): void {
                 $query->whereDate('tanggal_pembelian', '<=', $dateTo);
             })
+            ->when($search !== '', function (Builder $query) use ($search): void {
+                $query->where(function (Builder $purchaseQuery) use ($search): void {
+                    $purchaseQuery
+                        ->where('kode_pembelian', 'like', "%{$search}%")
+                        ->orWhere('status', 'like', "%{$search}%")
+                        ->orWhereHas('supplier', fn (Builder $supplierQuery) => $supplierQuery->where('nama_supplier', 'like', "%{$search}%"))
+                        ->orWhereHas('pengguna', fn (Builder $userQuery) => $userQuery->where('name', 'like', "%{$search}%"));
+                });
+            })
             ->latest('tanggal_pembelian')
             ->paginate(10)
             ->withQueryString();
@@ -44,6 +54,7 @@ class PurchaseController extends Controller
             'purchases' => $purchases,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
+            'search' => $search,
             'canManagePurchases' => $user?->role === 'gudang' && $user?->mode_app === 'lengkap',
             'isOwner' => $user?->role === 'owner',
         ]);

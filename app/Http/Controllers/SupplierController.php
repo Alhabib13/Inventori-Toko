@@ -12,17 +12,36 @@ use Illuminate\View\View;
 
 class SupplierController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $search = trim((string) $request->string('search'));
+
         $suppliers = Supplier::query()
-            ->where('store_name', request()->user()?->store_name)
+            ->where('store_name', $request->user()?->store_name)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($supplierQuery) use ($search) {
+                    $supplierQuery
+                        ->where('nama_supplier', 'like', "%{$search}%")
+                        ->orWhere('nama_kontak', 'like', "%{$search}%")
+                        ->orWhere('telepon', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('alamat', 'like', "%{$search}%");
+                });
+            })
             ->orderByDesc('is_active')
             ->orderBy('nama_supplier')
+            ->paginate(10)
+            ->withQueryString();
+
+        $allSuppliers = Supplier::query()
+            ->where('store_name', $request->user()?->store_name)
             ->get();
 
         return view('suppliers.index', [
             'suppliers' => $suppliers,
-            'activeSupplierCount' => $suppliers->where('is_active', true)->count(),
+            'activeSupplierCount' => $allSuppliers->where('is_active', true)->count(),
+            'inactiveSupplierCount' => $allSuppliers->where('is_active', false)->count(),
+            'search' => $search,
         ]);
     }
 

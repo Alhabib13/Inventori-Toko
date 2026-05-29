@@ -4,9 +4,19 @@
     $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
     $isCashier = auth()->user()?->role === 'kasir';
     $search = $search ?? '';
-    $lowStockCount = $products->filter(fn ($product) => $product->stok <= $product->stok_minimum)->count();
-    $safeStockCount = $products->count() - $lowStockCount;
+    $movementSearch = $movementSearch ?? '';
+    $totalProducts = $totalProducts ?? $products->total();
+    $lowStockCount = $lowStockCount ?? $products->getCollection()->filter(fn ($product) => $product->stok <= $product->stok_minimum)->count();
+    $safeStockCount = $safeStockCount ?? max($totalProducts - $lowStockCount, 0);
     $showLowStockOnly = $showLowStockOnly ?? false;
+    $lastPage = $products->lastPage();
+    $currentPage = $products->currentPage();
+    $startPage = max(1, min($currentPage - 3, max(1, $lastPage - 6)));
+    $endPage = min($lastPage, $startPage + 6);
+    $movementLastPage = $movements->lastPage();
+    $movementCurrentPage = $movements->currentPage();
+    $movementStartPage = max(1, min($movementCurrentPage - 3, max(1, $movementLastPage - 6)));
+    $movementEndPage = min($movementLastPage, $movementStartPage + 6);
 @endphp
 
 @section('page_title', 'Stok')
@@ -39,7 +49,7 @@
         <section class="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <article class="rounded-2xl border {{ $showLowStockOnly ? 'border-red-200 bg-red-50/70' : 'border-[#c0c8cb] bg-white' }} p-6 shadow-sm">
                 <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $showLowStockOnly ? 'Produk Menipis' : 'Data Stok Utama' }}</p>
-                <h2 class="mt-2 text-3xl font-bold tracking-tight {{ $showLowStockOnly ? 'text-red-600' : 'text-slate-900' }}">{{ $products->count() }}</h2>
+                <h2 class="mt-2 text-3xl font-bold tracking-tight {{ $showLowStockOnly ? 'text-red-600' : 'text-slate-900' }}">{{ $totalProducts }}</h2>
                 <p class="mt-2 text-sm {{ $showLowStockOnly ? 'text-red-600' : 'text-slate-500' }}">{{ $showLowStockOnly ? 'Produk yang perlu segera diprioritaskan untuk restock.' : ($isCashier ? 'Produk aktif yang stoknya bisa dicek cepat oleh kasir sebelum transaksi.' : 'Produk yang sedang dimonitor pada inventory aktif.') }}</p>
             </article>
             <article class="rounded-2xl border {{ $lowStockCount > 0 ? 'border-amber-200 bg-amber-50/70' : 'border-[#c0c8cb] bg-white' }} p-6 shadow-sm">
@@ -55,23 +65,50 @@
         </section>
 
         <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
-            <div class="border-b border-[#c0c8cb] px-6 py-4">
-                <h2 class="text-lg font-semibold text-slate-900">{{ $showLowStockOnly ? 'Daftar Stok Menipis' : 'Data Stok Utama' }}</h2>
-                <p class="mt-1 text-sm text-slate-500">
-                    {{ $showLowStockOnly
-                        ? 'Hanya produk dengan stok saat ini berada di bawah atau sama dengan stok minimum yang ditampilkan.'
-                        : ($isSimpleMode ? 'Ringkasan stok barang dan stok minimum untuk pemantauan owner sehari-hari.' : ($isCashier ? 'Tabel stok aktif untuk membantu kasir mengecek ketersediaan produk sebelum melakukan transaksi.' : 'Tabel stok aktif, stok minimum, supplier terkait, dan indikator produk yang perlu perhatian.')) }}
-                </p>
-                @if ($isCashier && $search !== '')
-                    <p class="mt-3 inline-flex items-center gap-2 rounded-full bg-[#e6f4f8] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f4c5c]">
-                        Hasil pencarian: {{ $search }}
+            <div class="flex flex-col gap-4 border-b border-[#c0c8cb] px-6 py-4 lg:flex-row lg:items-start lg:justify-between">
+                <div class="min-w-0">
+                    <h2 class="text-lg font-semibold text-slate-900">{{ $showLowStockOnly ? 'Daftar Stok Menipis' : 'Data Stok Utama' }}</h2>
+                    <p class="mt-1 text-sm text-slate-500">
+                        {{ $showLowStockOnly
+                            ? 'Hanya produk dengan stok saat ini berada di bawah atau sama dengan stok minimum yang ditampilkan.'
+                            : ($isSimpleMode ? 'Ringkasan stok barang dan stok minimum untuk pemantauan owner sehari-hari.' : ($isCashier ? 'Tabel stok aktif untuk membantu kasir mengecek ketersediaan produk sebelum melakukan transaksi.' : 'Tabel stok aktif, stok minimum, supplier terkait, dan indikator produk yang perlu perhatian.')) }}
                     </p>
-                @endif
-                @if (! $canManageStock && ! $isCashier)
-                    <p class="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600">
-                        Mode Read Only
-                    </p>
-                @endif
+                    @if (! $canManageStock && ! $isCashier)
+                        <p class="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                            Mode Read Only
+                        </p>
+                    @endif
+                </div>
+                <div class="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[22rem]">
+                    <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <label for="stocks-search" class="sr-only">Cari stok</label>
+                        <div class="relative flex-1">
+                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+                                </svg>
+                            </span>
+                            <input
+                                id="stocks-search"
+                                type="search"
+                                name="search"
+                                value="{{ $search }}"
+                                placeholder="Cari nama produk, kode, kategori, atau supplier..."
+                                class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0f4c5c] focus:bg-white focus:ring-2 focus:ring-[#d0e1fb]"
+                            >
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="submit" class="inline-flex h-11 items-center justify-center rounded-xl bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                                Cari
+                            </button>
+                            @if ($search !== '')
+                                <a href="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.index') }}" class="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                                    Reset
+                                </a>
+                            @endif
+                        </div>
+                    </form>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-[920px] w-full text-left text-sm">
@@ -125,13 +162,118 @@
                     </tbody>
                 </table>
             </div>
+            <div class="border-t border-slate-200 px-6 py-4">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="text-sm text-slate-500">
+                        Menampilkan
+                        <span class="font-semibold text-slate-700">{{ $products->firstItem() ?? 0 }}</span>
+                        -
+                        <span class="font-semibold text-slate-700">{{ $products->lastItem() ?? 0 }}</span>
+                        dari
+                        <span class="font-semibold text-slate-700">{{ $products->total() }}</span>
+                        stok
+                    </div>
+                </div>
+
+                @if ($lastPage > 1)
+                    <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                        <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.index') }}" class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                            @if ($search !== '')
+                                <input type="hidden" name="search" value="{{ $search }}">
+                            @endif
+                            <span>Lompat ke halaman</span>
+                            <input
+                                type="number"
+                                name="page"
+                                min="1"
+                                max="{{ $lastPage }}"
+                                value="{{ $currentPage }}"
+                                class="h-10 w-20 rounded-lg border border-slate-200 bg-white px-3 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0f4c5c] focus:ring-2 focus:ring-[#d0e1fb]"
+                            >
+                            <span>dari {{ $lastPage }}</span>
+                            <button type="submit" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                Buka
+                            </button>
+                        </form>
+
+                        <div class="flex flex-wrap items-center justify-center gap-2 xl:justify-end">
+                            @if ($products->onFirstPage())
+                                <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">
+                                    Sebelumnya
+                                </span>
+                            @else
+                                <a href="{{ $products->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                    Sebelumnya
+                                </a>
+                            @endif
+
+                            @for ($page = $startPage; $page <= $endPage; $page++)
+                                @if ($page === $currentPage)
+                                    <span class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-[#0f4c5c] bg-[#003441] px-3 text-sm font-semibold text-white">
+                                        {{ $page }}
+                                    </span>
+                                @else
+                                    <a href="{{ $products->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                        {{ $page }}
+                                    </a>
+                                @endif
+                            @endfor
+
+                            @if ($products->hasMorePages())
+                                <a href="{{ $products->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                    Berikutnya
+                                </a>
+                            @else
+                                <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">
+                                    Berikutnya
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+            </div>
         </section>
 
         @unless($isCashier)
             <section class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
-                <div class="border-b border-[#c0c8cb] px-6 py-4">
-                    <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Histori Pergerakan Stok Sederhana' : 'Histori Pergerakan Stok' }}</h2>
-                    <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Riwayat perubahan stok masuk dan keluar yang mudah dipantau owner.' : 'Riwayat perubahan stok untuk kontrol yang lebih detail terhadap barang masuk dan keluar.' }}</p>
+                <div class="flex flex-col gap-4 border-b border-[#c0c8cb] px-6 py-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div class="min-w-0">
+                        <h2 class="text-lg font-semibold text-slate-900">{{ $isSimpleMode ? 'Histori Pergerakan Stok Sederhana' : 'Histori Pergerakan Stok' }}</h2>
+                        <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Riwayat perubahan stok masuk dan keluar yang mudah dipantau owner.' : 'Riwayat perubahan stok untuk kontrol yang lebih detail terhadap barang masuk dan keluar.' }}</p>
+                    </div>
+                    <div class="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[22rem]">
+                        <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            @if ($search !== '')
+                                <input type="hidden" name="search" value="{{ $search }}">
+                            @endif
+                            <label for="movements-search" class="sr-only">Cari histori stok</label>
+                            <div class="relative flex-1">
+                                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+                                    </svg>
+                                </span>
+                                <input
+                                    id="movements-search"
+                                    type="search"
+                                    name="movement_search"
+                                    value="{{ $movementSearch }}"
+                                    placeholder="Cari produk, jenis, atau catatan..."
+                                    class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0f4c5c] focus:bg-white focus:ring-2 focus:ring-[#d0e1fb]"
+                                >
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="submit" class="inline-flex h-11 items-center justify-center rounded-xl bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                                    Cari
+                                </button>
+                                @if ($movementSearch !== '')
+                                    <a href="{{ $showLowStockOnly ? route('stocks.notifications', $search !== '' ? ['search' => $search] : []) : route('stocks.index', $search !== '' ? ['search' => $search] : []) }}" class="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                                        Reset
+                                    </a>
+                                @endif
+                            </div>
+                        </form>
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-[1040px] w-full text-left text-sm">
@@ -186,7 +328,77 @@
                     </table>
                 </div>
                 <div class="border-t border-slate-200 px-6 py-4">
-                    {{ $movements->links() }}
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="text-sm text-slate-500">
+                            Menampilkan
+                            <span class="font-semibold text-slate-700">{{ $movements->firstItem() ?? 0 }}</span>
+                            -
+                            <span class="font-semibold text-slate-700">{{ $movements->lastItem() ?? 0 }}</span>
+                            dari
+                            <span class="font-semibold text-slate-700">{{ $movements->total() }}</span>
+                            histori
+                        </div>
+                    </div>
+
+                    @if ($movementLastPage > 1)
+                        <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                            <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.index') }}" class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                                @if ($search !== '')
+                                    <input type="hidden" name="search" value="{{ $search }}">
+                                @endif
+                                @if ($movementSearch !== '')
+                                    <input type="hidden" name="movement_search" value="{{ $movementSearch }}">
+                                @endif
+                                <span>Lompat ke halaman</span>
+                                <input
+                                    type="number"
+                                    name="movements_page"
+                                    min="1"
+                                    max="{{ $movementLastPage }}"
+                                    value="{{ $movementCurrentPage }}"
+                                    class="h-10 w-20 rounded-lg border border-slate-200 bg-white px-3 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0f4c5c] focus:ring-2 focus:ring-[#d0e1fb]"
+                                >
+                                <span>dari {{ $movementLastPage }}</span>
+                                <button type="submit" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                    Buka
+                                </button>
+                            </form>
+
+                            <div class="flex flex-wrap items-center justify-center gap-2 xl:justify-end">
+                                @if ($movements->onFirstPage())
+                                    <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">
+                                        Sebelumnya
+                                    </span>
+                                @else
+                                    <a href="{{ $movements->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                        Sebelumnya
+                                    </a>
+                                @endif
+
+                                @for ($page = $movementStartPage; $page <= $movementEndPage; $page++)
+                                    @if ($page === $movementCurrentPage)
+                                        <span class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-[#0f4c5c] bg-[#003441] px-3 text-sm font-semibold text-white">
+                                            {{ $page }}
+                                        </span>
+                                    @else
+                                        <a href="{{ $movements->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                            {{ $page }}
+                                        </a>
+                                    @endif
+                                @endfor
+
+                                @if ($movements->hasMorePages())
+                                    <a href="{{ $movements->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                        Berikutnya
+                                    </a>
+                                @else
+                                    <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">
+                                        Berikutnya
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </section>
         @endunless

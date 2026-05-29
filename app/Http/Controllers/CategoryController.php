@@ -13,15 +13,29 @@ use Illuminate\View\View;
 
 class CategoryController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $storeName = request()->user()?->store_name;
+        $storeName = $request->user()?->store_name;
+        $search = trim((string) $request->string('search'));
+
         $categories = Category::query()
             ->where('store_name', $storeName)
-            ->get();
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($categoryQuery) use ($search) {
+                    $categoryQuery
+                        ->where('nama_kategori', 'like', "%{$search}%")
+                        ->orWhere('slug', 'like', "%{$search}%")
+                        ->orWhere('deskripsi', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
         return view('categories.index', [
             'categories' => $categories,
-            'canManageCategories' => $this->canManageCategories(request()->user()?->role, request()->user()?->mode_app),
+            'canManageCategories' => $this->canManageCategories($request->user()?->role, $request->user()?->mode_app),
+            'search' => $search,
         ]);
     }
 

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\Transaction;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -62,32 +64,36 @@ class ReportController extends Controller
         $days = $this->periodToDays($period);
         $startDate = now()->startOfDay()->subDays($days - 1);
         $endDate = now()->endOfDay();
+        $salesSearch = trim((string) $request->string('sales_search'));
+        $purchaseSearch = trim((string) $request->string('purchase_search'));
+        $stockSearch = trim((string) $request->string('stock_search'));
 
-        $sales = Transaction::query()
+        $salesCollection = Transaction::query()
             ->with('kasir')
             ->whereHas('kasir', fn ($query) => $query->where('store_name', $storeName))
             ->whereBetween('tanggal_transaksi', [$startDate, $endDate])
             ->latest('tanggal_transaksi')
             ->get();
 
-        $purchases = Purchase::query()
+        $purchasesCollection = Purchase::query()
             ->with(['supplier', 'pengguna'])
             ->whereHas('pengguna', fn ($query) => $query->where('store_name', $storeName))
             ->whereBetween('tanggal_pembelian', [$startDate, $endDate])
             ->latest('tanggal_pembelian')
             ->get();
 
-        $stockProducts = Product::query()
+        $stockProductsCollection = Product::query()
             ->with(['kategori', 'supplier'])
             ->where('store_name', $storeName)
             ->orderBy('nama_produk')
             ->get();
 
-        $salesTotal = (float) $sales->sum('total_bayar');
-        $purchaseTotal = (float) $purchases->sum('total_bayar');
-        $stockValue = (float) $stockProducts->sum(
+        $salesTotal = (float) $salesCollection->sum('total_bayar');
+        $purchaseTotal = (float) $purchasesCollection->sum('total_bayar');
+        $stockValue = (float) $stockProductsCollection->sum(
             fn (Product $product) => $product->stok * (float) $product->harga_beli
         );
+        $stockLowCount = $stockProductsCollection->filter(fn (Product $product) => $product->stok <= $product->stok_minimum)->count();
         $revenue = $salesTotal;
         $capital = $purchaseTotal;
         $grossProfit = $revenue - $capital;
@@ -95,21 +101,75 @@ class ReportController extends Controller
         $canViewSalesAndProfit = $user?->role === 'owner';
         $canViewPurchases = $user?->role === 'owner' || ($user?->role === 'gudang' && $user->mode_app === 'lengkap');
 
+        $sales = $this->paginateCollection(
+            $salesCollection->filter(function (Transaction $sale) use ($salesSearch) {
+                if ($salesSearch === '') {
+                    return true;
+                }
+
+                return str_contains(strtolower($sale->kode_transaksi), strtolower($salesSearch))
+                    || str_contains(strtolower($sale->kasir?->name ?? ''), strtolower($salesSearch))
+                    || str_contains(strtolower($sale->status ?? ''), strtolower($salesSearch))
+                    || str_contains(strtolower($sale->metode_pembayaran ?? ''), strtolower($salesSearch));
+            })->values(),
+            10,
+            $request,
+            'sales_page'
+        );
+
+        $purchases = $this->paginateCollection(
+            $purchasesCollection->filter(function (Purchase $purchase) use ($purchaseSearch) {
+                if ($purchaseSearch === '') {
+                    return true;
+                }
+
+                return str_contains(strtolower($purchase->kode_pembelian), strtolower($purchaseSearch))
+                    || str_contains(strtolower($purchase->supplier?->nama_supplier ?? ''), strtolower($purchaseSearch))
+                    || str_contains(strtolower($purchase->pengguna?->name ?? ''), strtolower($purchaseSearch))
+                    || str_contains(strtolower($purchase->status ?? ''), strtolower($purchaseSearch));
+            })->values(),
+            10,
+            $request,
+            'purchase_page'
+        );
+
+        $stockProducts = $this->paginateCollection(
+            $stockProductsCollection->filter(function (Product $product) use ($stockSearch) {
+                if ($stockSearch === '') {
+                    return true;
+                }
+
+                return str_contains(strtolower($product->nama_produk), strtolower($stockSearch))
+                    || str_contains(strtolower($product->kode_produk), strtolower($stockSearch))
+                    || str_contains(strtolower($product->kategori?->nama_kategori ?? ''), strtolower($stockSearch))
+                    || str_contains(strtolower($product->supplier?->nama_supplier ?? ''), strtolower($stockSearch));
+            })->values(),
+            10,
+            $request,
+            'stock_page'
+        );
+
+        $periodLabel = match ($period) {
+            '7_hari' => '7 hari terakhir',
+            '90_hari' => '90 hari terakhir',
+            default => '30 hari terakhir',
+        };
+
         return [
             'isSimpleMode' => $user?->mode_app === 'sederhana',
             'isWarehouseViewer' => $user?->role === 'gudang',
             'period' => $period,
-            'periodLabel' => match ($period) {
-                '7_hari' => '7 hari terakhir',
-                '90_hari' => '90 hari terakhir',
-                default => '30 hari terakhir',
-            },
+            'periodLabel' => $periodLabel,
             'sales' => $sales,
             'purchases' => $purchases,
             'stockProducts' => $stockProducts,
+            'salesAll' => $salesCollection,
+            'purchasesAll' => $purchasesCollection,
+            'stockProductsAll' => $stockProductsCollection,
             'salesTotal' => $salesTotal,
             'purchaseTotal' => $purchaseTotal,
             'stockValue' => $stockValue,
+            'stockLowCount' => $stockLowCount,
             'revenue' => $revenue,
             'capital' => $capital,
             'grossProfit' => $grossProfit,
@@ -118,7 +178,30 @@ class ReportController extends Controller
             'canViewPurchases' => $canViewPurchases,
             'startDate' => $startDate,
             'endDate' => $endDate,
+            'salesSearch' => $salesSearch,
+            'purchaseSearch' => $purchaseSearch,
+            'stockSearch' => $stockSearch,
         ];
+    }
+
+    private function paginateCollection(Collection $items, int $perPage, Request $request, string $pageName): LengthAwarePaginator
+    {
+        $page = max((int) $request->query($pageName, 1), 1);
+        $total = $items->count();
+        $results = $items->forPage($page, $perPage)->values();
+
+        $paginator = new LengthAwarePaginator(
+            $results,
+            $total,
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'pageName' => $pageName,
+            ]
+        );
+
+        return $paginator->appends($request->query());
     }
 
     private function resolvePeriod(Request $request): string
@@ -180,7 +263,7 @@ class ReportController extends Controller
             'Kode Transaksi', 'Kasir', 'Tanggal', 'Total Item', 'Metode Pembayaran', 'Total Bayar', 'Status',
         ]];
 
-        foreach ($data['sales'] as $sale) {
+        foreach ($data['salesAll'] as $sale) {
             $rows[] = [
                 $sale->kode_transaksi,
                 $sale->kasir?->name ?? '-',
@@ -205,7 +288,7 @@ class ReportController extends Controller
             'Kode Pembelian', 'Supplier', 'Dicatat Oleh', 'Tanggal', 'Subtotal', 'Diskon', 'Ongkir', 'Total Bayar', 'Status',
         ]];
 
-        foreach ($data['purchases'] as $purchase) {
+        foreach ($data['purchasesAll'] as $purchase) {
             $rows[] = [
                 $purchase->kode_pembelian,
                 $purchase->supplier?->nama_supplier ?? '-',
@@ -232,7 +315,7 @@ class ReportController extends Controller
             'Kode Produk', 'Nama Produk', 'Kategori', 'Supplier', 'Stok', 'Satuan', 'Stok Minimum', 'Harga Beli', 'Nilai Modal',
         ]];
 
-        foreach ($data['stockProducts'] as $product) {
+        foreach ($data['stockProductsAll'] as $product) {
             $rows[] = [
                 $product->kode_produk,
                 $product->nama_produk,

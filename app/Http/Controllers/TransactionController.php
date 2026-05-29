@@ -76,19 +76,25 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        $user = request()->user();
+        $user = $request->user();
         $storeName = $user?->store_name;
-        $products = Product::query()
+
+        $activeProductsQuery = Product::query()
             ->where('store_name', $storeName)
             ->where('is_active', true)
-            ->where('stok', '>', 0)
+            ->where('stok', '>', 0);
+
+        $products = (clone $activeProductsQuery)
+            ->with('kategori:id,nama_kategori')
+            ->select(['id', 'category_id', 'store_name', 'nama_produk', 'kode_produk', 'harga_jual', 'stok', 'stok_minimum', 'satuan'])
             ->orderBy('nama_produk')
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         $posSummary = [
-            'active_products_count' => $products->count(),
+            'active_products_count' => (clone $activeProductsQuery)->count(),
             'low_stock_count' => Product::query()
                 ->where('store_name', $storeName)
                 ->where('is_active', true)

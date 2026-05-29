@@ -30,7 +30,7 @@
             </div>
             <div class="card">
                 <div class="label">Jumlah Transaksi</div>
-                <div class="value">{{ $sales->count() }}</div>
+                <div class="value">{{ $salesAll->count() }}</div>
             </div>
         </div>
         <table>
@@ -46,7 +46,7 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse ($sales as $sale)
+                @forelse ($salesAll as $sale)
                     <tr>
                         <td>{{ $sale->kode_transaksi }}</td>
                         <td>{{ $sale->kasir?->name ?? '-' }}</td>
@@ -71,7 +71,7 @@
             </div>
             <div class="card">
                 <div class="label">Jumlah Pembelian</div>
-                <div class="value">{{ $purchases->count() }}</div>
+                <div class="value">{{ $purchasesAll->count() }}</div>
             </div>
         </div>
         <table>
@@ -87,7 +87,7 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse ($purchases as $purchase)
+                @forelse ($purchasesAll as $purchase)
                     <tr>
                         <td>{{ $purchase->kode_pembelian }}</td>
                         <td>{{ $purchase->supplier?->nama_supplier ?? '-' }}</td>
@@ -112,7 +112,7 @@
             </div>
             <div class="card">
                 <div class="label">Jumlah Produk</div>
-                <div class="value">{{ $stockProducts->count() }}</div>
+                <div class="value">{{ $stockProductsAll->count() }}</div>
             </div>
         </div>
         <table>
@@ -127,7 +127,7 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse ($stockProducts as $product)
+                @forelse ($stockProductsAll as $product)
                     <tr>
                         <td>{{ $product->nama_produk }}</td>
                         <td>{{ $product->kategori?->nama_kategori ?? '-' }}</td>
