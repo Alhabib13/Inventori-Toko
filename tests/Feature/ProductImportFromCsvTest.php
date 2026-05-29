@@ -36,10 +36,12 @@ class ProductImportFromCsvTest extends TestCase
 
         $this->assertDatabaseHas('categories', [
             'nama_kategori' => 'Sembako',
+            'store_name' => $owner->store_name,
             'is_active' => true,
         ]);
         $this->assertDatabaseHas('products', [
             'nama_produk' => 'Beras Premium',
+            'store_name' => $owner->store_name,
             'satuan' => 'karung',
             'stok' => 12,
             'stok_minimum' => 4,
@@ -47,6 +49,7 @@ class ProductImportFromCsvTest extends TestCase
         ]);
         $this->assertDatabaseHas('products', [
             'nama_produk' => 'Minyak Goreng',
+            'store_name' => $owner->store_name,
             'satuan' => 'liter',
             'stok' => 20,
             'stok_minimum' => 6,
@@ -76,10 +79,12 @@ class ProductImportFromCsvTest extends TestCase
         Category::create([
             'nama_kategori' => 'Sembako',
             'slug' => 'sembako',
+            'store_name' => $gudang->store_name,
             'is_active' => true,
         ]);
         $supplier = Supplier::create([
             'nama_supplier' => 'Supplier Lama',
+            'store_name' => $gudang->store_name,
             'is_active' => true,
         ]);
 
@@ -96,6 +101,7 @@ class ProductImportFromCsvTest extends TestCase
 
         $this->assertDatabaseHas('products', [
             'nama_produk' => 'Gula Pasir',
+            'store_name' => $gudang->store_name,
             'supplier_id' => $supplier->id,
             'stok' => 15,
             'stok_minimum' => 5,
@@ -158,5 +164,34 @@ class ProductImportFromCsvTest extends TestCase
 
         $this->assertDatabaseCount('products', 0);
         $this->assertDatabaseCount('stock_movements', 0);
+    }
+
+    public function test_import_skips_duplicate_products_in_same_csv_without_failing(): void
+    {
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+        ]);
+
+        $file = UploadedFile::fake()->createWithContent('produk-duplikat.csv', implode("\n", [
+            'nama_produk,kategori,supplier,satuan,harga_beli,harga_jual,stok_awal,stok_minimum',
+            'Lampu LED,Elektronik,Supplier A,pcs,10000,15000,5,2',
+            'Lampu LED,Elektronik,Supplier A,pcs,10000,16000,5,2',
+            'Stop Kontak,Elektronik,Supplier A,pcs,12000,18000,3,1',
+        ]));
+
+        $this->actingAs($gudang)
+            ->post(route('products.import'), [
+                'import_file' => $file,
+            ])
+            ->assertRedirect(route('products.index'));
+
+        $this->assertDatabaseCount('products', 2);
+        $this->assertDatabaseHas('products', [
+            'nama_produk' => 'Lampu LED',
+        ]);
+        $this->assertDatabaseHas('products', [
+            'nama_produk' => 'Stop Kontak',
+        ]);
     }
 }

@@ -23,8 +23,11 @@ class StockController extends Controller
 
     public function create(): View
     {
+        $storeName = request()->user()?->store_name;
+
         return view('stocks.create', [
             'products' => Product::query()
+                ->where('store_name', $storeName)
                 ->where('is_active', true)
                 ->orderBy('nama_produk')
                 ->get(),
@@ -39,7 +42,10 @@ class StockController extends Controller
             'catatan' => ['nullable', 'string'],
         ]);
 
-        $product = Product::findOrFail($data['product_id']);
+        $product = Product::query()
+            ->whereKey($data['product_id'])
+            ->where('store_name', $request->user()?->store_name)
+            ->firstOrFail();
 
         $stockMovementService->recordIncoming(
             product: $product,
@@ -56,6 +62,10 @@ class StockController extends Controller
 
     public function show(StockMovement $stock): View
     {
+        if ($stock->produk?->store_name !== null && $stock->produk?->store_name !== request()->user()?->store_name) {
+            abort(403, 'Anda tidak memiliki akses ke pergerakan stok ini.');
+        }
+
         $stock->load(['produk', 'pengguna']);
 
         return view('stocks.show', ['stock' => $stock]);
@@ -78,14 +88,27 @@ class StockController extends Controller
 
     private function stockListingView(bool $showLowStockOnly = false): View
     {
+        $search = trim((string) request()->query('search', ''));
+
         $products = Product::query()
             ->with(['kategori', 'supplier'])
+            ->where('store_name', request()->user()?->store_name)
             ->when($showLowStockOnly, fn ($query) => $query->whereColumn('stok', '<=', 'stok_minimum'))
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($productQuery) use ($search): void {
+                    $productQuery
+                        ->where('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produk', 'like', "%{$search}%");
+                });
+            })
             ->orderBy('nama_produk')
             ->get();
 
         $movements = StockMovement::query()
             ->with(['produk', 'pengguna'])
+            ->whereHas('produk', function ($query): void {
+                $query->where('store_name', request()->user()?->store_name);
+            })
             ->latest('tanggal_pergerakan')
             ->paginate(10);
 
@@ -94,6 +117,7 @@ class StockController extends Controller
             'movements' => $movements,
             'canManageStock' => $this->canManageStock(request()->user()?->role, request()->user()?->mode_app),
             'showLowStockOnly' => $showLowStockOnly,
+            'search' => $search,
         ]);
     }
 

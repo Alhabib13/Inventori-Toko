@@ -21,7 +21,7 @@ class ReportAccessAndContentTest extends TestCase
             'role' => 'owner',
             'mode_app' => 'lengkap',
         ]);
-        $product = $this->createProduct([
+        $product = $this->createProduct($owner->store_name, [
             'nama_produk' => 'Produk Laporan',
             'stok' => 12,
             'harga_beli' => 10000,
@@ -108,7 +108,7 @@ class ReportAccessAndContentTest extends TestCase
             'role' => 'owner',
             'mode_app' => 'lengkap',
         ]);
-        $product = $this->createProduct([
+        $product = $this->createProduct($owner->store_name, [
             'nama_produk' => 'Produk Export',
             'stok' => 10,
             'harga_beli' => 12000,
@@ -190,7 +190,7 @@ class ReportAccessAndContentTest extends TestCase
             'role' => 'gudang',
             'mode_app' => 'lengkap',
         ]);
-        $product = $this->createProduct([
+        $product = $this->createProduct($gudang->store_name, [
             'nama_produk' => 'Produk Gudang',
             'stok' => 8,
         ]);
@@ -247,11 +247,12 @@ class ReportAccessAndContentTest extends TestCase
             ->assertForbidden();
     }
 
-    private function createProduct(array $attributes = []): Product
+    private function createProduct(string $storeName, array $attributes = []): Product
     {
         $category = Category::create([
             'nama_kategori' => fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
@@ -260,12 +261,14 @@ class ReportAccessAndContentTest extends TestCase
             'nama_kontak' => fake()->name(),
             'telepon' => fake()->numerify('08##########'),
             'alamat' => fake()->address(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
         return Product::create($attributes + [
             'category_id' => $category->id,
             'supplier_id' => $supplier->id,
+            'store_name' => $storeName,
             'kode_produk' => 'PRD-'.fake()->unique()->numerify('####'),
             'nama_produk' => 'Produk '.fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),

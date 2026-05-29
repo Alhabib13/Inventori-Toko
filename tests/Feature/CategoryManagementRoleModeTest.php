@@ -67,6 +67,7 @@ class CategoryManagementRoleModeTest extends TestCase
         $category = Category::create([
             'nama_kategori' => 'Minuman',
             'slug' => 'minuman',
+            'store_name' => $gudang->store_name,
         ]);
 
         $this->actingAs($gudang)->get('/categories')->assertOk();
@@ -103,6 +104,7 @@ class CategoryManagementRoleModeTest extends TestCase
         $category = Category::create([
             'nama_kategori' => 'Frozen Food',
             'slug' => 'frozen-food',
+            'store_name' => $owner->store_name,
         ]);
 
         $this->actingAs($owner)
@@ -135,6 +137,7 @@ class CategoryManagementRoleModeTest extends TestCase
         $category = Category::create([
             'nama_kategori' => 'Snack',
             'slug' => 'snack',
+            'store_name' => $gudang->store_name,
         ]);
 
         $this->actingAs($gudang)->get('/categories')->assertForbidden();
@@ -153,6 +156,7 @@ class CategoryManagementRoleModeTest extends TestCase
         $category = Category::create([
             'nama_kategori' => 'Rokok',
             'slug' => 'rokok',
+            'store_name' => $kasir->store_name,
         ]);
 
         $this->actingAs($kasir)->get('/categories')->assertForbidden();
@@ -173,6 +177,7 @@ class CategoryManagementRoleModeTest extends TestCase
         Category::create([
             'nama_kategori' => 'Sayuran',
             'slug' => 'sayuran',
+            'store_name' => $owner->store_name,
         ]);
 
         $this->actingAs($owner)
@@ -190,5 +195,32 @@ class CategoryManagementRoleModeTest extends TestCase
             ])
             ->assertRedirect('/categories/create')
             ->assertSessionHasErrors(['nama_kategori']);
+    }
+
+    public function test_owner_sederhana_can_destroy_all_categories_when_unreferenced(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+        ]);
+
+        Category::create([
+            'nama_kategori' => 'Bumbu',
+            'slug' => 'bumbu',
+            'store_name' => $owner->store_name,
+            'is_active' => true,
+        ]);
+        Category::create([
+            'nama_kategori' => 'Makanan Ringan',
+            'slug' => 'makanan-ringan',
+            'store_name' => $owner->store_name,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($owner)
+            ->delete(route('categories.destroy-all'))
+            ->assertRedirect(route('categories.index'));
+
+        $this->assertDatabaseCount('categories', 0);
     }
 }

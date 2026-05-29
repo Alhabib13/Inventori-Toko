@@ -10,9 +10,18 @@
 
 @section('page_actions')
     @if ($canManageSuppliers)
-        <a href="{{ route('suppliers.create') }}" class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-            Tambah Supplier
-        </a>
+        <div class="flex flex-wrap items-center justify-end gap-3">
+            <a href="{{ route('suppliers.create') }}" class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                Tambah Supplier
+            </a>
+            <form method="POST" action="{{ route('suppliers.destroy-all') }}" data-confirm="Semua supplier toko ini yang belum dipakai produk atau pembelian akan dihapus. Lanjutkan?" data-confirm-title="Hapus Semua Supplier">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-100">
+                    Hapus Semua Supplier
+                </button>
+            </form>
+        </div>
     @endif
 @endsection
 
@@ -95,6 +104,13 @@
                                             <a href="{{ route('suppliers.edit', $supplier) }}" class="inline-flex h-9 items-center rounded-lg border border-[#c0c8cb] px-3 text-sm font-medium text-[#003441] transition hover:bg-[#f3f4f5]">
                                                 Edit
                                             </a>
+                                            <form method="POST" action="{{ route('suppliers.destroy', $supplier) }}" data-confirm="Hapus supplier ini dari daftar?" data-confirm-title="Hapus Supplier">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="inline-flex h-9 items-center rounded-lg border border-red-100 px-3 text-sm font-medium text-red-600 transition hover:bg-red-50">
+                                                    Hapus
+                                                </button>
+                                            </form>
                                         @endif
                                     </div>
                                 </td>

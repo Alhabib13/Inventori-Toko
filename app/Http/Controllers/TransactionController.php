@@ -20,6 +20,8 @@ class TransactionController extends Controller
         $user = $request->user();
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
+        $search = trim($request->string('search')->toString());
+        $cashierSummary = null;
 
         $transactions = Transaction::query()
             ->with('kasir')
@@ -35,26 +37,75 @@ class TransactionController extends Controller
             ->when($dateTo !== '', function (Builder $query) use ($dateTo): void {
                 $query->whereDate('tanggal_transaksi', '<=', $dateTo);
             })
+            ->when($search !== '', function (Builder $query) use ($search): void {
+                $query->where(function (Builder $searchQuery) use ($search): void {
+                    $searchQuery
+                        ->where('kode_transaksi', 'like', "%{$search}%")
+                        ->orWhereHas('detailItem', function (Builder $itemQuery) use ($search): void {
+                            $itemQuery->where('nama_produk', 'like', "%{$search}%");
+                        });
+                });
+            })
             ->latest('tanggal_transaksi')
             ->paginate(10)
             ->withQueryString();
+
+        if ($user?->role === 'kasir') {
+            $todayTransactionsQuery = Transaction::query()
+                ->where('user_id', $user->id)
+                ->whereDate('tanggal_transaksi', now()->toDateString());
+
+            $activeTodayTransactionsQuery = (clone $todayTransactionsQuery)
+                ->where('status', '!=', 'dibatalkan');
+
+            $cashierSummary = [
+                'transaction_count' => $activeTodayTransactionsQuery->count(),
+                'sales_total' => (float) $activeTodayTransactionsQuery->sum('total_bayar'),
+                'items_sold_total' => (int) $activeTodayTransactionsQuery->sum('total_item'),
+                'cancelled_count' => (clone $todayTransactionsQuery)->where('status', 'dibatalkan')->count(),
+            ];
+        }
 
         return view('transactions.index', [
             'transactions' => $transactions,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
+            'search' => $search,
             'isKasir' => $user?->role === 'kasir',
+            'cashierSummary' => $cashierSummary,
         ]);
     }
 
     public function create(): View
     {
-        return view('transactions.create', [
-            'products' => Product::query()
+        $user = request()->user();
+        $storeName = $user?->store_name;
+        $products = Product::query()
+            ->where('store_name', $storeName)
+            ->where('is_active', true)
+            ->where('stok', '>', 0)
+            ->orderBy('nama_produk')
+            ->get();
+
+        $posSummary = [
+            'active_products_count' => $products->count(),
+            'low_stock_count' => Product::query()
+                ->where('store_name', $storeName)
                 ->where('is_active', true)
-                ->where('stok', '>', 0)
-                ->orderBy('nama_produk')
-                ->get(),
+                ->whereColumn('stok', '<=', 'stok_minimum')
+                ->count(),
+            'today_transaction_count' => $user?->role === 'kasir'
+                ? Transaction::query()
+                    ->where('user_id', $user->id)
+                    ->whereDate('tanggal_transaksi', now()->toDateString())
+                    ->where('status', '!=', 'dibatalkan')
+                    ->count()
+                : 0,
+        ];
+
+        return view('transactions.create', [
+            'products' => $products,
+            'posSummary' => $posSummary,
         ]);
     }
 
@@ -84,8 +135,15 @@ class TransactionController extends Controller
         $transaction = DB::transaction(function () use ($items, $data, $request, $stockMovementService): Transaction {
             $products = Product::query()
                 ->whereIn('id', $items->pluck('product_id'))
+                ->where('store_name', $request->user()?->store_name)
                 ->get()
                 ->keyBy('id');
+
+            if ($products->count() !== $items->pluck('product_id')->unique()->count()) {
+                throw ValidationException::withMessages([
+                    'items' => 'Salah satu produk tidak valid untuk toko ini.',
+                ]);
+            }
 
             $subtotal = 0;
             $totalItem = 0;

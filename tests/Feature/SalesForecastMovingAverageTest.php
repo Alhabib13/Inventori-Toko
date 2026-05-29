@@ -22,7 +22,7 @@ class SalesForecastMovingAverageTest extends TestCase
             'role' => 'owner',
             'mode_app' => 'sederhana',
         ]);
-        $product = $this->createProduct([
+        $product = $this->createProduct($owner->store_name, [
             'nama_produk' => 'Produk Forecast',
             'stok' => 4,
             'satuan' => 'pcs',
@@ -65,7 +65,7 @@ class SalesForecastMovingAverageTest extends TestCase
             'role' => 'gudang',
             'mode_app' => 'lengkap',
         ]);
-        $product = $this->createProduct(['nama_produk' => 'Produk Gudang Forecast']);
+        $product = $this->createProduct($gudang->store_name, ['nama_produk' => 'Produk Gudang Forecast']);
 
         SalesForecast::create([
             'product_id' => $product->id,
@@ -94,7 +94,7 @@ class SalesForecastMovingAverageTest extends TestCase
             'role' => 'owner',
             'mode_app' => 'lengkap',
         ]);
-        $product = $this->createProduct(['nama_produk' => 'Produk Owner Lengkap']);
+        $product = $this->createProduct($owner->store_name, ['nama_produk' => 'Produk Owner Lengkap']);
 
         $forecast = SalesForecast::create([
             'product_id' => $product->id,
@@ -140,11 +140,12 @@ class SalesForecastMovingAverageTest extends TestCase
         $this->actingAs($kasir)->post('/forecasts', [])->assertForbidden();
     }
 
-    private function createProduct(array $attributes = []): Product
+    private function createProduct(string $storeName, array $attributes = []): Product
     {
         $category = Category::create([
             'nama_kategori' => fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
@@ -153,12 +154,14 @@ class SalesForecastMovingAverageTest extends TestCase
             'nama_kontak' => fake()->name(),
             'telepon' => fake()->numerify('08##########'),
             'alamat' => fake()->address(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
         return Product::create($attributes + [
             'category_id' => $category->id,
             'supplier_id' => $supplier->id,
+            'store_name' => $storeName,
             'kode_produk' => 'PRD-'.fake()->unique()->numerify('####'),
             'nama_produk' => 'Produk '.fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),

@@ -17,20 +17,30 @@ class DashboardController extends Controller
     {
         $user = request()->user();
         $isSimpleMode = $user?->mode_app === 'sederhana';
+        $storeName = $user?->store_name;
         $trendPeriod = request()->integer('trend', 7);
 
         if (! in_array($trendPeriod, [7, 30], true)) {
             $trendPeriod = 7;
         }
 
-        $salesTotal = (float) Transaction::query()->sum('total_bayar');
-        $purchaseTotal = (float) Purchase::query()->sum('total_bayar');
-        $stockTotal = (int) Product::query()->sum('stok');
-        $productCount = Product::query()->count();
-        $stockValue = (float) Product::query()->sum(DB::raw('stok * harga_beli'));
-        $activeSuppliers = Supplier::query()->where('is_active', true)->count();
-        $criticalProductsCount = Product::query()->whereColumn('stok', '<=', 'stok_minimum')->count();
+        $salesTotal = (float) Transaction::query()
+            ->whereHas('kasir', fn ($query) => $query->where('store_name', $storeName))
+            ->sum('total_bayar');
+        $purchaseTotal = (float) Purchase::query()
+            ->whereHas('pengguna', fn ($query) => $query->where('store_name', $storeName))
+            ->sum('total_bayar');
+        $productScope = Product::query()->where('store_name', $storeName);
+        $stockTotal = (int) (clone $productScope)->sum('stok');
+        $productCount = (clone $productScope)->count();
+        $stockValue = (float) (clone $productScope)->sum(DB::raw('stok * harga_beli'));
+        $activeSuppliers = Supplier::query()
+            ->where('store_name', $storeName)
+            ->where('is_active', true)
+            ->count();
+        $criticalProductsCount = (clone $productScope)->whereColumn('stok', '<=', 'stok_minimum')->count();
         $criticalProducts = Product::query()
+            ->where('store_name', $storeName)
             ->whereColumn('stok', '<=', 'stok_minimum')
             ->orderByRaw('(stok_minimum - stok) DESC')
             ->take(5)
@@ -38,27 +48,43 @@ class DashboardController extends Controller
 
         $forecastHighlights = SalesForecast::query()
             ->with('produk')
+            ->whereHas('produk', function ($query) use ($storeName): void {
+                $query->where('store_name', $storeName);
+            })
             ->latest()
             ->take(5)
             ->get();
 
         $forecastCount = $forecastHighlights->count();
         $forecastRestockTotal = (int) $forecastHighlights->sum('selisih_prediksi');
+        $forecastRestockCount = $forecastHighlights->where('selisih_prediksi', '>', 0)->count();
+        $criticalStockGapTotal = (int) $criticalProducts->sum(fn ($product) => max(0, $product->stok_minimum - $product->stok));
+        $latestPurchase = Purchase::query()
+            ->whereHas('pengguna', fn ($query) => $query->where('store_name', $storeName))
+            ->latest('tanggal_pembelian')
+            ->first(['kode_pembelian', 'tanggal_pembelian', 'total_bayar']);
         $canManageInventory = $user?->mode_app === 'sederhana';
         $salesTrend = collect(range($trendPeriod - 1, 0))
-            ->map(function (int $daysAgo) {
+            ->map(function (int $daysAgo) use ($storeName) {
                 $date = Carbon::now()->subDays($daysAgo);
 
                 return [
                     'label' => $date->translatedFormat('d M'),
                     'date' => $date->toDateString(),
                     'total' => (float) Transaction::query()
+                        ->whereHas('kasir', fn ($query) => $query->where('store_name', $storeName))
                         ->whereDate('tanggal_transaksi', $date->toDateString())
                         ->sum('total_bayar'),
                 ];
             });
         $salesTrendTotal = (float) $salesTrend->sum('total');
         $salesTrendAverage = (float) $salesTrend->avg('total');
+        $todaySalesScope = Transaction::query()
+            ->whereHas('kasir', fn ($query) => $query->where('store_name', $storeName))
+            ->whereDate('tanggal_transaksi', now()->toDateString())
+            ->where('status', '!=', 'dibatalkan');
+        $todaySalesCount = (clone $todaySalesScope)->count();
+        $todaySalesTotal = (float) (clone $todaySalesScope)->sum('total_bayar');
 
         return view('dashboard.index', [
             'isSimpleMode' => $isSimpleMode,
@@ -73,11 +99,16 @@ class DashboardController extends Controller
             'forecastHighlights' => $forecastHighlights,
             'forecastCount' => $forecastCount,
             'forecastRestockTotal' => $forecastRestockTotal,
+            'forecastRestockCount' => $forecastRestockCount,
+            'criticalStockGapTotal' => $criticalStockGapTotal,
+            'latestPurchase' => $latestPurchase,
             'canManageInventory' => $canManageInventory,
             'salesTrend' => $salesTrend,
             'trendPeriod' => $trendPeriod,
             'salesTrendTotal' => $salesTrendTotal,
             'salesTrendAverage' => $salesTrendAverage,
+            'todaySalesCount' => $todaySalesCount,
+            'todaySalesTotal' => $todaySalesTotal,
         ]);
     }
 }

@@ -57,6 +57,7 @@ class ReportController extends Controller
     private function buildReportData(Request $request): array
     {
         $user = $request->user();
+        $storeName = $user?->store_name;
         $period = $this->resolvePeriod($request);
         $days = $this->periodToDays($period);
         $startDate = now()->startOfDay()->subDays($days - 1);
@@ -64,18 +65,21 @@ class ReportController extends Controller
 
         $sales = Transaction::query()
             ->with('kasir')
+            ->whereHas('kasir', fn ($query) => $query->where('store_name', $storeName))
             ->whereBetween('tanggal_transaksi', [$startDate, $endDate])
             ->latest('tanggal_transaksi')
             ->get();
 
         $purchases = Purchase::query()
             ->with(['supplier', 'pengguna'])
+            ->whereHas('pengguna', fn ($query) => $query->where('store_name', $storeName))
             ->whereBetween('tanggal_pembelian', [$startDate, $endDate])
             ->latest('tanggal_pembelian')
             ->get();
 
         $stockProducts = Product::query()
             ->with(['kategori', 'supplier'])
+            ->where('store_name', $storeName)
             ->orderBy('nama_produk')
             ->get();
 

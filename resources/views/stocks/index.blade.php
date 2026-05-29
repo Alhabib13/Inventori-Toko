@@ -3,6 +3,7 @@
 @php
     $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
     $isCashier = auth()->user()?->role === 'kasir';
+    $search = $search ?? '';
     $lowStockCount = $products->filter(fn ($product) => $product->stok <= $product->stok_minimum)->count();
     $safeStockCount = $products->count() - $lowStockCount;
     $showLowStockOnly = $showLowStockOnly ?? false;
@@ -61,6 +62,11 @@
                         ? 'Hanya produk dengan stok saat ini berada di bawah atau sama dengan stok minimum yang ditampilkan.'
                         : ($isSimpleMode ? 'Ringkasan stok barang dan stok minimum untuk pemantauan owner sehari-hari.' : ($isCashier ? 'Tabel stok aktif untuk membantu kasir mengecek ketersediaan produk sebelum melakukan transaksi.' : 'Tabel stok aktif, stok minimum, supplier terkait, dan indikator produk yang perlu perhatian.')) }}
                 </p>
+                @if ($isCashier && $search !== '')
+                    <p class="mt-3 inline-flex items-center gap-2 rounded-full bg-[#e6f4f8] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0f4c5c]">
+                        Hasil pencarian: {{ $search }}
+                    </p>
+                @endif
                 @if (! $canManageStock && ! $isCashier)
                     <p class="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600">
                         Mode Read Only

@@ -44,6 +44,9 @@ Route::middleware('auth')->group(function (): void {
 
     Route::middleware('mode.access:inventory-manage')->group(function (): void {
         Route::post('/products/import', [ProductController::class, 'import'])->name('products.import');
+        Route::get('/products/template/download', [ProductController::class, 'downloadTemplate'])->name('products.template.download');
+        Route::delete('/categories', [CategoryController::class, 'destroyAll'])->name('categories.destroy-all');
+        Route::delete('/products', [ProductController::class, 'destroyAll'])->name('products.destroy-all');
         Route::resource('categories', CategoryController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
         Route::resource('products', ProductController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
         Route::resource('forecasts', ForecastController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
@@ -63,6 +66,7 @@ Route::middleware('auth')->group(function (): void {
     });
 
     Route::middleware('mode.access:supplier-manage')->group(function (): void {
+        Route::delete('/suppliers', [SupplierController::class, 'destroyAll'])->name('suppliers.destroy-all');
         Route::resource('suppliers', SupplierController::class);
     });
 

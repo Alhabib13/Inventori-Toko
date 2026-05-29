@@ -3,6 +3,8 @@
 @php
     $isSimpleMode = auth()->user()?->mode_app === 'sederhana';
     $showImportButton = $isSimpleMode || (auth()->user()?->role === 'gudang' && auth()->user()?->mode_app === 'lengkap');
+    $showProductTools = (auth()->user()?->role === 'owner' && $isSimpleMode)
+        || (auth()->user()?->role === 'gudang' && auth()->user()?->mode_app === 'lengkap');
     $lowStockCount = $products->getCollection()->filter(fn ($product) => $product->stok <= $product->stok_minimum)->count();
     $inactiveCount = $products->getCollection()->where('is_active', false)->count();
 @endphp
@@ -17,31 +19,46 @@
 @section('page_actions')
     @if ($canManageProducts)
         <div class="flex flex-wrap items-center justify-end gap-3">
+            @if ($showProductTools)
+                <a href="{{ route('products.template.download') }}" class="inline-flex h-11 items-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
+                    Download Template CSV
+                </a>
+            @endif
+
             @if ($showImportButton)
-                <form method="POST" action="{{ route('products.import') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
+                <form method="POST" action="{{ route('products.import') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3" data-upload-form>
                     @csrf
-                    <label class="inline-flex h-11 cursor-pointer items-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
-                        <input type="file" name="import_file" accept=".csv,text/csv" class="sr-only" onchange="this.form.submit()">
+                    <input type="file" name="import_file" accept=".csv,text/csv" class="sr-only" data-upload-input>
+                    <button
+                        type="button"
+                        class="inline-flex h-11 items-center rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]"
+                        data-upload-trigger
+                        data-loading-text="Mengimpor produk..."
+                    >
                         Import Produk & Stok Awal
-                    </label>
+                    </button>
                 </form>
             @endif
 
             <a href="{{ route('products.create') }}" class="inline-flex h-11 items-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
                 Tambah Produk
             </a>
+
+            @if ($showProductTools)
+                <form method="POST" action="{{ route('products.destroy-all') }}" data-confirm="Semua produk yang belum dipakai transaksi atau pembelian akan dihapus. Lanjutkan?" data-confirm-title="Hapus Semua Produk">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="inline-flex h-11 items-center rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-100">
+                        Hapus Semua Produk
+                    </button>
+                </form>
+            @endif
         </div>
     @endif
 @endsection
 
 @section('content')
     <div class="space-y-6">
-        @if (session('status'))
-            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
-                {{ session('status') }}
-            </div>
-        @endif
-
         @error('import_file')
             <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
                 {{ $message }}
@@ -81,6 +98,11 @@
                             </span>.
                             File Excel simpan dulu sebagai CSV.
                         </p>
+                        @if ($showProductTools)
+                            <p class="mt-2 text-xs text-slate-500">
+                                Gunakan tombol <span class="font-semibold text-slate-700">Download Template CSV</span> untuk format contoh yang siap diisi.
+                            </p>
+                        @endif
                     @endif
                     @if (! $canManageProducts)
                         <p class="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600">

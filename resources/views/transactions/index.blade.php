@@ -25,23 +25,43 @@
     @endphp
 
     <div class="space-y-6">
-        <section class="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Transaksi Tampil</p>
-                <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $pageTransactions->count() }}</h2>
-                <p class="mt-2 text-sm text-slate-500">Riwayat transaksi pada halaman aktif sesuai filter periode.</p>
-            </article>
-            <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Transaksi Selesai</p>
-                <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $completedCount }}</h2>
-                <p class="mt-2 text-sm text-slate-500">Transaksi yang berhasil disimpan dan selesai diproses.</p>
-            </article>
-            <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Penjualan</p>
-                <h2 class="mt-2 text-3xl font-bold tracking-tight text-[#003441]">Rp{{ number_format((float) $salesTotal, 0, ',', '.') }}</h2>
-                <p class="mt-2 text-sm text-slate-500">{{ $cancelledCount }} transaksi dibatalkan pada data yang sedang ditampilkan.</p>
-            </article>
-        </section>
+        @if ($isKasir)
+            <section class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Transaksi Hari Ini</p>
+                    <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $cashierSummary['transaction_count'] ?? 0 }}</h2>
+                    <p class="mt-2 text-sm text-slate-500">Jumlah transaksi selesai yang kamu catat hari ini.</p>
+                </article>
+                <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Penjualan Hari Ini</p>
+                    <h2 class="mt-2 text-3xl font-bold tracking-tight text-[#003441]">Rp{{ number_format((float) ($cashierSummary['sales_total'] ?? 0), 0, ',', '.') }}</h2>
+                    <p class="mt-2 text-sm text-slate-500">Akumulasi penjualan selesai yang kamu proses pada hari ini.</p>
+                </article>
+                <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Item Terjual Hari Ini</p>
+                    <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $cashierSummary['items_sold_total'] ?? 0 }}</h2>
+                    <p class="mt-2 text-sm text-slate-500">{{ $cashierSummary['cancelled_count'] ?? 0 }} transaksi dibatalkan hari ini.</p>
+                </article>
+            </section>
+        @else
+            <section class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Transaksi Tampil</p>
+                    <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $pageTransactions->count() }}</h2>
+                    <p class="mt-2 text-sm text-slate-500">Riwayat transaksi pada halaman aktif sesuai filter periode.</p>
+                </article>
+                <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Transaksi Selesai</p>
+                    <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $completedCount }}</h2>
+                    <p class="mt-2 text-sm text-slate-500">Transaksi yang berhasil disimpan dan selesai diproses.</p>
+                </article>
+                <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Penjualan</p>
+                    <h2 class="mt-2 text-3xl font-bold tracking-tight text-[#003441]">Rp{{ number_format((float) $salesTotal, 0, ',', '.') }}</h2>
+                    <p class="mt-2 text-sm text-slate-500">{{ $cancelledCount }} transaksi dibatalkan pada data yang sedang ditampilkan.</p>
+                </article>
+            </section>
+        @endif
 
         <section class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
             <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
@@ -63,8 +83,14 @@
                 </div>
 
                 <div class="rounded-2xl border border-slate-200 bg-[#f9f9fa] p-4 xl:min-w-[420px]">
-                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Filter Periode</p>
-                    <form method="GET" action="{{ route('transactions.index') }}" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto] xl:items-end">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">{{ $isKasir ? 'Cari & Filter' : 'Filter Periode' }}</p>
+                    <form method="GET" action="{{ route('transactions.index') }}" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto] xl:items-end">
+                        @if ($isKasir)
+                            <div class="space-y-2 sm:col-span-2 xl:col-span-1">
+                                <label for="search" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Cari Cepat</label>
+                                <input id="search" name="search" type="text" value="{{ $search ?? '' }}" placeholder="Kode transaksi / nama produk" class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" />
+                            </div>
+                        @endif
                         <div class="space-y-2">
                             <label for="date_from" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Tanggal Mulai</label>
                             <input id="date_from" name="date_from" type="date" value="{{ $dateFrom }}" class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" />

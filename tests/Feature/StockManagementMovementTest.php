@@ -21,7 +21,7 @@ class StockManagementMovementTest extends TestCase
             'role' => 'owner',
             'mode_app' => 'sederhana',
         ]);
-        $product = $this->createProduct(['stok' => 10]);
+        $product = $this->createProduct($owner->store_name, ['stok' => 10]);
 
         $this->actingAs($owner)
             ->post('/stocks', [
@@ -53,7 +53,7 @@ class StockManagementMovementTest extends TestCase
             'role' => 'gudang',
             'mode_app' => 'lengkap',
         ]);
-        $product = $this->createProduct(['stok' => 3]);
+        $product = $this->createProduct($gudang->store_name, ['stok' => 3]);
 
         $this->actingAs($gudang)
             ->post('/stocks', [
@@ -74,7 +74,7 @@ class StockManagementMovementTest extends TestCase
             'role' => 'owner',
             'mode_app' => 'lengkap',
         ]);
-        $product = $this->createProduct(['stok' => 1, 'stok_minimum' => 2]);
+        $product = $this->createProduct($owner->store_name, ['stok' => 1, 'stok_minimum' => 2]);
 
         $this->actingAs($owner)->get('/stok')
             ->assertOk()
@@ -93,7 +93,7 @@ class StockManagementMovementTest extends TestCase
             'role' => 'kasir',
             'mode_app' => 'sederhana',
         ]);
-        $product = $this->createProduct(['stok' => 8]);
+        $product = $this->createProduct($kasir->store_name, ['stok' => 8]);
 
         $this->actingAs($kasir)
             ->get('/stok')
@@ -108,13 +108,37 @@ class StockManagementMovementTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_kasir_can_search_products_from_stock_page(): void
+    {
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+        ]);
+
+        $matchingProduct = $this->createProduct($kasir->store_name, [
+            'kode_produk' => 'PRD-LED-001',
+            'nama_produk' => 'Lampu LED Philips',
+        ]);
+        $this->createProduct($kasir->store_name, [
+            'kode_produk' => 'PRD-KBL-002',
+            'nama_produk' => 'Kabel NYM Supreme',
+        ]);
+
+        $this->actingAs($kasir)
+            ->get('/stok?search=Philips')
+            ->assertOk()
+            ->assertSee($matchingProduct->nama_produk)
+            ->assertDontSee('Kabel NYM Supreme')
+            ->assertSee('Hasil pencarian: Philips');
+    }
+
     public function test_sales_transaction_reduces_stock_and_creates_stock_movement_records(): void
     {
         $kasir = User::factory()->create([
             'role' => 'kasir',
             'mode_app' => 'sederhana',
         ]);
-        $product = $this->createProduct([
+        $product = $this->createProduct($kasir->store_name, [
             'stok' => 10,
             'harga_jual' => 12000,
         ]);
@@ -164,7 +188,7 @@ class StockManagementMovementTest extends TestCase
             'role' => 'kasir',
             'mode_app' => 'sederhana',
         ]);
-        $product = $this->createProduct(['stok' => 2]);
+        $product = $this->createProduct($kasir->store_name, ['stok' => 2]);
 
         $this->actingAs($kasir)
             ->from('/pos')
@@ -188,11 +212,12 @@ class StockManagementMovementTest extends TestCase
         $this->assertEquals(0, Transaction::query()->count());
     }
 
-    private function createProduct(array $attributes = []): Product
+    private function createProduct(string $storeName, array $attributes = []): Product
     {
         $category = Category::create([
             'nama_kategori' => fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
@@ -201,12 +226,14 @@ class StockManagementMovementTest extends TestCase
             'nama_kontak' => fake()->name(),
             'telepon' => fake()->numerify('08##########'),
             'alamat' => fake()->address(),
+            'store_name' => $storeName,
             'is_active' => true,
         ]);
 
         return Product::create($attributes + [
             'category_id' => $category->id,
             'supplier_id' => $supplier->id,
+            'store_name' => $storeName,
             'kode_produk' => 'PRD-'.fake()->unique()->numerify('####'),
             'nama_produk' => 'Produk '.fake()->unique()->word(),
             'slug' => fake()->unique()->slug(),
