@@ -217,14 +217,14 @@ class ReportController extends Controller
     private function saleCost(Transaction $sale): float
     {
         return (float) $sale->detailItem->sum(function ($item): float {
-            return (int) $item->qty * (float) ($item->produk?->harga_beli ?? 0);
+            return (int) $item->qty * (float) ($item->harga_beli ?? $item->produk?->harga_beli ?? 0);
         });
     }
 
     private function saleGrossProfit(Transaction $sale): float
     {
         return (float) $sale->detailItem->sum(function ($item): float {
-            return (int) $item->qty * ((float) $item->harga - (float) ($item->produk?->harga_beli ?? 0));
+            return (int) $item->qty * ((float) $item->harga - (float) ($item->harga_beli ?? $item->produk?->harga_beli ?? 0));
         });
     }
 

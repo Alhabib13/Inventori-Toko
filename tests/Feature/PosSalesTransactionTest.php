@@ -58,6 +58,7 @@ class PosSalesTransactionTest extends TestCase
             'product_id' => $product->id,
             'qty' => 3,
             'harga' => 12000,
+            'harga_beli' => $product->harga_beli,
             'subtotal' => 36000,
         ]);
 

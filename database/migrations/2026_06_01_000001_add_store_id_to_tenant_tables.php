@@ -32,20 +32,45 @@ return new class extends Migration
             ->where('role', 'owner')
             ->whereNotNull('store_id')
             ->orderBy('id')
-            ->get(['id', 'store_name', 'store_id'])
+            ->get(['id', 'store_name', 'mode_app', 'store_id'])
             ->groupBy('store_name');
 
         foreach ($owners as $storeName => $storeOwners) {
-            DB::table('users')
-                ->whereNull('store_id')
-                ->where('store_name', $storeName)
-                ->update(['store_id' => $storeOwners->first()->store_id]);
+            $uniqueStoreOwners = $storeOwners->unique('store_id')->values();
+
+            if ($uniqueStoreOwners->count() === 1) {
+                DB::table('users')
+                    ->whereNull('store_id')
+                    ->where('store_name', $storeName)
+                    ->update(['store_id' => $uniqueStoreOwners->first()->store_id]);
+
+                foreach (['categories', 'suppliers', 'products'] as $table) {
+                    DB::table($table)
+                        ->whereNull('store_id')
+                        ->where('store_name', $storeName)
+                        ->update(['store_id' => $uniqueStoreOwners->first()->store_id]);
+                }
+
+                continue;
+            }
+
+            foreach ($uniqueStoreOwners->groupBy('mode_app') as $modeApp => $modeOwners) {
+                if ($modeOwners->count() !== 1) {
+                    continue;
+                }
+
+                DB::table('users')
+                    ->whereNull('store_id')
+                    ->where('store_name', $storeName)
+                    ->where('mode_app', $modeApp)
+                    ->update(['store_id' => $modeOwners->first()->store_id]);
+            }
 
             foreach (['categories', 'suppliers', 'products'] as $table) {
                 DB::table($table)
                     ->whereNull('store_id')
                     ->where('store_name', $storeName)
-                    ->update(['store_id' => $storeOwners->first()->store_id]);
+                    ->update(['store_id' => null]);
             }
         }
 
@@ -64,7 +89,15 @@ return new class extends Migration
         foreach (['categories', 'suppliers', 'products'] as $tableName) {
             DB::table($tableName)
                 ->whereNull('store_id')
-                ->update(['store_id' => (string) Str::uuid()]);
+                ->orderBy('id')
+                ->select(['id'])
+                ->chunkById(100, function ($rows) use ($tableName): void {
+                    foreach ($rows as $row) {
+                        DB::table($tableName)
+                            ->where('id', $row->id)
+                            ->update(['store_id' => (string) Str::uuid()]);
+                    }
+                });
         }
     }
 

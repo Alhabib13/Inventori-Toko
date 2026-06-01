@@ -204,6 +204,7 @@ class TransactionController extends Controller
                     'nama_produk' => $product->nama_produk,
                     'qty' => $qty,
                     'harga' => $product->harga_jual,
+                    'harga_beli' => $product->harga_beli,
                     'subtotal' => $lineSubtotal,
                 ]);
 

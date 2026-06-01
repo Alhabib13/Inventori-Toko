@@ -343,6 +343,115 @@ class PurchaseManagementStockUpdateTest extends TestCase
         ]);
     }
 
+    public function test_purchase_cancellation_restores_previous_product_buy_price(): void
+    {
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko Gudang',
+        ]);
+        $supplier = $this->createSupplier($gudang->store_name);
+        $product = $this->createProduct($gudang->store_name, [
+            'stok' => 5,
+            'harga_beli' => 10000,
+        ]);
+
+        $this->actingAs($gudang)
+            ->post('/purchases', [
+                'supplier_id' => $supplier->id,
+                'items' => [
+                    [
+                        'product_id' => $product->id,
+                        'qty' => 4,
+                        'harga_beli' => 12000,
+                    ],
+                ],
+                'diskon' => 0,
+                'ongkir' => 0,
+            ]);
+
+        $purchase = Purchase::query()->firstOrFail();
+
+        $this->assertDatabaseHas('purchase_items', [
+            'purchase_id' => $purchase->id,
+            'product_id' => $product->id,
+            'harga_beli' => 12000,
+            'harga_beli_sebelum' => 10000,
+        ]);
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'stok' => 9,
+            'harga_beli' => 12000,
+        ]);
+
+        $this->actingAs($gudang)
+            ->delete(route('purchases.destroy', $purchase))
+            ->assertRedirect(route('purchases.show', $purchase));
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'stok' => 5,
+            'harga_beli' => 10000,
+        ]);
+    }
+
+    public function test_purchase_cancellation_does_not_override_newer_product_buy_price(): void
+    {
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+            'store_name' => 'Toko Gudang',
+        ]);
+        $supplier = $this->createSupplier($gudang->store_name);
+        $product = $this->createProduct($gudang->store_name, [
+            'stok' => 5,
+            'harga_beli' => 10000,
+        ]);
+
+        $this->actingAs($gudang)->post('/purchases', [
+            'supplier_id' => $supplier->id,
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'qty' => 4,
+                    'harga_beli' => 12000,
+                ],
+            ],
+            'diskon' => 0,
+            'ongkir' => 0,
+        ]);
+        $firstPurchase = Purchase::query()->firstOrFail();
+
+        $this->actingAs($gudang)->post('/purchases', [
+            'supplier_id' => $supplier->id,
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'qty' => 1,
+                    'harga_beli' => 14000,
+                ],
+            ],
+            'diskon' => 0,
+            'ongkir' => 0,
+        ]);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'stok' => 10,
+            'harga_beli' => 14000,
+        ]);
+
+        $this->actingAs($gudang)
+            ->delete(route('purchases.destroy', $firstPurchase))
+            ->assertRedirect(route('purchases.show', $firstPurchase));
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'stok' => 6,
+            'harga_beli' => 14000,
+        ]);
+    }
+
     public function test_purchase_cancellation_is_rejected_when_stock_rollback_would_be_invalid(): void
     {
         $gudang = User::factory()->create([

@@ -163,6 +163,7 @@ class PurchaseController extends Controller
                     'nama_produk' => $product->nama_produk,
                     'qty' => $qty,
                     'harga_beli' => $buyPrice,
+                    'harga_beli_sebelum' => $product->harga_beli,
                     'subtotal' => $lineSubtotal,
                 ]);
 
@@ -249,6 +250,15 @@ class PurchaseController extends Controller
                         referenceType: 'purchase_cancellation',
                         referenceId: $purchase->id,
                     );
+
+                    if (
+                        filled($item->harga_beli_sebelum)
+                        && (float) $item->produk->harga_beli === (float) $item->harga_beli
+                    ) {
+                        $item->produk->update([
+                            'harga_beli' => $item->harga_beli_sebelum,
+                        ]);
+                    }
                 }
 
                 $purchase->update([

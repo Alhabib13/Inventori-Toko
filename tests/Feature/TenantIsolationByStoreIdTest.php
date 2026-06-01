@@ -98,6 +98,62 @@ class TenantIsolationByStoreIdTest extends TestCase
             ->assertDontSee('Kasir Toko B');
     }
 
+    public function test_legacy_inventory_without_store_id_does_not_leak_by_store_name(): void
+    {
+        [$ownerA] = $this->ownersWithSameStoreName();
+
+        $legacyCategory = Category::create([
+            'store_id' => null,
+            'store_name' => $ownerA->store_name,
+            'nama_kategori' => 'Kategori Legacy Ambiguous',
+            'slug' => 'kategori-legacy-ambiguous',
+            'is_active' => true,
+        ]);
+        $legacyProduct = Product::create([
+            'store_id' => null,
+            'store_name' => $ownerA->store_name,
+            'category_id' => $legacyCategory->id,
+            'kode_produk' => 'PRD-LEGACY-AMBIGUOUS',
+            'nama_produk' => 'Produk Legacy Ambiguous',
+            'slug' => 'produk-legacy-ambiguous',
+            'harga_beli' => 1000,
+            'harga_jual' => 1500,
+            'stok' => 5,
+            'stok_minimum' => 1,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($ownerA)
+            ->get(route('products.index'))
+            ->assertOk()
+            ->assertDontSee($legacyProduct->nama_produk);
+
+        $this->actingAs($ownerA)
+            ->get(route('products.show', $legacyProduct))
+            ->assertForbidden();
+    }
+
+    public function test_ambiguous_child_user_without_store_id_is_not_attached_to_first_matching_store_name(): void
+    {
+        [$ownerA, $ownerB] = $this->ownersWithSameStoreName();
+
+        $ambiguousKasir = User::factory()->create([
+            'store_id' => null,
+            'store_name' => $ownerA->store_name,
+            'name' => 'Kasir Legacy Ambiguous',
+            'role' => 'kasir',
+            'mode_app' => 'lengkap',
+        ]);
+
+        $this->assertNotSame($ownerA->store_id, $ambiguousKasir->store_id);
+        $this->assertNotSame($ownerB->store_id, $ambiguousKasir->store_id);
+
+        $this->actingAs($ownerA)
+            ->get(route('users.index'))
+            ->assertOk()
+            ->assertDontSee($ambiguousKasir->name);
+    }
+
     public function test_owner_cannot_see_sales_or_purchases_from_other_store_with_same_name(): void
     {
         [$ownerA, $ownerB] = $this->ownersWithSameStoreName();
