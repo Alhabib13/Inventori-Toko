@@ -172,6 +172,12 @@ class TransactionController extends Controller
             $totalPayment = max(0, $subtotal - $discount + $tax);
             $paidAmount = (float) ($data['nominal_bayar'] ?? $totalPayment);
 
+            if ($paidAmount < $totalPayment) {
+                throw ValidationException::withMessages([
+                    'nominal_bayar' => 'Nominal bayar tidak boleh kurang dari total bayar.',
+                ]);
+            }
+
             $transaction = Transaction::create([
                 'kode_transaksi' => $this->makeTransactionCode(),
                 'user_id' => $request->user()->id,
