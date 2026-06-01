@@ -170,6 +170,93 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             ->assertSee('Rp20.000');
     }
 
+    public function test_dashboard_summary_excludes_cancelled_sales_and_purchases(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $product = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Dashboard Valid',
+            'harga_beli' => 15000,
+            'harga_jual' => 20000,
+            'stok' => 10,
+        ]);
+
+        $validTransaction = Transaction::create([
+            'kode_transaksi' => 'TRX-DASH-VALID',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 1,
+            'subtotal' => 20000,
+            'total_bayar' => 20000,
+            'nominal_bayar' => 20000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+        $validTransaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 1,
+            'harga' => 20000,
+            'subtotal' => 20000,
+        ]);
+
+        $cancelledTransaction = Transaction::create([
+            'kode_transaksi' => 'TRX-DASH-CANCEL',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 1,
+            'subtotal' => 90000,
+            'total_bayar' => 90000,
+            'nominal_bayar' => 90000,
+            'kembalian' => 0,
+            'status' => 'dibatalkan',
+        ]);
+        $cancelledTransaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 1,
+            'harga' => 90000,
+            'subtotal' => 90000,
+        ]);
+
+        Purchase::create([
+            'kode_pembelian' => 'PO-DASH-VALID',
+            'supplier_id' => $product->supplier_id,
+            'user_id' => $owner->id,
+            'tanggal_pembelian' => now(),
+            'subtotal' => 30000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 30000,
+            'status' => 'selesai',
+        ]);
+
+        Purchase::create([
+            'kode_pembelian' => 'PO-DASH-CANCEL',
+            'supplier_id' => $product->supplier_id,
+            'user_id' => $owner->id,
+            'tanggal_pembelian' => now(),
+            'subtotal' => 70000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 70000,
+            'status' => 'dibatalkan',
+        ]);
+
+        $this->actingAs($owner)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee('Estimasi Keuntungan')
+            ->assertSee('Rp5.000')
+            ->assertSee('Total Pembelian')
+            ->assertSee('Rp30.000')
+            ->assertDontSee('Rp75.000')
+            ->assertDontSee('Rp90.000')
+            ->assertDontSee('Rp70.000');
+    }
+
     private function createProduct(string $storeName, array $attributes = []): Product
     {
         $category = Category::create([

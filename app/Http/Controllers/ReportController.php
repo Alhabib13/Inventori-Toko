@@ -70,6 +70,7 @@ class ReportController extends Controller
         $salesCollection = Transaction::query()
             ->with(['kasir', 'detailItem.produk'])
             ->whereHas('kasir', fn ($query) => $this->scopeToUserStore($query, $user))
+            ->where('status', '!=', 'dibatalkan')
             ->whereBetween('tanggal_transaksi', [$startDate, $endDate])
             ->latest('tanggal_transaksi')
             ->get()
@@ -83,6 +84,7 @@ class ReportController extends Controller
         $purchasesCollection = Purchase::query()
             ->with(['supplier', 'pengguna'])
             ->whereHas('pengguna', fn ($query) => $this->scopeToUserStore($query, $user))
+            ->where('status', '!=', 'dibatalkan')
             ->whereBetween('tanggal_pembelian', [$startDate, $endDate])
             ->latest('tanggal_pembelian')
             ->get();

@@ -31,6 +31,7 @@ class DashboardController extends Controller
         $grossProfitTotal = $this->grossProfitQuery($user)->sum(DB::raw('transaction_items.qty * (transaction_items.harga - products.harga_beli)'));
         $purchaseTotal = (float) Purchase::query()
             ->whereHas('pengguna', fn ($query) => $this->scopeToUserStore($query, $user))
+            ->where('status', '!=', 'dibatalkan')
             ->sum('total_bayar');
         $productScope = $this->scopeToUserStore(Product::query(), $user);
         $stockTotal = (int) (clone $productScope)->sum('stok');
@@ -63,6 +64,7 @@ class DashboardController extends Controller
         $criticalStockGapTotal = (int) $criticalProducts->sum(fn ($product) => max(0, $product->stok_minimum - $product->stok));
         $latestPurchase = Purchase::query()
             ->whereHas('pengguna', fn ($query) => $this->scopeToUserStore($query, $user))
+            ->where('status', '!=', 'dibatalkan')
             ->latest('tanggal_pembelian')
             ->first(['kode_pembelian', 'tanggal_pembelian', 'total_bayar']);
         $canManageInventory = $user?->mode_app === 'sederhana';
