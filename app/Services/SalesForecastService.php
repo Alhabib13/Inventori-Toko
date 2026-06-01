@@ -34,8 +34,7 @@ class SalesForecastService
             return (int) ($monthlySales[$month->format('Y-m-01')] ?? 0);
         });
 
-        $divisor = max($series->filter(fn (int $qty) => $qty > 0)->count(), 1);
-        $movingAverage = round($series->sum() / $divisor, 2);
+        $movingAverage = round($series->sum() / $windowMonths, 2);
         $forecastQty = (int) ceil($movingAverage);
         $restockGap = max($forecastQty - (int) $product->stok, 0);
 
