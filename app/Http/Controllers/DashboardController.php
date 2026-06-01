@@ -28,7 +28,7 @@ class DashboardController extends Controller
             ->whereHas('kasir', fn ($query) => $this->scopeToUserStore($query, $user))
             ->where('status', '!=', 'dibatalkan')
             ->sum('total_bayar');
-        $grossProfitTotal = $this->grossProfitQuery($user)->sum(DB::raw('transaction_items.qty * (transaction_items.harga - products.harga_beli)'));
+        $grossProfitTotal = $this->grossProfitQuery($user)->sum(DB::raw('transaction_items.qty * (transaction_items.harga - COALESCE(transaction_items.harga_beli, products.harga_beli, 0))'));
         $purchaseTotal = (float) Purchase::query()
             ->whereHas('pengguna', fn ($query) => $this->scopeToUserStore($query, $user))
             ->where('status', '!=', 'dibatalkan')
@@ -82,7 +82,7 @@ class DashboardController extends Controller
                         ->sum('total_bayar'),
                     'profit' => (float) $this->grossProfitQuery($user)
                         ->whereDate('transactions.tanggal_transaksi', $date->toDateString())
-                        ->sum(DB::raw('transaction_items.qty * (transaction_items.harga - products.harga_beli)')),
+                        ->sum(DB::raw('transaction_items.qty * (transaction_items.harga - COALESCE(transaction_items.harga_beli, products.harga_beli, 0))')),
                 ];
             });
         $salesTrendProfitTotal = (float) $salesTrend->sum('profit');
@@ -95,7 +95,7 @@ class DashboardController extends Controller
         $todaySalesTotal = (float) (clone $todaySalesScope)->sum('total_bayar');
         $todayGrossProfit = (float) $this->grossProfitQuery($user)
             ->whereDate('transactions.tanggal_transaksi', now()->toDateString())
-            ->sum(DB::raw('transaction_items.qty * (transaction_items.harga - products.harga_beli)'));
+            ->sum(DB::raw('transaction_items.qty * (transaction_items.harga - COALESCE(transaction_items.harga_beli, products.harga_beli, 0))'));
 
         return view('dashboard.index', [
             'isSimpleMode' => $isSimpleMode,

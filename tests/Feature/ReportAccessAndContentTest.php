@@ -231,6 +231,61 @@ class ReportAccessAndContentTest extends TestCase
         $this->assertStringNotContainsString('90000', $profitCsv);
     }
 
+    public function test_profit_report_uses_transaction_item_buy_price_snapshot(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $product = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Snapshot Modal',
+            'stok' => 10,
+            'harga_beli' => 15000,
+            'harga_jual' => 20000,
+        ]);
+
+        $transaction = Transaction::create([
+            'kode_transaksi' => 'TRX-SNAPSHOT-001',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now()->subDay(),
+            'total_item' => 2,
+            'subtotal' => 40000,
+            'total_bayar' => 40000,
+            'nominal_bayar' => 40000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+        $transaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 2,
+            'harga' => 20000,
+            'harga_beli' => 15000,
+            'subtotal' => 40000,
+        ]);
+
+        $product->update(['harga_beli' => 19000]);
+
+        $this->actingAs($owner)
+            ->get('/reports?period=30_hari')
+            ->assertOk()
+            ->assertSee('TRX-SNAPSHOT-001')
+            ->assertSee('Rp40.000')
+            ->assertSee('Rp30.000')
+            ->assertSee('Rp10.000')
+            ->assertDontSee('Rp38.000')
+            ->assertDontSee('Rp2.000');
+
+        $profitCsv = $this->actingAs($owner)
+            ->get('/reports/export/profit?period=30_hari')
+            ->assertOk()
+            ->streamedContent();
+        $this->assertStringContainsString('40000', $profitCsv);
+        $this->assertStringContainsString('30000', $profitCsv);
+        $this->assertStringContainsString('10000', $profitCsv);
+        $this->assertStringNotContainsString('38000', $profitCsv);
+    }
+
     public function test_owner_can_export_and_print_main_reports(): void
     {
         $owner = User::factory()->create([

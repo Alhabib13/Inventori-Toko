@@ -16,6 +16,7 @@ class PurchaseItem extends Model
         'nama_produk',
         'qty',
         'harga_beli',
+        'harga_beli_sebelum',
         'subtotal',
     ];
 
@@ -24,6 +25,7 @@ class PurchaseItem extends Model
         return [
             'qty' => 'integer',
             'harga_beli' => 'decimal:2',
+            'harga_beli_sebelum' => 'decimal:2',
             'subtotal' => 'decimal:2',
         ];
     }

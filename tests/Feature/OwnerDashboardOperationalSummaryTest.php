@@ -257,6 +257,49 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             ->assertDontSee('Rp70.000');
     }
 
+    public function test_dashboard_profit_uses_transaction_item_buy_price_snapshot(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $product = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Snapshot Dashboard',
+            'harga_beli' => 15000,
+            'harga_jual' => 20000,
+            'stok' => 10,
+        ]);
+
+        $transaction = Transaction::create([
+            'kode_transaksi' => 'TRX-DASH-SNAPSHOT',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 2,
+            'subtotal' => 40000,
+            'total_bayar' => 40000,
+            'nominal_bayar' => 40000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+        $transaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 2,
+            'harga' => 20000,
+            'harga_beli' => 15000,
+            'subtotal' => 40000,
+        ]);
+
+        $product->update(['harga_beli' => 19000]);
+
+        $this->actingAs($owner)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee('Estimasi Keuntungan')
+            ->assertSee('Rp10.000')
+            ->assertDontSee('Rp2.000');
+    }
+
     private function createProduct(string $storeName, array $attributes = []): Product
     {
         $category = Category::create([

@@ -41,6 +41,8 @@ class SupplierManagementRoleModeTest extends TestCase
         ]);
 
         $supplier = Supplier::create([
+            'store_id' => $gudang->store_id,
+            'store_name' => $gudang->store_name,
             'nama_supplier' => 'CV Makmur',
             'nama_kontak' => 'Andi',
             'telepon' => '08987654321',

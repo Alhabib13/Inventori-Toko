@@ -39,14 +39,17 @@ class User extends Authenticatable
                 return;
             }
 
-            $owner = self::query()
+            $owners = self::query()
                 ->where('role', 'owner')
                 ->where('store_name', $user->store_name)
                 ->when(filled($user->mode_app), fn ($query) => $query->where('mode_app', $user->mode_app))
-                ->latest('id')
-                ->first();
+                ->whereNotNull('store_id')
+                ->get(['store_id'])
+                ->unique('store_id');
 
-            $user->store_id = $owner?->store_id ?: (string) Str::uuid();
+            $user->store_id = $owners->count() === 1
+                ? $owners->first()->store_id
+                : (string) Str::uuid();
         });
     }
 
