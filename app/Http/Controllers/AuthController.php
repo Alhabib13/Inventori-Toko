@@ -218,7 +218,14 @@ class AuthController extends Controller
             'role' => ['required', Rule::in(array_keys($allowedRoles))],
         ]);
 
-        $data['email'] = $data['username'].'@toko.local';
+        $data['email'] = Str::lower($data['username']).'@toko.local';
+
+        if (User::query()->whereRaw('LOWER(email) = ?', [$data['email']])->exists()) {
+            throw ValidationException::withMessages([
+                'username' => 'Email otomatis dari username ini sudah digunakan. Gunakan username lain.',
+            ]);
+        }
+
         $data['store_id'] = $request->user()?->store_id;
         $data['store_name'] = $request->user()?->store_name;
         $data['alamat_toko'] = $request->user()?->alamat_toko;
