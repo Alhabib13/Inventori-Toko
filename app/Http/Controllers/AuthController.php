@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -184,6 +185,7 @@ class AuthController extends Controller
 
         $user = User::create([
             'name' => $data['name'],
+            'store_id' => (string) Str::uuid(),
             'store_name' => $data['store_name'],
             'alamat_toko' => $data['alamat_toko'],
             'username' => $data['username'],
@@ -217,6 +219,7 @@ class AuthController extends Controller
         ]);
 
         $data['email'] = $data['username'].'@toko.local';
+        $data['store_id'] = $request->user()?->store_id;
         $data['store_name'] = $request->user()?->store_name;
         $data['alamat_toko'] = $request->user()?->alamat_toko;
         $data['mode_app'] = $request->user()?->mode_app;

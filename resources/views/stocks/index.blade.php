@@ -78,6 +78,11 @@
                             Mode Read Only
                         </p>
                     @endif
+                    @if ($search !== '')
+                        <p class="mt-2 text-sm font-semibold text-[#0f4c5c]">
+                            Hasil pencarian: {{ $search }}
+                        </p>
+                    @endif
                 </div>
                 <div class="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[22rem]">
                     <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">

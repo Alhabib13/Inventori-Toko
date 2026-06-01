@@ -28,16 +28,23 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             'stok_minimum' => 2,
         ]);
 
-        Transaction::create([
+        $transaction = Transaction::create([
             'kode_transaksi' => 'TRX-DS-001',
             'user_id' => $owner->id,
             'tanggal_transaksi' => now(),
             'total_item' => 2,
-            'subtotal' => 40000,
-            'total_bayar' => 40000,
-            'nominal_bayar' => 40000,
+            'subtotal' => 24000,
+            'total_bayar' => 24000,
+            'nominal_bayar' => 24000,
             'kembalian' => 0,
             'status' => 'selesai',
+        ]);
+        $transaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 2,
+            'harga' => 12000,
+            'subtotal' => 24000,
         ]);
 
         SalesForecast::create([
@@ -56,7 +63,8 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
         $this->actingAs($owner)
             ->get('/dashboard')
             ->assertOk()
-            ->assertSee('Ringkasan Penjualan')
+            ->assertSee('Estimasi Keuntungan')
+            ->assertSee('Rp8.000')
             ->assertSee('Jumlah Produk')
             ->assertSee('Stok Menipis')
             ->assertSee('Prediksi Restock')
@@ -129,7 +137,7 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             'mode_app' => 'lengkap',
         ]);
 
-        Transaction::create([
+        $transaction = Transaction::create([
             'kode_transaksi' => 'TRX-30-001',
             'user_id' => $owner->id,
             'tanggal_transaksi' => now()->subDays(20),
@@ -140,6 +148,17 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             'kembalian' => 0,
             'status' => 'selesai',
         ]);
+        $product = $this->createProduct($owner->store_name, [
+            'harga_beli' => 30000,
+            'harga_jual' => 50000,
+        ]);
+        $transaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 1,
+            'harga' => 50000,
+            'subtotal' => 50000,
+        ]);
 
         $this->actingAs($owner)
             ->get(route('dashboard.index', ['trend' => 30]))
@@ -147,7 +166,8 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             ->assertSee('Tren Penjualan 30 Hari')
             ->assertSee('Periode Dipilih')
             ->assertSee('30 Hari Terakhir')
-            ->assertSee('Total Penjualan');
+            ->assertSee('Total Keuntungan')
+            ->assertSee('Rp20.000');
     }
 
     private function createProduct(string $storeName, array $attributes = []): Product

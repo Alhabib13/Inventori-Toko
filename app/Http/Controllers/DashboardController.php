@@ -7,6 +7,7 @@ use App\Models\Purchase;
 use App\Models\SalesForecast;
 use App\Models\Supplier;
 use App\Models\Transaction;
+use App\Models\TransactionItem;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -17,7 +18,6 @@ class DashboardController extends Controller
     {
         $user = request()->user();
         $isSimpleMode = $user?->mode_app === 'sederhana';
-        $storeName = $user?->store_name;
         $trendPeriod = request()->integer('trend', 7);
 
         if (! in_array($trendPeriod, [7, 30], true)) {
@@ -25,22 +25,23 @@ class DashboardController extends Controller
         }
 
         $salesTotal = (float) Transaction::query()
-            ->whereHas('kasir', fn ($query) => $query->where('store_name', $storeName))
+            ->whereHas('kasir', fn ($query) => $this->scopeToUserStore($query, $user))
             ->sum('total_bayar');
+        $grossProfitTotal = $this->grossProfitQuery($user)->sum(DB::raw('transaction_items.qty * (transaction_items.harga - products.harga_beli)'));
         $purchaseTotal = (float) Purchase::query()
-            ->whereHas('pengguna', fn ($query) => $query->where('store_name', $storeName))
+            ->whereHas('pengguna', fn ($query) => $this->scopeToUserStore($query, $user))
             ->sum('total_bayar');
-        $productScope = Product::query()->where('store_name', $storeName);
+        $productScope = $this->scopeToUserStore(Product::query(), $user);
         $stockTotal = (int) (clone $productScope)->sum('stok');
         $productCount = (clone $productScope)->count();
         $stockValue = (float) (clone $productScope)->sum(DB::raw('stok * harga_beli'));
         $activeSuppliers = Supplier::query()
-            ->where('store_name', $storeName)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
             ->where('is_active', true)
             ->count();
         $criticalProductsCount = (clone $productScope)->whereColumn('stok', '<=', 'stok_minimum')->count();
         $criticalProducts = Product::query()
-            ->where('store_name', $storeName)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
             ->whereColumn('stok', '<=', 'stok_minimum')
             ->orderByRaw('(stok_minimum - stok) DESC')
             ->take(5)
@@ -48,8 +49,8 @@ class DashboardController extends Controller
 
         $forecastHighlights = SalesForecast::query()
             ->with('produk')
-            ->whereHas('produk', function ($query) use ($storeName): void {
-                $query->where('store_name', $storeName);
+            ->whereHas('produk', function ($query) use ($user): void {
+                $this->scopeToUserStore($query, $user);
             })
             ->latest()
             ->take(5)
@@ -60,35 +61,44 @@ class DashboardController extends Controller
         $forecastRestockCount = $forecastHighlights->where('selisih_prediksi', '>', 0)->count();
         $criticalStockGapTotal = (int) $criticalProducts->sum(fn ($product) => max(0, $product->stok_minimum - $product->stok));
         $latestPurchase = Purchase::query()
-            ->whereHas('pengguna', fn ($query) => $query->where('store_name', $storeName))
+            ->whereHas('pengguna', fn ($query) => $this->scopeToUserStore($query, $user))
             ->latest('tanggal_pembelian')
             ->first(['kode_pembelian', 'tanggal_pembelian', 'total_bayar']);
         $canManageInventory = $user?->mode_app === 'sederhana';
         $salesTrend = collect(range($trendPeriod - 1, 0))
-            ->map(function (int $daysAgo) use ($storeName) {
+            ->map(function (int $daysAgo) use ($user) {
                 $date = Carbon::now()->subDays($daysAgo);
 
                 return [
                     'label' => $date->translatedFormat('d M'),
                     'date' => $date->toDateString(),
                     'total' => (float) Transaction::query()
-                        ->whereHas('kasir', fn ($query) => $query->where('store_name', $storeName))
+                        ->whereHas('kasir', fn ($query) => $this->scopeToUserStore($query, $user))
                         ->whereDate('tanggal_transaksi', $date->toDateString())
                         ->sum('total_bayar'),
+                    'profit' => (float) $this->grossProfitQuery($user)
+                        ->whereDate('transactions.tanggal_transaksi', $date->toDateString())
+                        ->sum(DB::raw('transaction_items.qty * (transaction_items.harga - products.harga_beli)')),
                 ];
             });
         $salesTrendTotal = (float) $salesTrend->sum('total');
         $salesTrendAverage = (float) $salesTrend->avg('total');
+        $salesTrendProfitTotal = (float) $salesTrend->sum('profit');
+        $salesTrendProfitAverage = (float) $salesTrend->avg('profit');
         $todaySalesScope = Transaction::query()
-            ->whereHas('kasir', fn ($query) => $query->where('store_name', $storeName))
+            ->whereHas('kasir', fn ($query) => $this->scopeToUserStore($query, $user))
             ->whereDate('tanggal_transaksi', now()->toDateString())
             ->where('status', '!=', 'dibatalkan');
         $todaySalesCount = (clone $todaySalesScope)->count();
         $todaySalesTotal = (float) (clone $todaySalesScope)->sum('total_bayar');
+        $todayGrossProfit = (float) $this->grossProfitQuery($user)
+            ->whereDate('transactions.tanggal_transaksi', now()->toDateString())
+            ->sum(DB::raw('transaction_items.qty * (transaction_items.harga - products.harga_beli)'));
 
         return view('dashboard.index', [
             'isSimpleMode' => $isSimpleMode,
             'salesTotal' => $salesTotal,
+            'grossProfitTotal' => $grossProfitTotal,
             'purchaseTotal' => $purchaseTotal,
             'stockTotal' => $stockTotal,
             'productCount' => $productCount,
@@ -107,8 +117,22 @@ class DashboardController extends Controller
             'trendPeriod' => $trendPeriod,
             'salesTrendTotal' => $salesTrendTotal,
             'salesTrendAverage' => $salesTrendAverage,
+            'salesTrendProfitTotal' => $salesTrendProfitTotal,
+            'salesTrendProfitAverage' => $salesTrendProfitAverage,
             'todaySalesCount' => $todaySalesCount,
             'todaySalesTotal' => $todaySalesTotal,
+            'todayGrossProfit' => $todayGrossProfit,
         ]);
+    }
+
+    private function grossProfitQuery($user)
+    {
+        $query = TransactionItem::query()
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_items.product_id', '=', 'products.id')
+            ->join('users', 'transactions.user_id', '=', 'users.id')
+            ->where('transactions.status', '!=', 'dibatalkan');
+
+        return $this->scopeToUserStore($query, $user, 'users.store_id', 'users.store_name');
     }
 }

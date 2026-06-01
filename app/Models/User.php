@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -14,6 +15,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'store_id',
         'store_name',
         'alamat_toko',
         'username',
@@ -23,6 +25,30 @@ class User extends Authenticatable
         'mode_app',
         'is_active',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (User $user): void {
+            if (filled($user->store_id)) {
+                return;
+            }
+
+            if ($user->role === 'owner') {
+                $user->store_id = (string) Str::uuid();
+
+                return;
+            }
+
+            $owner = self::query()
+                ->where('role', 'owner')
+                ->where('store_name', $user->store_name)
+                ->when(filled($user->mode_app), fn ($query) => $query->where('mode_app', $user->mode_app))
+                ->latest('id')
+                ->first();
+
+            $user->store_id = $owner?->store_id ?: (string) Str::uuid();
+        });
+    }
 
     protected $hidden = [
         'password',
