@@ -30,7 +30,7 @@ class TransactionController extends Controller
                 $query->where('user_id', $user->id);
             })
             ->when($user?->role === 'owner', function (Builder $query) use ($user): void {
-                $query->whereHas('kasir', fn (Builder $kasirQuery) => $kasirQuery->where('store_name', $user->store_name));
+                $query->whereHas('kasir', fn (Builder $kasirQuery) => $this->scopeToUserStore($kasirQuery, $user));
             })
             ->when($dateFrom !== '', function (Builder $query) use ($dateFrom): void {
                 $query->whereDate('tanggal_transaksi', '>=', $dateFrom);
@@ -80,29 +80,27 @@ class TransactionController extends Controller
     public function create(Request $request): View
     {
         $user = $request->user();
-        $storeName = $user?->store_name;
-
         $activeProductsQuery = Product::query()
-            ->where('store_name', $storeName)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
             ->where('is_active', true)
             ->where('stok', '>', 0);
 
         $products = (clone $activeProductsQuery)
             ->with('kategori:id,nama_kategori')
-            ->select(['id', 'category_id', 'store_name', 'nama_produk', 'kode_produk', 'harga_jual', 'stok', 'stok_minimum', 'satuan'])
+            ->select(['id', 'category_id', 'store_id', 'store_name', 'nama_produk', 'kode_produk', 'harga_jual', 'stok', 'stok_minimum', 'satuan'])
             ->orderBy('nama_produk')
             ->paginate(10)
             ->withQueryString();
 
         $storeProfile = User::query()
-            ->where('store_name', $storeName)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
             ->where('role', 'owner')
-            ->first(['store_name', 'alamat_toko']);
+            ->first(['store_id', 'store_name', 'alamat_toko']);
 
         $posSummary = [
             'active_products_count' => (clone $activeProductsQuery)->count(),
             'low_stock_count' => Product::query()
-                ->where('store_name', $storeName)
+                ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
                 ->where('is_active', true)
                 ->whereColumn('stok', '<=', 'stok_minimum')
                 ->count(),
@@ -148,7 +146,7 @@ class TransactionController extends Controller
         $transaction = DB::transaction(function () use ($items, $data, $request, $stockMovementService): Transaction {
             $products = Product::query()
                 ->whereIn('id', $items->pluck('product_id'))
-                ->where('store_name', $request->user()?->store_name)
+                ->tap(fn ($query) => $this->scopeToUserStore($query, $request->user()))
                 ->get()
                 ->keyBy('id');
 
@@ -173,6 +171,12 @@ class TransactionController extends Controller
             $tax = (float) ($data['pajak'] ?? 0);
             $totalPayment = max(0, $subtotal - $discount + $tax);
             $paidAmount = (float) ($data['nominal_bayar'] ?? $totalPayment);
+
+            if ($paidAmount < $totalPayment) {
+                throw ValidationException::withMessages([
+                    'nominal_bayar' => 'Nominal bayar tidak boleh kurang dari total bayar.',
+                ]);
+            }
 
             $transaction = Transaction::create([
                 'kode_transaksi' => $this->makeTransactionCode(),
@@ -225,13 +229,7 @@ class TransactionController extends Controller
     {
         $user = $request->user();
 
-        if ($user?->role === 'kasir' && $transaction->user_id !== $user->id) {
-            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
-        }
-
-        if ($user?->role === 'owner' && $transaction->kasir?->store_name !== $user->store_name) {
-            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
-        }
+        $this->abortIfTransactionOutsideStore($transaction, $user);
 
         $transaction->load(['kasir', 'detailItem.produk']);
 
@@ -241,13 +239,17 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function edit(Transaction $transaction): View
+    public function edit(Request $request, Transaction $transaction): View
     {
+        $this->abortIfTransactionOutsideStore($transaction, $request->user());
+
         return view('transactions.edit', compact('transaction'));
     }
 
     public function update(Request $request, Transaction $transaction): RedirectResponse
     {
+        $this->abortIfTransactionOutsideStore($transaction, $request->user());
+
         return redirect()->route('transactions.index');
     }
 
@@ -259,9 +261,7 @@ class TransactionController extends Controller
             abort(403, 'Anda tidak memiliki akses untuk membatalkan transaksi ini.');
         }
 
-        if ($transaction->kasir?->store_name !== $user->store_name) {
-            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
-        }
+        $this->abortIfTransactionOutsideStore($transaction, $user);
 
         if ($transaction->status === 'dibatalkan') {
             return redirect()
@@ -304,5 +304,16 @@ class TransactionController extends Controller
         } while (Transaction::query()->where('kode_transaksi', $code)->exists());
 
         return $code;
+    }
+
+    private function abortIfTransactionOutsideStore(Transaction $transaction, $user): void
+    {
+        if ($user?->role === 'kasir' && $transaction->user_id !== $user->id) {
+            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
+        }
+
+        if ($user?->role === 'owner' && ! $this->modelBelongsToUserStore($transaction->kasir, $user)) {
+            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
+        }
     }
 }

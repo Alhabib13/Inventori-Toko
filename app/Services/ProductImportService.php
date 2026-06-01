@@ -34,17 +34,15 @@ class ProductImportService
             $importedCount = 0;
             $skippedCount = 0;
             $seenProducts = [];
+            $storeId = $user->store_id;
             $storeName = $user->store_name;
-            $categoriesByNormalizedName = Category::query()
-                ->where('store_name', $storeName)
+            $categoriesByNormalizedName = $this->scopeToUserStore(Category::query(), $user)
                 ->get()
                 ->mapWithKeys(fn (Category $category) => [$this->normalizeEntityName($category->nama_kategori) => $category]);
-            $suppliersByNormalizedName = Supplier::query()
-                ->where('store_name', $storeName)
+            $suppliersByNormalizedName = $this->scopeToUserStore(Supplier::query(), $user)
                 ->get()
                 ->mapWithKeys(fn (Supplier $supplier) => [$this->normalizeEntityName($supplier->nama_supplier) => $supplier]);
-            $productsByNormalizedName = Product::query()
-                ->where('store_name', $storeName)
+            $productsByNormalizedName = $this->scopeToUserStore(Product::query(), $user)
                 ->get()
                 ->mapWithKeys(fn (Product $product) => [$this->normalizeEntityName($product->nama_produk) => $product]);
             $existingCategorySlugs = array_fill_keys(Category::query()
@@ -68,12 +66,14 @@ class ProductImportService
                     $validated['kategori'],
                     $categoriesByNormalizedName,
                     $existingCategorySlugs,
+                    $storeId,
                     $storeName,
                 );
                 $supplier = $validated['supplier'] !== null
                     ? $this->findOrCreateSupplier(
                         $validated['supplier'],
                         $suppliersByNormalizedName,
+                        $storeId,
                         $storeName,
                     )
                     : null;
@@ -92,6 +92,7 @@ class ProductImportService
                     'supplier_id' => $supplier?->id,
                     'kode_produk' => $this->makeProductCode($existingProductCodes),
                     'nama_produk' => $validated['nama_produk'],
+                    'store_id' => $storeId,
                     'store_name' => $storeName,
                     'slug' => $this->makeUniqueSlug($validated['nama_produk'], $existingProductSlugs),
                     'deskripsi' => $validated['deskripsi'],
@@ -285,6 +286,7 @@ class ProductImportService
         string $name,
         $categoriesByNormalizedName,
         array &$existingCategorySlugs,
+        ?string $storeId,
         string $storeName,
     ): Category
     {
@@ -301,6 +303,7 @@ class ProductImportService
 
         $category = Category::create([
             'nama_kategori' => $name,
+            'store_id' => $storeId,
             'store_name' => $storeName,
             'slug' => $this->makeUniqueCategorySlug($name, $existingCategorySlugs),
             'is_active' => true,
@@ -317,6 +320,7 @@ class ProductImportService
     private function findOrCreateSupplier(
         string $name,
         $suppliersByNormalizedName,
+        ?string $storeId,
         string $storeName,
     ): Supplier
     {
@@ -333,6 +337,7 @@ class ProductImportService
 
         $supplier = Supplier::create([
             'nama_supplier' => $name,
+            'store_id' => $storeId,
             'store_name' => $storeName,
             'is_active' => true,
         ]);
@@ -400,5 +405,22 @@ class ProductImportService
         $normalized = preg_replace('/[^a-z0-9]+/i', ' ', $normalized) ?? $normalized;
 
         return trim(preg_replace('/\s+/', ' ', $normalized) ?? $normalized);
+    }
+
+    private function scopeToUserStore($query, User $user)
+    {
+        if (filled($user->store_id)) {
+            return $query->where(function ($tenantQuery) use ($user): void {
+                $tenantQuery
+                    ->where('store_id', $user->store_id)
+                    ->orWhere(function ($legacyQuery) use ($user): void {
+                        $legacyQuery
+                            ->whereNull('store_id')
+                            ->where('store_name', $user->store_name);
+                    });
+            });
+        }
+
+        return $query->where('store_name', $user->store_name);
     }
 }

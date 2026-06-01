@@ -27,7 +27,7 @@ class ForecastController extends Controller
         $forecastRows = SalesForecast::query()
             ->with('produk')
             ->whereHas('produk', function ($query) use ($user): void {
-                $query->where('store_name', $user?->store_name);
+                $this->scopeToUserStore($query, $user);
             })
             ->when($forecastSearch !== '', function ($query) use ($forecastSearch): void {
                 $query->where(function ($forecastQuery) use ($forecastSearch): void {
@@ -45,7 +45,7 @@ class ForecastController extends Controller
             ->withQueryString();
 
         $restockProducts = Product::query()
-            ->where('store_name', $user?->store_name)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
             ->where('is_active', true)
             ->orderByRaw('(stok_minimum - stok) DESC')
             ->orderBy('nama_produk')
@@ -70,7 +70,7 @@ class ForecastController extends Controller
             'forecastRows' => $forecastRows,
             'restockProducts' => $restockProducts,
             'transactionCount' => \App\Models\Transaction::query()
-                ->whereHas('kasir', fn ($query) => $query->where('store_name', $user?->store_name))
+                ->whereHas('kasir', fn ($query) => $this->scopeToUserStore($query, $user))
                 ->count(),
             'canManageForecasts' => $canManageForecasts,
             'forecastSearch' => $forecastSearch,
@@ -82,7 +82,7 @@ class ForecastController extends Controller
         return view('forecasts.create', [
             'forecast' => null,
             'forecastProducts' => Product::query()
-                ->where('store_name', request()->user()?->store_name)
+                ->tap(fn ($query) => $this->scopeToUserStore($query, request()->user()))
                 ->where('is_active', true)
                 ->orderBy('nama_produk')
                 ->get(),
@@ -101,7 +101,7 @@ class ForecastController extends Controller
 
         $product = Product::query()
             ->whereKey($validated['product_id'])
-            ->where('store_name', $request->user()?->store_name)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $request->user()))
             ->firstOrFail();
         $forecast = $this->salesForecastService->storeForecast(
             $product,
@@ -118,9 +118,7 @@ class ForecastController extends Controller
 
     public function show(SalesForecast $forecast): View
     {
-        if ($forecast->produk?->store_name !== null && $forecast->produk?->store_name !== request()->user()?->store_name) {
-            abort(403, 'Anda tidak memiliki akses ke prediksi stok ini.');
-        }
+        $this->abortIfForecastOutsideStore($forecast, request()->user());
         $forecast->load('produk');
         $series = $this->salesForecastService->buildForecast(
             $forecast->produk,
@@ -137,10 +135,12 @@ class ForecastController extends Controller
 
     public function edit(SalesForecast $forecast): View
     {
+        $this->abortIfForecastOutsideStore($forecast, request()->user());
+
         return view('forecasts.edit', [
             'forecast' => $forecast->load('produk'),
             'forecastProducts' => Product::query()
-                ->where('store_name', request()->user()?->store_name)
+                ->tap(fn ($query) => $this->scopeToUserStore($query, request()->user()))
                 ->where('is_active', true)
                 ->orderBy('nama_produk')
                 ->get(),
@@ -150,6 +150,8 @@ class ForecastController extends Controller
 
     public function update(Request $request, SalesForecast $forecast): RedirectResponse
     {
+        $this->abortIfForecastOutsideStore($forecast, $request->user());
+
         $validated = $request->validate([
             'product_id' => ['required', 'integer', Rule::exists('products', 'id')],
             'periode_akhir' => ['required', 'date'],
@@ -157,13 +159,9 @@ class ForecastController extends Controller
             'catatan' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        if ($forecast->produk?->store_name !== null && $forecast->produk?->store_name !== $request->user()?->store_name) {
-            abort(403, 'Anda tidak memiliki akses ke prediksi stok ini.');
-        }
-
         $product = Product::query()
             ->whereKey($validated['product_id'])
-            ->where('store_name', $request->user()?->store_name)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $request->user()))
             ->firstOrFail();
         $forecast = $this->salesForecastService->updateForecast(
             $forecast,
@@ -181,9 +179,8 @@ class ForecastController extends Controller
 
     public function destroy(SalesForecast $forecast): RedirectResponse
     {
-        if ($forecast->produk?->store_name !== null && $forecast->produk?->store_name !== request()->user()?->store_name) {
-            abort(403, 'Anda tidak memiliki akses ke prediksi stok ini.');
-        }
+        $this->abortIfForecastOutsideStore($forecast, request()->user());
+
         $forecast->delete();
 
         return redirect()
@@ -198,5 +195,12 @@ class ForecastController extends Controller
             'gudang' => $modeApp === 'lengkap',
             default => false,
         };
+    }
+
+    private function abortIfForecastOutsideStore(SalesForecast $forecast, $user): void
+    {
+        if (! $this->modelBelongsToUserStore($forecast->produk, $user)) {
+            abort(403, 'Anda tidak memiliki akses ke prediksi stok ini.');
+        }
     }
 }

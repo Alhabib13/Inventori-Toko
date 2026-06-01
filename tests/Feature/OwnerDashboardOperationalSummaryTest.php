@@ -28,16 +28,23 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             'stok_minimum' => 2,
         ]);
 
-        Transaction::create([
+        $transaction = Transaction::create([
             'kode_transaksi' => 'TRX-DS-001',
             'user_id' => $owner->id,
             'tanggal_transaksi' => now(),
             'total_item' => 2,
-            'subtotal' => 40000,
-            'total_bayar' => 40000,
-            'nominal_bayar' => 40000,
+            'subtotal' => 24000,
+            'total_bayar' => 24000,
+            'nominal_bayar' => 24000,
             'kembalian' => 0,
             'status' => 'selesai',
+        ]);
+        $transaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 2,
+            'harga' => 12000,
+            'subtotal' => 24000,
         ]);
 
         SalesForecast::create([
@@ -56,11 +63,12 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
         $this->actingAs($owner)
             ->get('/dashboard')
             ->assertOk()
-            ->assertSee('Ringkasan Penjualan')
+            ->assertSee('Estimasi Keuntungan')
+            ->assertSee('Rp8.000')
             ->assertSee('Jumlah Produk')
             ->assertSee('Stok Menipis')
             ->assertSee('Prediksi Restock')
-            ->assertSee('Tren Penjualan 7 Hari')
+            ->assertSee('Tren Keuntungan 7 Hari')
             ->assertSee('30 Hari')
             ->assertSee('Prioritas Hari Ini')
             ->assertSee('Produk Sederhana')
@@ -114,7 +122,7 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             ->assertSee('Nilai Stok')
             ->assertSee('Supplier Aktif')
             ->assertSee('Prediksi Restock')
-            ->assertSee('Tren Penjualan 7 Hari')
+            ->assertSee('Tren Keuntungan 7 Hari')
             ->assertSee('Insight Inventori')
             ->assertSee('Produk Lengkap')
             ->assertSee('Lihat Prediksi')
@@ -129,7 +137,7 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             'mode_app' => 'lengkap',
         ]);
 
-        Transaction::create([
+        $transaction = Transaction::create([
             'kode_transaksi' => 'TRX-30-001',
             'user_id' => $owner->id,
             'tanggal_transaksi' => now()->subDays(20),
@@ -140,14 +148,113 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             'kembalian' => 0,
             'status' => 'selesai',
         ]);
+        $product = $this->createProduct($owner->store_name, [
+            'harga_beli' => 30000,
+            'harga_jual' => 50000,
+        ]);
+        $transaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 1,
+            'harga' => 50000,
+            'subtotal' => 50000,
+        ]);
 
         $this->actingAs($owner)
             ->get(route('dashboard.index', ['trend' => 30]))
             ->assertOk()
-            ->assertSee('Tren Penjualan 30 Hari')
+            ->assertSee('Tren Keuntungan 30 Hari')
             ->assertSee('Periode Dipilih')
             ->assertSee('30 Hari Terakhir')
-            ->assertSee('Total Penjualan');
+            ->assertSee('Total Keuntungan')
+            ->assertSee('Rp20.000');
+    }
+
+    public function test_dashboard_summary_excludes_cancelled_sales_and_purchases(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $product = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Dashboard Valid',
+            'harga_beli' => 15000,
+            'harga_jual' => 20000,
+            'stok' => 10,
+        ]);
+
+        $validTransaction = Transaction::create([
+            'kode_transaksi' => 'TRX-DASH-VALID',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 1,
+            'subtotal' => 20000,
+            'total_bayar' => 20000,
+            'nominal_bayar' => 20000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+        $validTransaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 1,
+            'harga' => 20000,
+            'subtotal' => 20000,
+        ]);
+
+        $cancelledTransaction = Transaction::create([
+            'kode_transaksi' => 'TRX-DASH-CANCEL',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 1,
+            'subtotal' => 90000,
+            'total_bayar' => 90000,
+            'nominal_bayar' => 90000,
+            'kembalian' => 0,
+            'status' => 'dibatalkan',
+        ]);
+        $cancelledTransaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 1,
+            'harga' => 90000,
+            'subtotal' => 90000,
+        ]);
+
+        Purchase::create([
+            'kode_pembelian' => 'PO-DASH-VALID',
+            'supplier_id' => $product->supplier_id,
+            'user_id' => $owner->id,
+            'tanggal_pembelian' => now(),
+            'subtotal' => 30000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 30000,
+            'status' => 'selesai',
+        ]);
+
+        Purchase::create([
+            'kode_pembelian' => 'PO-DASH-CANCEL',
+            'supplier_id' => $product->supplier_id,
+            'user_id' => $owner->id,
+            'tanggal_pembelian' => now(),
+            'subtotal' => 70000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 70000,
+            'status' => 'dibatalkan',
+        ]);
+
+        $this->actingAs($owner)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee('Estimasi Keuntungan')
+            ->assertSee('Rp5.000')
+            ->assertSee('Total Pembelian')
+            ->assertSee('Rp30.000')
+            ->assertDontSee('Rp75.000')
+            ->assertDontSee('Rp90.000')
+            ->assertDontSee('Rp70.000');
     }
 
     private function createProduct(string $storeName, array $attributes = []): Product

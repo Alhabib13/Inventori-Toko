@@ -108,6 +108,42 @@ class PosSalesTransactionTest extends TestCase
         $this->assertEquals(0, StockMovement::query()->count());
     }
 
+    public function test_transaction_fails_when_paid_amount_is_less_than_total_payment(): void
+    {
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+        ]);
+        $product = $this->createProduct($kasir->store_name, [
+            'stok' => 5,
+            'harga_jual' => 20000,
+        ]);
+
+        $this->actingAs($kasir)
+            ->from('/pos')
+            ->post('/transactions', [
+                'items' => [
+                    [
+                        'product_id' => $product->id,
+                        'qty' => 2,
+                    ],
+                ],
+                'diskon' => 1000,
+                'pajak' => 500,
+                'nominal_bayar' => 39000,
+                'metode_pembayaran' => 'tunai',
+            ])
+            ->assertRedirect('/pos')
+            ->assertSessionHasErrors('nominal_bayar');
+
+        $this->assertEquals(0, Transaction::query()->count());
+        $this->assertEquals(0, StockMovement::query()->count());
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'stok' => 5,
+        ]);
+    }
+
     public function test_owner_can_access_pos_in_selected_mode(): void
     {
         $owner = User::factory()->create([

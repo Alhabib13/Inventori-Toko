@@ -86,7 +86,7 @@ class UserController extends Controller
         $allowedRoles = array_keys($this->allowedUserRolesForMode($owner?->mode_app));
 
         return User::query()
-            ->where('store_name', $owner?->store_name)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $owner))
             ->where(function ($query) use ($owner, $allowedRoles): void {
                 $query->where('id', $owner?->id)
                     ->orWhereIn('role', $allowedRoles);

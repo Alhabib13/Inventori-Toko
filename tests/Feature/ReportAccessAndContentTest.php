@@ -24,11 +24,12 @@ class ReportAccessAndContentTest extends TestCase
         $product = $this->createProduct($owner->store_name, [
             'nama_produk' => 'Produk Laporan',
             'stok' => 12,
-            'harga_beli' => 10000,
+            'harga_beli' => 15000,
+            'harga_jual' => 20000,
         ]);
         $supplier = Supplier::findOrFail($product->supplier_id);
 
-        Transaction::create([
+        $transactionInPeriod = Transaction::create([
             'kode_transaksi' => 'TRX-IN-001',
             'user_id' => $owner->id,
             'tanggal_transaksi' => now()->subDays(2),
@@ -39,8 +40,15 @@ class ReportAccessAndContentTest extends TestCase
             'kembalian' => 0,
             'status' => 'selesai',
         ]);
+        $transactionInPeriod->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 2,
+            'harga' => 20000,
+            'subtotal' => 40000,
+        ]);
 
-        Transaction::create([
+        $oldTransaction = Transaction::create([
             'kode_transaksi' => 'TRX-OUT-OLD',
             'user_id' => $owner->id,
             'tanggal_transaksi' => now()->subDays(45),
@@ -50,6 +58,13 @@ class ReportAccessAndContentTest extends TestCase
             'nominal_bayar' => 20000,
             'kembalian' => 0,
             'status' => 'selesai',
+        ]);
+        $oldTransaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 1,
+            'harga' => 20000,
+            'subtotal' => 20000,
         ]);
 
         Purchase::create([
@@ -102,6 +117,120 @@ class ReportAccessAndContentTest extends TestCase
             ->assertSee('7 hari terakhir');
     }
 
+    public function test_reports_and_exports_exclude_cancelled_sales_and_purchases(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $product = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Valid Batal',
+            'stok' => 10,
+            'harga_beli' => 15000,
+            'harga_jual' => 20000,
+        ]);
+        $supplier = Supplier::findOrFail($product->supplier_id);
+
+        $validTransaction = Transaction::create([
+            'kode_transaksi' => 'TRX-VALID-001',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now()->subDay(),
+            'total_item' => 1,
+            'subtotal' => 20000,
+            'total_bayar' => 20000,
+            'nominal_bayar' => 20000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+        $validTransaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 1,
+            'harga' => 20000,
+            'subtotal' => 20000,
+        ]);
+
+        $cancelledTransaction = Transaction::create([
+            'kode_transaksi' => 'TRX-CANCEL-001',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now()->subDay(),
+            'total_item' => 1,
+            'subtotal' => 90000,
+            'total_bayar' => 90000,
+            'nominal_bayar' => 90000,
+            'kembalian' => 0,
+            'status' => 'dibatalkan',
+        ]);
+        $cancelledTransaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 1,
+            'harga' => 90000,
+            'subtotal' => 90000,
+        ]);
+
+        Purchase::create([
+            'kode_pembelian' => 'PO-VALID-001',
+            'supplier_id' => $supplier->id,
+            'user_id' => $owner->id,
+            'tanggal_pembelian' => now()->subDay(),
+            'subtotal' => 30000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 30000,
+            'status' => 'selesai',
+        ]);
+
+        Purchase::create([
+            'kode_pembelian' => 'PO-CANCEL-001',
+            'supplier_id' => $supplier->id,
+            'user_id' => $owner->id,
+            'tanggal_pembelian' => now()->subDay(),
+            'subtotal' => 70000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 70000,
+            'status' => 'dibatalkan',
+        ]);
+
+        $this->actingAs($owner)
+            ->get('/reports?period=30_hari')
+            ->assertOk()
+            ->assertSee('TRX-VALID-001')
+            ->assertDontSee('TRX-CANCEL-001')
+            ->assertSee('PO-VALID-001')
+            ->assertDontSee('PO-CANCEL-001')
+            ->assertSee('Rp20.000')
+            ->assertSee('Rp15.000')
+            ->assertSee('Rp5.000')
+            ->assertSee('Rp30.000')
+            ->assertDontSee('Rp90.000')
+            ->assertDontSee('Rp70.000');
+
+        $salesCsv = $this->actingAs($owner)
+            ->get('/reports/export/sales?period=30_hari')
+            ->assertOk()
+            ->streamedContent();
+        $this->assertStringContainsString('TRX-VALID-001', $salesCsv);
+        $this->assertStringNotContainsString('TRX-CANCEL-001', $salesCsv);
+
+        $purchaseCsv = $this->actingAs($owner)
+            ->get('/reports/export/purchases?period=30_hari')
+            ->assertOk()
+            ->streamedContent();
+        $this->assertStringContainsString('PO-VALID-001', $purchaseCsv);
+        $this->assertStringNotContainsString('PO-CANCEL-001', $purchaseCsv);
+
+        $profitCsv = $this->actingAs($owner)
+            ->get('/reports/export/profit?period=30_hari')
+            ->assertOk()
+            ->streamedContent();
+        $this->assertStringContainsString('20000', $profitCsv);
+        $this->assertStringContainsString('15000', $profitCsv);
+        $this->assertStringContainsString('5000', $profitCsv);
+        $this->assertStringNotContainsString('90000', $profitCsv);
+    }
+
     public function test_owner_can_export_and_print_main_reports(): void
     {
         $owner = User::factory()->create([
@@ -115,7 +244,7 @@ class ReportAccessAndContentTest extends TestCase
         ]);
         $supplier = Supplier::findOrFail($product->supplier_id);
 
-        Transaction::create([
+        $transaction = Transaction::create([
             'kode_transaksi' => 'TRX-EXPORT-001',
             'user_id' => $owner->id,
             'tanggal_transaksi' => now()->subDay(),
@@ -126,6 +255,13 @@ class ReportAccessAndContentTest extends TestCase
             'kembalian' => 10000,
             'metode_pembayaran' => 'tunai',
             'status' => 'selesai',
+        ]);
+        $transaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 3,
+            'harga' => 30000,
+            'subtotal' => 90000,
         ]);
 
         Purchase::create([
@@ -144,7 +280,9 @@ class ReportAccessAndContentTest extends TestCase
             ->get('/reports/export/sales?period=30_hari')
             ->assertOk()
             ->assertHeader('content-type', 'text/csv; charset=UTF-8');
-        $this->assertStringContainsString('TRX-EXPORT-001', $salesExport->streamedContent());
+        $salesCsv = $salesExport->streamedContent();
+        $this->assertStringContainsString('TRX-EXPORT-001', $salesCsv);
+        $this->assertStringContainsString('Keuntungan', $salesCsv);
 
         $purchaseExport = $this->actingAs($owner)
             ->get('/reports/export/purchases?period=30_hari')
@@ -159,7 +297,7 @@ class ReportAccessAndContentTest extends TestCase
         $profitExport = $this->actingAs($owner)
             ->get('/reports/export/profit?period=30_hari')
             ->assertOk();
-        $this->assertStringContainsString('Pendapatan', $profitExport->streamedContent());
+        $this->assertStringContainsString('Omzet Penjualan', $profitExport->streamedContent());
 
         $this->actingAs($owner)
             ->get('/reports/print/sales?period=30_hari')

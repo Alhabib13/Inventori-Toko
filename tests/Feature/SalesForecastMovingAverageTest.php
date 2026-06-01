@@ -59,6 +59,40 @@ class SalesForecastMovingAverageTest extends TestCase
             ->assertSee('5');
     }
 
+    public function test_moving_average_counts_empty_months_as_zero(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+        ]);
+        $product = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Bulan Kosong',
+            'stok' => 1,
+            'satuan' => 'pcs',
+        ]);
+
+        $this->createTransactionWithItem($owner, $product, now()->subMonths(2)->startOfMonth()->addDays(3), 12);
+
+        $response = $this->actingAs($owner)->post('/forecasts', [
+            'product_id' => $product->id,
+            'periode_akhir' => now()->toDateString(),
+            'panjang_jendela' => 3,
+            'catatan' => '',
+        ]);
+
+        $forecast = SalesForecast::query()->first();
+
+        $response
+            ->assertRedirect(route('forecasts.show', $forecast))
+            ->assertSessionHasNoErrors();
+
+        $this->assertNotNull($forecast);
+        $this->assertSame(4.00, (float) $forecast->nilai_moving_average);
+        $this->assertSame(4, $forecast->prediksi_stok);
+        $this->assertSame(1, $forecast->stok_aktual);
+        $this->assertSame(3, $forecast->selisih_prediksi);
+    }
+
     public function test_gudang_lengkap_can_view_sales_forecast_list(): void
     {
         $gudang = User::factory()->create([

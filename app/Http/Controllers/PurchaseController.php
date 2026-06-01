@@ -26,10 +26,10 @@ class PurchaseController extends Controller
         $purchases = Purchase::query()
             ->with(['supplier', 'pengguna'])
             ->when($user?->role === 'owner', function (Builder $query) use ($user): void {
-                $query->whereHas('pengguna', fn (Builder $penggunaQuery) => $penggunaQuery->where('store_name', $user->store_name));
+                $query->whereHas('pengguna', fn (Builder $penggunaQuery) => $this->scopeToUserStore($penggunaQuery, $user));
             })
             ->when($user?->role === 'gudang', function (Builder $query) use ($user): void {
-                $query->whereHas('pengguna', fn (Builder $penggunaQuery) => $penggunaQuery->where('store_name', $user->store_name));
+                $query->whereHas('pengguna', fn (Builder $penggunaQuery) => $this->scopeToUserStore($penggunaQuery, $user));
             })
             ->when($dateFrom !== '', function (Builder $query) use ($dateFrom): void {
                 $query->whereDate('tanggal_pembelian', '>=', $dateFrom);
@@ -62,16 +62,16 @@ class PurchaseController extends Controller
 
     public function create(): View
     {
-        $storeName = request()->user()?->store_name;
+        $user = request()->user();
 
         return view('purchases.create', [
             'suppliers' => Supplier::query()
-                ->where('store_name', $storeName)
+                ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
                 ->where('is_active', true)
                 ->orderBy('nama_supplier')
                 ->get(),
             'products' => Product::query()
-                ->where('store_name', $storeName)
+                ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
                 ->where('is_active', true)
                 ->orderBy('nama_produk')
                 ->get(),
@@ -105,7 +105,7 @@ class PurchaseController extends Controller
 
         $supplier = Supplier::query()
             ->whereKey($data['supplier_id'])
-            ->where('store_name', $request->user()?->store_name)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $request->user()))
             ->first();
 
         if (! $supplier) {
@@ -117,7 +117,7 @@ class PurchaseController extends Controller
         $purchase = DB::transaction(function () use ($items, $data, $request, $stockMovementService): Purchase {
             $products = Product::query()
                 ->whereIn('id', $items->pluck('product_id'))
-                ->where('store_name', $request->user()?->store_name)
+                ->tap(fn ($query) => $this->scopeToUserStore($query, $request->user()))
                 ->get()
                 ->keyBy('id');
 
@@ -190,9 +190,7 @@ class PurchaseController extends Controller
     {
         $user = $request->user();
 
-        if (in_array($user?->role, ['owner', 'gudang'], true) && $purchase->pengguna?->store_name !== $user->store_name) {
-            abort(403, 'Anda tidak memiliki akses ke pembelian ini.');
-        }
+        $this->abortIfPurchaseOutsideStore($purchase, $user);
 
         $purchase->load(['supplier', 'pengguna', 'detailItem.produk']);
 
@@ -202,13 +200,17 @@ class PurchaseController extends Controller
         ]);
     }
 
-    public function edit(Purchase $purchase): View
+    public function edit(Request $request, Purchase $purchase): View
     {
+        $this->abortIfPurchaseOutsideStore($purchase, $request->user());
+
         return view('purchases.edit', compact('purchase'));
     }
 
     public function update(Request $request, Purchase $purchase): RedirectResponse
     {
+        $this->abortIfPurchaseOutsideStore($purchase, $request->user());
+
         return redirect()->route('purchases.index');
     }
 
@@ -220,9 +222,7 @@ class PurchaseController extends Controller
             abort(403, 'Anda tidak memiliki akses untuk membatalkan pembelian ini.');
         }
 
-        if ($purchase->pengguna?->store_name !== $user->store_name) {
-            abort(403, 'Anda tidak memiliki akses ke pembelian ini.');
-        }
+        $this->abortIfPurchaseOutsideStore($purchase, $user);
 
         if ($purchase->status === 'dibatalkan') {
             return redirect()
@@ -274,5 +274,16 @@ class PurchaseController extends Controller
         } while (Purchase::query()->where('kode_pembelian', $code)->exists());
 
         return $code;
+    }
+
+    private function abortIfPurchaseOutsideStore(Purchase $purchase, $user): void
+    {
+        if (! in_array($user?->role, ['owner', 'gudang'], true)) {
+            abort(403, 'Anda tidak memiliki akses ke pembelian ini.');
+        }
+
+        if (! $this->modelBelongsToUserStore($purchase->pengguna, $user)) {
+            abort(403, 'Anda tidak memiliki akses ke pembelian ini.');
+        }
     }
 }

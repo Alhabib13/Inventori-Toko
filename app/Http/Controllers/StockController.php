@@ -23,11 +23,11 @@ class StockController extends Controller
 
     public function create(): View
     {
-        $storeName = request()->user()?->store_name;
+        $user = request()->user();
 
         return view('stocks.create', [
             'products' => Product::query()
-                ->where('store_name', $storeName)
+                ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
                 ->where('is_active', true)
                 ->orderBy('nama_produk')
                 ->get(),
@@ -44,7 +44,7 @@ class StockController extends Controller
 
         $product = Product::query()
             ->whereKey($data['product_id'])
-            ->where('store_name', $request->user()?->store_name)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $request->user()))
             ->firstOrFail();
 
         $stockMovementService->recordIncoming(
@@ -62,7 +62,7 @@ class StockController extends Controller
 
     public function show(StockMovement $stock): View
     {
-        if ($stock->produk?->store_name !== null && $stock->produk?->store_name !== request()->user()?->store_name) {
+        if (! $this->modelBelongsToUserStore($stock->produk, request()->user())) {
             abort(403, 'Anda tidak memiliki akses ke pergerakan stok ini.');
         }
 
@@ -92,7 +92,7 @@ class StockController extends Controller
         $movementSearch = trim((string) request()->query('movement_search', ''));
 
         $baseProductsQuery = Product::query()
-            ->where('store_name', request()->user()?->store_name)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, request()->user()))
             ->when($showLowStockOnly, fn ($query) => $query->whereColumn('stok', '<=', 'stok_minimum'))
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($productQuery) use ($search): void {
@@ -117,7 +117,7 @@ class StockController extends Controller
         $movements = StockMovement::query()
             ->with(['produk', 'pengguna'])
             ->whereHas('produk', function ($query): void {
-                $query->where('store_name', request()->user()?->store_name);
+                $this->scopeToUserStore($query, request()->user());
             })
             ->when($movementSearch !== '', function ($query) use ($movementSearch): void {
                 $query->where(function ($movementQuery) use ($movementSearch): void {

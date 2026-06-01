@@ -16,8 +16,9 @@ class SupplierController extends Controller
     {
         $search = trim((string) $request->string('search'));
 
-        $suppliers = Supplier::query()
-            ->where('store_name', $request->user()?->store_name)
+        $suppliersQuery = Supplier::query();
+
+        $suppliers = $this->scopeToUserStore($suppliersQuery, $request->user())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($supplierQuery) use ($search) {
                     $supplierQuery
@@ -33,9 +34,8 @@ class SupplierController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $allSuppliers = Supplier::query()
-            ->where('store_name', $request->user()?->store_name)
-            ->get();
+        $allSuppliersQuery = Supplier::query();
+        $allSuppliers = $this->scopeToUserStore($allSuppliersQuery, $request->user())->get();
 
         return view('suppliers.index', [
             'suppliers' => $suppliers,
@@ -63,6 +63,7 @@ class SupplierController extends Controller
         ]);
 
         $validated['is_active'] = $request->boolean('is_active', true);
+        $validated['store_id'] = $request->user()?->store_id;
         $validated['store_name'] = $request->user()?->store_name;
 
         Supplier::create($validated);
@@ -72,19 +73,19 @@ class SupplierController extends Controller
 
     public function show(Supplier $supplier): View
     {
-        $this->abortIfSupplierOutsideStore($supplier, request()->user()?->store_name);
+        $this->abortIfSupplierOutsideStore($supplier, request()->user());
         return view('suppliers.show', compact('supplier'));
     }
 
     public function edit(Supplier $supplier): View
     {
-        $this->abortIfSupplierOutsideStore($supplier, request()->user()?->store_name);
+        $this->abortIfSupplierOutsideStore($supplier, request()->user());
         return view('suppliers.edit', compact('supplier'));
     }
 
     public function update(Request $request, Supplier $supplier): RedirectResponse
     {
-        $this->abortIfSupplierOutsideStore($supplier, $request->user()?->store_name);
+        $this->abortIfSupplierOutsideStore($supplier, $request->user());
         $validated = $request->validate([
             'nama_supplier' => ['required', 'string', 'max:255'],
             'nama_kontak' => ['required', 'string', 'max:255'],
@@ -104,7 +105,7 @@ class SupplierController extends Controller
 
     public function destroy(Supplier $supplier): RedirectResponse
     {
-        $this->abortIfSupplierOutsideStore($supplier, request()->user()?->store_name);
+        $this->abortIfSupplierOutsideStore($supplier, request()->user());
 
         if (
             Product::query()->where('supplier_id', $supplier->id)->exists()
@@ -129,7 +130,7 @@ class SupplierController extends Controller
     public function destroyAll(Request $request): RedirectResponse
     {
         $supplierIds = Supplier::query()
-            ->where('store_name', $request->user()?->store_name)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $request->user()))
             ->pluck('id');
 
         if ($supplierIds->isEmpty()) {
@@ -154,9 +155,9 @@ class SupplierController extends Controller
             ->with('success', 'Semua supplier berhasil dihapus.');
     }
 
-    private function abortIfSupplierOutsideStore(Supplier $supplier, ?string $storeName): void
+    private function abortIfSupplierOutsideStore(Supplier $supplier, $user): void
     {
-        if ($supplier->store_name !== null && $supplier->store_name !== $storeName) {
+        if (! $this->modelBelongsToUserStore($supplier, $user)) {
             abort(403, 'Anda tidak memiliki akses ke supplier ini.');
         }
     }

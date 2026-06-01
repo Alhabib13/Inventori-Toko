@@ -30,8 +30,9 @@ class ProductController extends Controller
         $search = trim((string) $request->string('search'));
 
         $products = Product::query()
-            ->with(['kategori', 'supplier'])
-            ->where('store_name', $user?->store_name)
+            ->with(['kategori', 'supplier']);
+
+        $products = $this->scopeToUserStore($products, $user)
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($productQuery) use ($search) {
                     $productQuery
@@ -129,6 +130,7 @@ class ProductController extends Controller
         Product::create($data + [
             'kode_produk' => $this->makeProductCode(),
             'slug' => $this->makeUniqueSlug($data['nama_produk']),
+            'store_id' => $request->user()?->store_id,
             'store_name' => $request->user()?->store_name,
             'stok' => 0,
             'is_active' => $request->boolean('is_active', true),
@@ -141,7 +143,7 @@ class ProductController extends Controller
 
     public function show(Product $product): View
     {
-        $this->abortIfProductOutsideStore($product, request()->user()?->store_name);
+        $this->abortIfProductOutsideStore($product, request()->user());
         $product->load(['kategori', 'supplier']);
         $user = request()->user();
 
@@ -154,13 +156,13 @@ class ProductController extends Controller
 
     public function edit(Product $product): View
     {
-        $this->abortIfProductOutsideStore($product, request()->user()?->store_name);
+        $this->abortIfProductOutsideStore($product, request()->user());
         return view('products.edit', $this->formOptions(request()->user()?->mode_app) + compact('product'));
     }
 
     public function update(Request $request, Product $product, StockMovementService $stockMovementService): RedirectResponse
     {
-        $this->abortIfProductOutsideStore($product, $request->user()?->store_name);
+        $this->abortIfProductOutsideStore($product, $request->user());
         $data = $this->validateProduct($request);
         $targetStock = (int) $request->integer('stok', $product->stok);
         unset($data['stok']);
@@ -186,7 +188,7 @@ class ProductController extends Controller
 
     public function destroy(Product $product): RedirectResponse
     {
-        $this->abortIfProductOutsideStore($product, request()->user()?->store_name);
+        $this->abortIfProductOutsideStore($product, request()->user());
         $hasTransactionItems = DB::table('transaction_items')->where('product_id', $product->id)->exists();
         $hasPurchaseItems = PurchaseItem::query()->where('product_id', $product->id)->exists();
 
@@ -209,10 +211,8 @@ class ProductController extends Controller
     {
         abort_unless($this->canManageProducts(request()->user()?->role, request()->user()?->mode_app), 403);
 
-        $storeName = request()->user()?->store_name;
-
         $productIds = Product::query()
-            ->where('store_name', $storeName)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, request()->user()))
             ->pluck('id');
 
         $hasTransactionItems = DB::table('transaction_items')->whereIn('product_id', $productIds)->exists();
@@ -245,13 +245,13 @@ class ProductController extends Controller
     private function validateProduct(Request $request): array
     {
         $requiresSupplier = $request->user()?->mode_app !== 'sederhana';
-        $storeName = $request->user()?->store_name;
+        $user = $request->user();
 
         $validated = $request->validate([
             'nama_produk' => ['required', 'string', 'max:255'],
-            'category_id' => ['required', Rule::exists('categories', 'id')->where(fn ($query) => $query->where('store_name', $storeName))],
+            'category_id' => ['required', Rule::exists('categories', 'id')->where(fn ($query) => $this->scopeToUserStore($query, $user))],
             'supplier_id' => $requiresSupplier
-                ? ['required', Rule::exists('suppliers', 'id')->where(fn ($query) => $query->where('store_name', $storeName))]
+                ? ['required', Rule::exists('suppliers', 'id')->where(fn ($query) => $this->scopeToUserStore($query, $user))]
                 : ['nullable'],
             'harga_beli' => ['required', 'numeric', 'min:0'],
             'harga_jual' => ['required', 'numeric', 'min:0', 'gte:harga_beli'],
@@ -302,12 +302,12 @@ class ProductController extends Controller
         return [
             'requiresSupplier' => $modeApp !== 'sederhana',
             'categories' => Category::query()
-                ->where('store_name', $user?->store_name)
+                ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
                 ->where('is_active', true)
                 ->orderBy('nama_kategori')
                 ->get(),
             'suppliers' => Supplier::query()
-                ->where('store_name', $user?->store_name)
+                ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
                 ->where('is_active', true)
                 ->orderBy('nama_supplier')
                 ->get(),
@@ -351,9 +351,9 @@ class ProductController extends Controller
         return $slug;
     }
 
-    private function abortIfProductOutsideStore(Product $product, ?string $storeName): void
+    private function abortIfProductOutsideStore(Product $product, $user): void
     {
-        if ($product->store_name !== null && $product->store_name !== $storeName) {
+        if (! $this->modelBelongsToUserStore($product, $user)) {
             abort(403, 'Anda tidak memiliki akses ke produk ini.');
         }
     }

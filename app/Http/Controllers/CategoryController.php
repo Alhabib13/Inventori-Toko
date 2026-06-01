@@ -15,11 +15,11 @@ class CategoryController extends Controller
 {
     public function index(Request $request): View
     {
-        $storeName = $request->user()?->store_name;
         $search = trim((string) $request->string('search'));
 
-        $categories = Category::query()
-            ->where('store_name', $storeName)
+        $categoriesQuery = Category::query();
+
+        $categories = $this->scopeToUserStore($categoriesQuery, $request->user())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($categoryQuery) use ($search) {
                     $categoryQuery
@@ -46,14 +46,15 @@ class CategoryController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $storeName = $request->user()?->store_name;
+        $user = $request->user();
         $validated = $request->validate([
-            'nama_kategori' => ['required', 'string', 'max:255', Rule::unique('categories', 'nama_kategori')->where(fn ($query) => $query->where('store_name', $storeName))],
+            'nama_kategori' => ['required', 'string', 'max:255', Rule::unique('categories', 'nama_kategori')->where(fn ($query) => $this->scopeToUserStore($query, $user))],
             'deskripsi' => ['nullable', 'string'],
         ]);
 
         $validated['slug'] = $this->makeUniqueSlug($validated['nama_kategori']);
-        $validated['store_name'] = $storeName;
+        $validated['store_id'] = $user?->store_id;
+        $validated['store_name'] = $user?->store_name;
 
         Category::create($validated);
 
@@ -62,7 +63,7 @@ class CategoryController extends Controller
 
     public function show(Category $category): View
     {
-        $this->abortIfCategoryOutsideStore($category, request()->user()?->store_name);
+        $this->abortIfCategoryOutsideStore($category, request()->user());
         return view('categories.show', [
             'category' => $category,
             'canManageCategories' => $this->canManageCategories(request()->user()?->role, request()->user()?->mode_app),
@@ -71,15 +72,15 @@ class CategoryController extends Controller
 
     public function edit(Category $category): View
     {
-        $this->abortIfCategoryOutsideStore($category, request()->user()?->store_name);
+        $this->abortIfCategoryOutsideStore($category, request()->user());
         return view('categories.edit', compact('category'));
     }
 
     public function update(Request $request, Category $category): RedirectResponse
     {
-        $this->abortIfCategoryOutsideStore($category, $request->user()?->store_name);
+        $this->abortIfCategoryOutsideStore($category, $request->user());
         $validated = $request->validate([
-            'nama_kategori' => ['required', 'string', 'max:255', Rule::unique('categories', 'nama_kategori')->where(fn ($query) => $query->where('store_name', $request->user()?->store_name))->ignore($category->id)],
+            'nama_kategori' => ['required', 'string', 'max:255', Rule::unique('categories', 'nama_kategori')->where(fn ($query) => $this->scopeToUserStore($query, $request->user()))->ignore($category->id)],
             'deskripsi' => ['nullable', 'string'],
         ]);
 
@@ -92,7 +93,7 @@ class CategoryController extends Controller
 
     public function destroy(Category $category): RedirectResponse
     {
-        $this->abortIfCategoryOutsideStore($category, request()->user()?->store_name);
+        $this->abortIfCategoryOutsideStore($category, request()->user());
 
         if (Product::query()->where('category_id', $category->id)->exists()) {
             return redirect()
@@ -110,7 +111,7 @@ class CategoryController extends Controller
         abort_unless($this->canManageCategories($request->user()?->role, $request->user()?->mode_app), 403);
 
         $categoryIds = Category::query()
-            ->where('store_name', $request->user()?->store_name)
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $request->user()))
             ->pluck('id');
 
         if ($categoryIds->isEmpty()) {
@@ -141,9 +142,9 @@ class CategoryController extends Controller
         };
     }
 
-    private function abortIfCategoryOutsideStore(Category $category, ?string $storeName): void
+    private function abortIfCategoryOutsideStore(Category $category, $user): void
     {
-        if ($category->store_name !== null && $category->store_name !== $storeName) {
+        if (! $this->modelBelongsToUserStore($category, $user)) {
             abort(403, 'Anda tidak memiliki akses ke kategori ini.');
         }
     }

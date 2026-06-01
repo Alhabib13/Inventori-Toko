@@ -77,6 +77,31 @@ class UserRegistrationRoleModeTest extends TestCase
         ]);
     }
 
+    public function test_owner_gets_validation_error_when_generated_user_email_already_exists(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'store_name' => 'Toko Validasi Email',
+            'mode_app' => 'lengkap',
+        ]);
+
+        User::factory()->create([
+            'username' => 'akunlain',
+            'email' => 'userbaru@toko.local',
+        ]);
+
+        $this->actingAs($owner)
+            ->from('/register-user')
+            ->post('/register-user', $this->validUserPayload(['role' => 'kasir']))
+            ->assertRedirect('/register-user')
+            ->assertSessionHasErrors('username');
+
+        $this->assertDatabaseMissing('users', [
+            'username' => 'userbaru',
+            'store_name' => 'Toko Validasi Email',
+        ]);
+    }
+
     /**
      * @param  array<string, string>  $overrides
      * @return array<string, string>
