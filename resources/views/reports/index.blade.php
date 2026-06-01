@@ -106,7 +106,7 @@
                 <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm md:col-span-2 xl:col-span-1">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Laba Rugi Sederhana</p>
                     <h2 class="mt-3 text-3xl font-bold tracking-tight {{ $grossProfit >= 0 ? 'text-emerald-700' : 'text-red-600' }}">Rp{{ number_format($grossProfit, 0, ',', '.') }}</h2>
-                    <p class="mt-2 text-sm text-slate-500">Selisih sederhana antara pendapatan dan modal pada periode aktif.</p>
+                    <p class="mt-2 text-sm text-slate-500">Selisih antara omzet penjualan dan modal barang yang benar-benar terjual.</p>
                 </article>
             @endif
         </section>
@@ -116,7 +116,7 @@
                 <div class="flex flex-col gap-3 border-b border-[#c0c8cb] px-6 py-4 md:flex-row md:items-start md:justify-between">
                     <div>
                         <h2 class="text-lg font-semibold text-slate-900">Laba Rugi Sederhana</h2>
-                        <p class="mt-1 text-sm text-slate-500">Ringkasan pendapatan, modal, keuntungan, dan margin dari periode aktif.</p>
+                        <p class="mt-1 text-sm text-slate-500">Ringkasan omzet penjualan, modal barang terjual, keuntungan, dan margin dari periode aktif.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <a href="{{ route('reports.export', ['section' => 'profit', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
@@ -129,12 +129,14 @@
                 </div>
                 <div class="grid grid-cols-1 gap-4 border-b border-slate-200 p-6 md:grid-cols-2 xl:grid-cols-4">
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
-                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Pendapatan</p>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Omzet Penjualan</p>
                         <p class="mt-2 text-xl font-bold text-slate-900">Rp{{ number_format($revenue, 0, ',', '.') }}</p>
+                        <p class="mt-1 text-xs text-slate-500">Omzet penjualan.</p>
                     </div>
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
-                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Modal</p>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Modal Barang Terjual</p>
                         <p class="mt-2 text-xl font-bold text-slate-900">Rp{{ number_format($capital, 0, ',', '.') }}</p>
+                        <p class="mt-1 text-xs text-slate-500">HPP barang terjual.</p>
                     </div>
                     <div class="rounded-xl border border-slate-200 bg-[#f9f9fa] p-4">
                         <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Keuntungan</p>
@@ -150,8 +152,8 @@
                         <thead class="bg-[#f3f4f5] text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                             <tr>
                                 <th class="px-6 py-3">Periode</th>
-                                <th class="px-6 py-3">Pendapatan</th>
-                                <th class="px-6 py-3">Modal</th>
+                                <th class="px-6 py-3">Omzet Penjualan</th>
+                                <th class="px-6 py-3">Modal Barang Terjual</th>
                                 <th class="px-6 py-3">Keuntungan</th>
                                 <th class="px-6 py-3">Margin</th>
                             </tr>
@@ -208,7 +210,7 @@
                     </div>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="min-w-[860px] w-full text-left text-sm">
+                    <table class="min-w-[1040px] w-full text-left text-sm">
                         <thead class="bg-[#f3f4f5] text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
                             <tr>
                                 <th class="px-6 py-3">Kode</th>
@@ -216,6 +218,8 @@
                                 <th class="px-6 py-3">Tanggal</th>
                                 <th class="px-6 py-3">Total Item</th>
                                 <th class="px-6 py-3">Total</th>
+                                <th class="px-6 py-3">Modal Barang Terjual</th>
+                                <th class="px-6 py-3">Keuntungan</th>
                                 <th class="px-6 py-3">Status</th>
                             </tr>
                         </thead>
@@ -227,11 +231,13 @@
                                     <td class="px-6 py-4 text-slate-600">{{ $sale->tanggal_transaksi?->format('d/m/Y H:i') }}</td>
                                     <td class="px-6 py-4 text-slate-600">{{ $sale->total_item }}</td>
                                     <td class="px-6 py-4 font-semibold text-slate-900">Rp{{ number_format((float) $sale->total_bayar, 0, ',', '.') }}</td>
+                                    <td class="px-6 py-4 text-slate-600">Rp{{ number_format((float) $sale->modal_barang_terjual, 0, ',', '.') }}</td>
+                                    <td class="px-6 py-4 font-semibold {{ (float) $sale->keuntungan_penjualan >= 0 ? 'text-emerald-700' : 'text-red-600' }}">Rp{{ number_format((float) $sale->keuntungan_penjualan, 0, ',', '.') }}</td>
                                     <td class="px-6 py-4 text-slate-600">{{ ucfirst($sale->status) }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-6 py-8 text-center text-slate-500">Belum ada transaksi penjualan pada periode ini.</td>
+                                    <td colspan="8" class="px-6 py-8 text-center text-slate-500">Belum ada transaksi penjualan pada periode ini.</td>
                                 </tr>
                             @endforelse
                         </tbody>

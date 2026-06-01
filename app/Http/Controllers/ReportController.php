@@ -68,11 +68,17 @@ class ReportController extends Controller
         $stockSearch = trim((string) $request->string('stock_search'));
 
         $salesCollection = Transaction::query()
-            ->with('kasir')
+            ->with(['kasir', 'detailItem.produk'])
             ->whereHas('kasir', fn ($query) => $this->scopeToUserStore($query, $user))
             ->whereBetween('tanggal_transaksi', [$startDate, $endDate])
             ->latest('tanggal_transaksi')
-            ->get();
+            ->get()
+            ->map(function (Transaction $sale): Transaction {
+                $sale->setAttribute('modal_barang_terjual', $this->saleCost($sale));
+                $sale->setAttribute('keuntungan_penjualan', $this->saleGrossProfit($sale));
+
+                return $sale;
+            });
 
         $purchasesCollection = Purchase::query()
             ->with(['supplier', 'pengguna'])
@@ -87,15 +93,18 @@ class ReportController extends Controller
             ->orderBy('nama_produk')
             ->get();
 
-        $salesTotal = (float) $salesCollection->sum('total_bayar');
+        $activeSalesCollection = $salesCollection
+            ->reject(fn (Transaction $sale): bool => $sale->status === 'dibatalkan')
+            ->values();
+        $salesTotal = (float) $activeSalesCollection->sum('total_bayar');
         $purchaseTotal = (float) $purchasesCollection->sum('total_bayar');
         $stockValue = (float) $stockProductsCollection->sum(
             fn (Product $product) => $product->stok * (float) $product->harga_beli
         );
         $stockLowCount = $stockProductsCollection->filter(fn (Product $product) => $product->stok <= $product->stok_minimum)->count();
         $revenue = $salesTotal;
-        $capital = $purchaseTotal;
-        $grossProfit = $revenue - $capital;
+        $capital = (float) $activeSalesCollection->sum('modal_barang_terjual');
+        $grossProfit = (float) $activeSalesCollection->sum('keuntungan_penjualan');
         $margin = $revenue > 0 ? ($grossProfit / $revenue) * 100 : 0;
         $canViewSalesAndProfit = $user?->role === 'owner';
         $canViewPurchases = $user?->role === 'owner' || ($user?->role === 'gudang' && $user->mode_app === 'lengkap');
@@ -203,6 +212,20 @@ class ReportController extends Controller
         return $paginator->appends($request->query());
     }
 
+    private function saleCost(Transaction $sale): float
+    {
+        return (float) $sale->detailItem->sum(function ($item): float {
+            return (int) $item->qty * (float) ($item->produk?->harga_beli ?? 0);
+        });
+    }
+
+    private function saleGrossProfit(Transaction $sale): float
+    {
+        return (float) $sale->detailItem->sum(function ($item): float {
+            return (int) $item->qty * ((float) $item->harga - (float) ($item->produk?->harga_beli ?? 0));
+        });
+    }
+
     private function resolvePeriod(Request $request): string
     {
         return match ($request->string('period')->value()) {
@@ -259,7 +282,7 @@ class ReportController extends Controller
     private function salesCsvRows(array $data): array
     {
         $rows = [[
-            'Kode Transaksi', 'Kasir', 'Tanggal', 'Total Item', 'Metode Pembayaran', 'Total Bayar', 'Status',
+            'Kode Transaksi', 'Kasir', 'Tanggal', 'Total Item', 'Metode Pembayaran', 'Total Bayar', 'Modal Barang Terjual', 'Keuntungan', 'Status',
         ]];
 
         foreach ($data['salesAll'] as $sale) {
@@ -270,6 +293,8 @@ class ReportController extends Controller
                 $sale->total_item,
                 $sale->metode_pembayaran ?? '-',
                 (float) $sale->total_bayar,
+                (float) $sale->modal_barang_terjual,
+                (float) $sale->keuntungan_penjualan,
                 $sale->status,
             ];
         }
@@ -339,8 +364,8 @@ class ReportController extends Controller
     {
         return [[
             'Periode',
-            'Pendapatan',
-            'Modal',
+            'Omzet Penjualan',
+            'Modal Barang Terjual',
             'Keuntungan',
             'Margin (%)',
         ], [

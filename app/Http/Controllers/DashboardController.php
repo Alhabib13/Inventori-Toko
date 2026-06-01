@@ -26,6 +26,7 @@ class DashboardController extends Controller
 
         $salesTotal = (float) Transaction::query()
             ->whereHas('kasir', fn ($query) => $this->scopeToUserStore($query, $user))
+            ->where('status', '!=', 'dibatalkan')
             ->sum('total_bayar');
         $grossProfitTotal = $this->grossProfitQuery($user)->sum(DB::raw('transaction_items.qty * (transaction_items.harga - products.harga_beli)'));
         $purchaseTotal = (float) Purchase::query()
@@ -75,14 +76,13 @@ class DashboardController extends Controller
                     'total' => (float) Transaction::query()
                         ->whereHas('kasir', fn ($query) => $this->scopeToUserStore($query, $user))
                         ->whereDate('tanggal_transaksi', $date->toDateString())
+                        ->where('status', '!=', 'dibatalkan')
                         ->sum('total_bayar'),
                     'profit' => (float) $this->grossProfitQuery($user)
                         ->whereDate('transactions.tanggal_transaksi', $date->toDateString())
                         ->sum(DB::raw('transaction_items.qty * (transaction_items.harga - products.harga_beli)')),
                 ];
             });
-        $salesTrendTotal = (float) $salesTrend->sum('total');
-        $salesTrendAverage = (float) $salesTrend->avg('total');
         $salesTrendProfitTotal = (float) $salesTrend->sum('profit');
         $salesTrendProfitAverage = (float) $salesTrend->avg('profit');
         $todaySalesScope = Transaction::query()
@@ -115,8 +115,6 @@ class DashboardController extends Controller
             'canManageInventory' => $canManageInventory,
             'salesTrend' => $salesTrend,
             'trendPeriod' => $trendPeriod,
-            'salesTrendTotal' => $salesTrendTotal,
-            'salesTrendAverage' => $salesTrendAverage,
             'salesTrendProfitTotal' => $salesTrendProfitTotal,
             'salesTrendProfitAverage' => $salesTrendProfitAverage,
             'todaySalesCount' => $todaySalesCount,

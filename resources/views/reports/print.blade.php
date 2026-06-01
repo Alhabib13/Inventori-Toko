@@ -25,12 +25,12 @@
     @if ($section === 'sales')
         <div class="summary">
             <div class="card">
-                <div class="label">Total Penjualan</div>
+                <div class="label">Omzet Penjualan</div>
                 <div class="value">Rp{{ number_format($salesTotal, 0, ',', '.') }}</div>
             </div>
             <div class="card">
-                <div class="label">Jumlah Transaksi</div>
-                <div class="value">{{ $salesAll->count() }}</div>
+                <div class="label">Keuntungan</div>
+                <div class="value">Rp{{ number_format($grossProfit, 0, ',', '.') }}</div>
             </div>
         </div>
         <table>
@@ -42,6 +42,8 @@
                     <th>Total Item</th>
                     <th>Metode</th>
                     <th>Total</th>
+                    <th>Modal Barang Terjual</th>
+                    <th>Keuntungan</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -54,11 +56,13 @@
                         <td>{{ $sale->total_item }}</td>
                         <td>{{ $sale->metode_pembayaran ?? '-' }}</td>
                         <td>Rp{{ number_format((float) $sale->total_bayar, 0, ',', '.') }}</td>
+                        <td>Rp{{ number_format((float) $sale->modal_barang_terjual, 0, ',', '.') }}</td>
+                        <td>Rp{{ number_format((float) $sale->keuntungan_penjualan, 0, ',', '.') }}</td>
                         <td>{{ ucfirst($sale->status) }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7">Belum ada transaksi penjualan pada periode ini.</td>
+                        <td colspan="9">Belum ada transaksi penjualan pada periode ini.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -146,11 +150,11 @@
     @else
         <div class="summary">
             <div class="card">
-                <div class="label">Pendapatan</div>
+                <div class="label">Omzet Penjualan</div>
                 <div class="value">Rp{{ number_format($revenue, 0, ',', '.') }}</div>
             </div>
             <div class="card">
-                <div class="label">Modal</div>
+                <div class="label">Modal Barang Terjual</div>
                 <div class="value">Rp{{ number_format($capital, 0, ',', '.') }}</div>
             </div>
             <div class="card">

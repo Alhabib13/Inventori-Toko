@@ -24,11 +24,12 @@ class ReportAccessAndContentTest extends TestCase
         $product = $this->createProduct($owner->store_name, [
             'nama_produk' => 'Produk Laporan',
             'stok' => 12,
-            'harga_beli' => 10000,
+            'harga_beli' => 15000,
+            'harga_jual' => 20000,
         ]);
         $supplier = Supplier::findOrFail($product->supplier_id);
 
-        Transaction::create([
+        $transactionInPeriod = Transaction::create([
             'kode_transaksi' => 'TRX-IN-001',
             'user_id' => $owner->id,
             'tanggal_transaksi' => now()->subDays(2),
@@ -39,8 +40,15 @@ class ReportAccessAndContentTest extends TestCase
             'kembalian' => 0,
             'status' => 'selesai',
         ]);
+        $transactionInPeriod->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 2,
+            'harga' => 20000,
+            'subtotal' => 40000,
+        ]);
 
-        Transaction::create([
+        $oldTransaction = Transaction::create([
             'kode_transaksi' => 'TRX-OUT-OLD',
             'user_id' => $owner->id,
             'tanggal_transaksi' => now()->subDays(45),
@@ -50,6 +58,13 @@ class ReportAccessAndContentTest extends TestCase
             'nominal_bayar' => 20000,
             'kembalian' => 0,
             'status' => 'selesai',
+        ]);
+        $oldTransaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 1,
+            'harga' => 20000,
+            'subtotal' => 20000,
         ]);
 
         Purchase::create([
@@ -115,7 +130,7 @@ class ReportAccessAndContentTest extends TestCase
         ]);
         $supplier = Supplier::findOrFail($product->supplier_id);
 
-        Transaction::create([
+        $transaction = Transaction::create([
             'kode_transaksi' => 'TRX-EXPORT-001',
             'user_id' => $owner->id,
             'tanggal_transaksi' => now()->subDay(),
@@ -126,6 +141,13 @@ class ReportAccessAndContentTest extends TestCase
             'kembalian' => 10000,
             'metode_pembayaran' => 'tunai',
             'status' => 'selesai',
+        ]);
+        $transaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 3,
+            'harga' => 30000,
+            'subtotal' => 90000,
         ]);
 
         Purchase::create([
@@ -144,7 +166,9 @@ class ReportAccessAndContentTest extends TestCase
             ->get('/reports/export/sales?period=30_hari')
             ->assertOk()
             ->assertHeader('content-type', 'text/csv; charset=UTF-8');
-        $this->assertStringContainsString('TRX-EXPORT-001', $salesExport->streamedContent());
+        $salesCsv = $salesExport->streamedContent();
+        $this->assertStringContainsString('TRX-EXPORT-001', $salesCsv);
+        $this->assertStringContainsString('Keuntungan', $salesCsv);
 
         $purchaseExport = $this->actingAs($owner)
             ->get('/reports/export/purchases?period=30_hari')
@@ -159,7 +183,7 @@ class ReportAccessAndContentTest extends TestCase
         $profitExport = $this->actingAs($owner)
             ->get('/reports/export/profit?period=30_hari')
             ->assertOk();
-        $this->assertStringContainsString('Pendapatan', $profitExport->streamedContent());
+        $this->assertStringContainsString('Omzet Penjualan', $profitExport->streamedContent());
 
         $this->actingAs($owner)
             ->get('/reports/print/sales?period=30_hari')

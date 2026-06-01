@@ -22,7 +22,7 @@
 
 @section('content')
     @php
-        $trendMax = max(1, (int) $salesTrend->max('total'));
+        $trendMax = max(1, (int) $salesTrend->max('profit'));
         $firstPoint = $salesTrend->first();
         $lastPoint = $salesTrend->last();
         $chartPoints = $salesTrend
@@ -31,7 +31,7 @@
                 $width = 100;
                 $height = 100;
                 $x = $salesTrend->count() === 1 ? 50 : ($index * ($width / max(1, $salesTrend->count() - 1)));
-                $y = $height - (($point['total'] / $trendMax) * 84) - 8;
+                $y = $height - (($point['profit'] / $trendMax) * 84) - 8;
 
                 return round($x, 2).','.round($y, 2);
             })
@@ -106,8 +106,8 @@
             <article class="overflow-hidden rounded-2xl border border-[#c0c8cb] bg-white shadow-sm">
                 <div class="flex flex-col gap-4 border-b border-[#c0c8cb] px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <h2 class="text-lg font-semibold text-slate-900">Tren Penjualan {{ $trendPeriod }} Hari</h2>
-                        <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Pantau ritme penjualan harian untuk membantu keputusan operasional toko.' : 'Pantau ritme penjualan harian untuk membaca performa bisnis dan kebutuhan inventori.' }}</p>
+                        <h2 class="text-lg font-semibold text-slate-900">Tren Keuntungan {{ $trendPeriod }} Hari</h2>
+                        <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Pantau estimasi keuntungan harian untuk membantu keputusan operasional toko.' : 'Pantau estimasi keuntungan harian untuk membaca performa bisnis dan kebutuhan inventori.' }}</p>
                     </div>
                     <div class="inline-flex rounded-lg border border-[#c0c8cb] bg-white p-1">
                         <a href="{{ route('dashboard.index', ['trend' => 7]) }}" class="inline-flex h-9 items-center rounded-md px-3 text-sm font-semibold transition {{ $trendPeriod === 7 ? 'bg-[#003441] text-white' : 'text-slate-600 hover:bg-[#f3f4f5]' }}">
@@ -145,14 +145,14 @@
                             @foreach ($salesTrend as $pointIndex => $point)
                                 @php
                                     $x = $salesTrend->count() === 1 ? 50 : ($pointIndex * (100 / max(1, $salesTrend->count() - 1)));
-                                    $y = 100 - (($point['total'] / $trendMax) * 84) - 8;
+                                    $y = 100 - (($point['profit'] / $trendMax) * 84) - 8;
                                 @endphp
                                 <circle cx="{{ round($x, 2) }}" cy="{{ round($y, 2) }}" r="2.2" fill="#003441" />
                             @endforeach
                         </svg>
                         <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
                             <span>{{ $firstPoint['label'] ?? '-' }}</span>
-                            <span>Puncak Rp{{ number_format($trendMax, 0, ',', '.') }}</span>
+                            <span>Puncak laba Rp{{ number_format($trendMax, 0, ',', '.') }}</span>
                             <span>{{ $lastPoint['label'] ?? '-' }}</span>
                         </div>
                     </div>
