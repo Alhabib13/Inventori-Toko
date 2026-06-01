@@ -118,9 +118,7 @@ class ForecastController extends Controller
 
     public function show(SalesForecast $forecast): View
     {
-        if (! $this->modelBelongsToUserStore($forecast->produk, request()->user())) {
-            abort(403, 'Anda tidak memiliki akses ke prediksi stok ini.');
-        }
+        $this->abortIfForecastOutsideStore($forecast, request()->user());
         $forecast->load('produk');
         $series = $this->salesForecastService->buildForecast(
             $forecast->produk,
@@ -137,6 +135,8 @@ class ForecastController extends Controller
 
     public function edit(SalesForecast $forecast): View
     {
+        $this->abortIfForecastOutsideStore($forecast, request()->user());
+
         return view('forecasts.edit', [
             'forecast' => $forecast->load('produk'),
             'forecastProducts' => Product::query()
@@ -150,16 +150,14 @@ class ForecastController extends Controller
 
     public function update(Request $request, SalesForecast $forecast): RedirectResponse
     {
+        $this->abortIfForecastOutsideStore($forecast, $request->user());
+
         $validated = $request->validate([
             'product_id' => ['required', 'integer', Rule::exists('products', 'id')],
             'periode_akhir' => ['required', 'date'],
             'panjang_jendela' => ['required', 'integer', 'min:1', 'max:12'],
             'catatan' => ['nullable', 'string', 'max:1000'],
         ]);
-
-        if (! $this->modelBelongsToUserStore($forecast->produk, $request->user())) {
-            abort(403, 'Anda tidak memiliki akses ke prediksi stok ini.');
-        }
 
         $product = Product::query()
             ->whereKey($validated['product_id'])
@@ -181,9 +179,8 @@ class ForecastController extends Controller
 
     public function destroy(SalesForecast $forecast): RedirectResponse
     {
-        if (! $this->modelBelongsToUserStore($forecast->produk, request()->user())) {
-            abort(403, 'Anda tidak memiliki akses ke prediksi stok ini.');
-        }
+        $this->abortIfForecastOutsideStore($forecast, request()->user());
+
         $forecast->delete();
 
         return redirect()
@@ -198,5 +195,12 @@ class ForecastController extends Controller
             'gudang' => $modeApp === 'lengkap',
             default => false,
         };
+    }
+
+    private function abortIfForecastOutsideStore(SalesForecast $forecast, $user): void
+    {
+        if (! $this->modelBelongsToUserStore($forecast->produk, $user)) {
+            abort(403, 'Anda tidak memiliki akses ke prediksi stok ini.');
+        }
     }
 }

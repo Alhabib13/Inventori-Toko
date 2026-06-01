@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Purchase;
+use App\Models\SalesForecast;
 use App\Models\Supplier;
 use App\Models\Transaction;
 use App\Models\User;
@@ -199,6 +200,127 @@ class TenantIsolationByStoreIdTest extends TestCase
 
         $this->actingAs($ownerA)
             ->get(route('purchases.show', $purchaseB))
+            ->assertForbidden();
+    }
+
+    public function test_transaction_edit_and_update_reject_other_store_records(): void
+    {
+        [$ownerA, $ownerB] = $this->ownersWithSameStoreName();
+        $cashierB = User::factory()->create([
+            'store_id' => $ownerB->store_id,
+            'store_name' => $ownerB->store_name,
+            'role' => 'kasir',
+            'mode_app' => 'lengkap',
+        ]);
+        $transactionB = Transaction::create([
+            'kode_transaksi' => 'TRX-EDIT-TENANT-B',
+            'user_id' => $cashierB->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 1,
+            'subtotal' => 20000,
+            'total_bayar' => 20000,
+            'nominal_bayar' => 20000,
+            'kembalian' => 0,
+            'metode_pembayaran' => 'tunai',
+            'status' => 'selesai',
+        ]);
+
+        $this->actingAs($ownerA)
+            ->get(route('transactions.edit', $transactionB))
+            ->assertForbidden();
+
+        $this->actingAs($ownerA)
+            ->put(route('transactions.update', $transactionB), [])
+            ->assertForbidden();
+    }
+
+    public function test_purchase_edit_and_update_reject_other_store_records(): void
+    {
+        [$ownerA, $ownerB] = $this->ownersWithSameStoreName();
+        $gudangA = User::factory()->create([
+            'store_id' => $ownerA->store_id,
+            'store_name' => $ownerA->store_name,
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+        ]);
+        $gudangB = User::factory()->create([
+            'store_id' => $ownerB->store_id,
+            'store_name' => $ownerB->store_name,
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+        ]);
+        $supplierB = Supplier::create([
+            'store_id' => $ownerB->store_id,
+            'store_name' => $ownerB->store_name,
+            'nama_supplier' => 'Supplier Purchase Tenant B',
+            'is_active' => true,
+        ]);
+        $purchaseB = Purchase::create([
+            'kode_pembelian' => 'PO-EDIT-TENANT-B',
+            'supplier_id' => $supplierB->id,
+            'user_id' => $gudangB->id,
+            'tanggal_pembelian' => now(),
+            'subtotal' => 20000,
+            'total_bayar' => 20000,
+            'status' => 'selesai',
+        ]);
+
+        $this->actingAs($gudangA)
+            ->get(route('purchases.edit', $purchaseB))
+            ->assertForbidden();
+
+        $this->actingAs($gudangA)
+            ->put(route('purchases.update', $purchaseB), [])
+            ->assertForbidden();
+    }
+
+    public function test_forecast_edit_and_update_reject_other_store_records(): void
+    {
+        [$ownerA, $ownerB] = $this->ownersWithSameStoreName();
+        $gudangA = User::factory()->create([
+            'store_id' => $ownerA->store_id,
+            'store_name' => $ownerA->store_name,
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+        ]);
+        $categoryB = Category::create([
+            'store_id' => $ownerB->store_id,
+            'store_name' => $ownerB->store_name,
+            'nama_kategori' => 'Kategori Forecast Tenant B',
+            'slug' => 'kategori-forecast-tenant-b',
+            'is_active' => true,
+        ]);
+        $productB = Product::create([
+            'store_id' => $ownerB->store_id,
+            'store_name' => $ownerB->store_name,
+            'category_id' => $categoryB->id,
+            'kode_produk' => 'PRD-FRC-TENANT-B',
+            'nama_produk' => 'Produk Forecast Tenant B',
+            'slug' => 'produk-forecast-tenant-b',
+            'harga_beli' => 2000,
+            'harga_jual' => 2500,
+            'stok' => 8,
+            'stok_minimum' => 2,
+            'is_active' => true,
+        ]);
+        $forecastB = SalesForecast::create([
+            'product_id' => $productB->id,
+            'user_id' => $ownerB->id,
+            'periode_awal' => now()->subMonth()->startOfMonth(),
+            'periode_akhir' => now()->endOfMonth(),
+            'panjang_jendela' => 3,
+            'nilai_moving_average' => 4,
+            'prediksi_stok' => 4,
+            'stok_aktual' => 8,
+            'selisih_prediksi' => 0,
+        ]);
+
+        $this->actingAs($gudangA)
+            ->get(route('forecasts.edit', $forecastB))
+            ->assertForbidden();
+
+        $this->actingAs($gudangA)
+            ->put(route('forecasts.update', $forecastB), [])
             ->assertForbidden();
     }
 

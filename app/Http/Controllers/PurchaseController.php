@@ -190,9 +190,7 @@ class PurchaseController extends Controller
     {
         $user = $request->user();
 
-        if (in_array($user?->role, ['owner', 'gudang'], true) && ! $this->modelBelongsToUserStore($purchase->pengguna, $user)) {
-            abort(403, 'Anda tidak memiliki akses ke pembelian ini.');
-        }
+        $this->abortIfPurchaseOutsideStore($purchase, $user);
 
         $purchase->load(['supplier', 'pengguna', 'detailItem.produk']);
 
@@ -202,13 +200,17 @@ class PurchaseController extends Controller
         ]);
     }
 
-    public function edit(Purchase $purchase): View
+    public function edit(Request $request, Purchase $purchase): View
     {
+        $this->abortIfPurchaseOutsideStore($purchase, $request->user());
+
         return view('purchases.edit', compact('purchase'));
     }
 
     public function update(Request $request, Purchase $purchase): RedirectResponse
     {
+        $this->abortIfPurchaseOutsideStore($purchase, $request->user());
+
         return redirect()->route('purchases.index');
     }
 
@@ -220,9 +222,7 @@ class PurchaseController extends Controller
             abort(403, 'Anda tidak memiliki akses untuk membatalkan pembelian ini.');
         }
 
-        if (! $this->modelBelongsToUserStore($purchase->pengguna, $user)) {
-            abort(403, 'Anda tidak memiliki akses ke pembelian ini.');
-        }
+        $this->abortIfPurchaseOutsideStore($purchase, $user);
 
         if ($purchase->status === 'dibatalkan') {
             return redirect()
@@ -274,5 +274,16 @@ class PurchaseController extends Controller
         } while (Purchase::query()->where('kode_pembelian', $code)->exists());
 
         return $code;
+    }
+
+    private function abortIfPurchaseOutsideStore(Purchase $purchase, $user): void
+    {
+        if (! in_array($user?->role, ['owner', 'gudang'], true)) {
+            abort(403, 'Anda tidak memiliki akses ke pembelian ini.');
+        }
+
+        if (! $this->modelBelongsToUserStore($purchase->pengguna, $user)) {
+            abort(403, 'Anda tidak memiliki akses ke pembelian ini.');
+        }
     }
 }

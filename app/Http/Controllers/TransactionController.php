@@ -223,13 +223,7 @@ class TransactionController extends Controller
     {
         $user = $request->user();
 
-        if ($user?->role === 'kasir' && $transaction->user_id !== $user->id) {
-            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
-        }
-
-        if ($user?->role === 'owner' && ! $this->modelBelongsToUserStore($transaction->kasir, $user)) {
-            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
-        }
+        $this->abortIfTransactionOutsideStore($transaction, $user);
 
         $transaction->load(['kasir', 'detailItem.produk']);
 
@@ -239,13 +233,17 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function edit(Transaction $transaction): View
+    public function edit(Request $request, Transaction $transaction): View
     {
+        $this->abortIfTransactionOutsideStore($transaction, $request->user());
+
         return view('transactions.edit', compact('transaction'));
     }
 
     public function update(Request $request, Transaction $transaction): RedirectResponse
     {
+        $this->abortIfTransactionOutsideStore($transaction, $request->user());
+
         return redirect()->route('transactions.index');
     }
 
@@ -257,9 +255,7 @@ class TransactionController extends Controller
             abort(403, 'Anda tidak memiliki akses untuk membatalkan transaksi ini.');
         }
 
-        if (! $this->modelBelongsToUserStore($transaction->kasir, $user)) {
-            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
-        }
+        $this->abortIfTransactionOutsideStore($transaction, $user);
 
         if ($transaction->status === 'dibatalkan') {
             return redirect()
@@ -302,5 +298,16 @@ class TransactionController extends Controller
         } while (Transaction::query()->where('kode_transaksi', $code)->exists());
 
         return $code;
+    }
+
+    private function abortIfTransactionOutsideStore(Transaction $transaction, $user): void
+    {
+        if ($user?->role === 'kasir' && $transaction->user_id !== $user->id) {
+            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
+        }
+
+        if ($user?->role === 'owner' && ! $this->modelBelongsToUserStore($transaction->kasir, $user)) {
+            abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
+        }
     }
 }
