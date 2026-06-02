@@ -21,6 +21,7 @@
         $currentPage = $products->currentPage();
         $startPage = max(1, min($currentPage - 3, max(1, $lastPage - 6)));
         $endPage = min($lastPage, $startPage + 6);
+        $paginationQuery = request()->except('page');
     @endphp
 
     @php
@@ -349,7 +350,7 @@
                                         Sebelumnya
                                     </span>
                                 @else
-                                    <a href="{{ $products->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                    <a href="{{ $products->appends($paginationQuery)->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                                         Sebelumnya
                                     </a>
                                 @endif
@@ -360,14 +361,14 @@
                                             {{ $page }}
                                         </span>
                                     @else
-                                        <a href="{{ $products->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                        <a href="{{ $products->appends($paginationQuery)->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                                             {{ $page }}
                                         </a>
                                     @endif
                                 @endfor
 
                                 @if ($products->hasMorePages())
-                                    <a href="{{ $products->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                    <a href="{{ $products->appends($paginationQuery)->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                                         Berikutnya
                                     </a>
                                 @else
