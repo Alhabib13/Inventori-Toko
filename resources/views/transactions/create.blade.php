@@ -23,8 +23,20 @@
         $endPage = min($lastPage, $startPage + 6);
     @endphp
 
-    <form method="POST" action="{{ route('transactions.store') }}" class="grid grid-cols-1 gap-6 2xl:grid-cols-[0.38fr_0.62fr]">
+    @php
+        $posCartKey = 'sitori-pos-cart-'.auth()->id().'-'.(auth()->user()?->store_id ?? \Illuminate\Support\Str::slug(auth()->user()?->store_name ?? 'store'));
+    @endphp
+
+    <form
+        method="POST"
+        action="{{ route('transactions.store') }}"
+        class="grid grid-cols-1 gap-6 2xl:grid-cols-[0.38fr_0.62fr]"
+        data-pos-cart-key="{{ $posCartKey }}"
+    >
         @csrf
+        <input type="hidden" name="print_after_save" value="1">
+        <input type="hidden" name="pos_cart_key" value="{{ $posCartKey }}">
+        <div data-cart-hidden-inputs></div>
 
         <section class="flex min-h-[680px] flex-col overflow-hidden rounded-[28px] border border-[#d3dbe0] bg-[#f4f6f7] shadow-sm lg:min-h-[760px]">
             <div class="px-5 py-5">
@@ -116,8 +128,8 @@
                     <a href="{{ route('transactions.index') }}" class="inline-flex h-12 flex-1 items-center justify-center rounded-xl border border-[#c0c8cb] text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
                         Kembali
                     </a>
-                    <button type="submit" data-loading-text="Menyimpan transaksi..." class="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[#003441] text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-                        Simpan Transaksi
+                    <button type="submit" data-loading-text="Menyimpan & menyiapkan struk..." class="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[#003441] text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                        Simpan & Cetak Struk
                     </button>
                 </div>
             </div>
@@ -128,7 +140,7 @@
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <h2 class="text-3xl font-bold tracking-tight text-[#003441]">Point of Sale</h2>
-                        <p class="mt-1 text-sm text-slate-500">Cari produk aktif, atur kuantitas, lalu lanjutkan ke pembayaran.</p>
+                        <p class="mt-1 text-sm text-slate-500">Cari semua produk aktif, atur kuantitas, lalu lanjutkan ke pembayaran.</p>
                     </div>
                     <div class="rounded-full bg-[#f3f4f5] px-4 py-2 text-sm font-medium text-slate-600" data-live-clock>
                         {{ now()->format('H:i:s') }}
@@ -137,11 +149,23 @@
 
                 <div class="mt-5">
                     <label for="pos_search" class="sr-only">Cari produk</label>
-                    <div class="relative">
-                        <svg class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m21 21-4.35-4.35M10.75 18.5a7.75 7.75 0 1 1 0-15.5 7.75 7.75 0 0 1 0 15.5Z" />
-                        </svg>
-                        <input id="pos_search" type="text" placeholder="Scan barcode atau cari produk..." class="h-12 w-full rounded-2xl border border-[#c0c8cb] bg-white pl-11 pr-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" data-product-search>
+                    <div class="flex flex-col gap-3 sm:flex-row">
+                        <div class="relative flex-1">
+                            <svg class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m21 21-4.35-4.35M10.75 18.5a7.75 7.75 0 1 1 0-15.5 7.75 7.75 0 0 1 0 15.5Z" />
+                            </svg>
+                            <input id="pos_search" type="search" value="{{ $search ?? '' }}" placeholder="Cari semua produk aktif..." class="h-12 w-full rounded-2xl border border-[#c0c8cb] bg-white pl-11 pr-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" data-product-search>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" class="inline-flex h-12 items-center justify-center rounded-2xl bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]" data-product-search-submit>
+                                Cari
+                            </button>
+                            @if (($search ?? '') !== '')
+                                <a href="{{ route('transactions.pos') }}" class="inline-flex h-12 items-center justify-center rounded-2xl border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
+                                    Reset
+                                </a>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -219,9 +243,16 @@
 
                     <div class="max-h-[560px] overflow-y-auto" data-product-list>
                         @forelse ($products as $index => $product)
-                            <div class="grid grid-cols-1 gap-4 border-b border-slate-200 px-4 py-4 transition hover:bg-slate-50 last:border-b-0 sm:grid-cols-[1.7fr_0.7fr_0.8fr_0.5fr] sm:px-5" data-product-row data-search="{{ strtolower($product->nama_produk.' '.$product->kode_produk) }}">
+                            <div
+                                class="grid grid-cols-1 gap-4 border-b border-slate-200 px-4 py-4 transition hover:bg-slate-50 last:border-b-0 sm:grid-cols-[1.7fr_0.7fr_0.8fr_0.5fr] sm:px-5"
+                                data-product-row
+                                data-product-id="{{ $product->id }}"
+                                data-product-name="{{ $product->nama_produk }}"
+                                data-product-meta="{{ $product->kategori?->nama_kategori ?? 'Produk aktif' }} - stok {{ $product->stok }} {{ $product->satuan }}"
+                                data-product-stock="{{ $product->stok }}"
+                                data-search="{{ strtolower($product->nama_produk.' '.$product->kode_produk) }}"
+                            >
                                 <div>
-                                    <input type="hidden" name="items[{{ $index }}][product_id]" value="{{ $product->id }}">
                                     <div class="flex items-center gap-4">
                                         <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e4edf0] text-xs font-bold text-[#003441]">
                                             {{ strtoupper(substr($product->nama_produk, 0, 2)) }}
@@ -253,7 +284,6 @@
                                             type="number"
                                             min="0"
                                             max="{{ $product->stok }}"
-                                            name="items[{{ $index }}][qty]"
                                             value="{{ old('items.'.$index.'.qty', 0) }}"
                                             class="pos-quantity-input h-10 w-14 border-x border-[#d0d8dc] bg-white text-center text-sm font-semibold text-slate-900 outline-none"
                                             data-qty-input
@@ -357,7 +387,9 @@
                 const currency = new Intl.NumberFormat('id-ID');
                 const form = document.querySelector('form');
                 const productSearch = document.querySelector('[data-product-search]');
+                const productSearchSubmit = document.querySelector('[data-product-search-submit]');
                 const productRows = Array.from(document.querySelectorAll('[data-product-row]'));
+                const cartHiddenInputs = document.querySelector('[data-cart-hidden-inputs]');
                 const discountInput = document.querySelector('[data-discount-input]');
                 const taxInput = document.querySelector('[data-tax-input]');
                 const paidInput = document.querySelector('[data-paid-input]');
@@ -377,6 +409,64 @@
                 const posItemError = document.querySelector('[data-pos-item-error]');
                 const posPageInput = document.querySelector('[data-pos-page-input]');
                 const posPageJump = document.querySelector('[data-pos-page-jump]');
+                const cartKey = form?.dataset.posCartKey || 'sitori-pos-cart';
+                let cart = {};
+
+                const loadCart = () => {
+                    try {
+                        const parsedCart = JSON.parse(window.localStorage.getItem(cartKey) || '{}');
+                        cart = parsedCart && typeof parsedCart === 'object' ? parsedCart : {};
+                    } catch (error) {
+                        cart = {};
+                    }
+                };
+
+                const persistCart = () => {
+                    window.localStorage.setItem(cartKey, JSON.stringify(cart));
+                };
+
+                const removeInvalidCartItems = () => {
+                    Object.entries(cart).forEach(([productId, item]) => {
+                        const qty = Number(item?.qty || 0);
+                        if (qty <= 0) {
+                            delete cart[productId];
+                        }
+                    });
+                };
+
+                const syncHiddenInputs = () => {
+                    if (!cartHiddenInputs) {
+                        return;
+                    }
+
+                    cartHiddenInputs.innerHTML = '';
+                    Object.values(cart).forEach((item, index) => {
+                        const productInput = document.createElement('input');
+                        productInput.type = 'hidden';
+                        productInput.name = `items[${index}][product_id]`;
+                        productInput.value = item.productId;
+
+                        const qtyInput = document.createElement('input');
+                        qtyInput.type = 'hidden';
+                        qtyInput.name = `items[${index}][qty]`;
+                        qtyInput.value = item.qty;
+
+                        cartHiddenInputs.appendChild(productInput);
+                        cartHiddenInputs.appendChild(qtyInput);
+                    });
+                };
+
+                const syncVisibleRowsFromCart = () => {
+                    productRows.forEach((row) => {
+                        const productId = row.dataset.productId;
+                        const qtyInput = row.querySelector('[data-qty-input]');
+                        if (!qtyInput) {
+                            return;
+                        }
+
+                        qtyInput.value = cart[productId]?.qty || 0;
+                    });
+                };
 
                 const updateClock = () => {
                     if (!liveClock) {
@@ -413,23 +503,13 @@
                 };
 
                 const updateSummary = () => {
+                    removeInvalidCartItems();
+                    persistCart();
+                    syncHiddenInputs();
+
                     let subtotal = 0;
                     let selectedCount = 0;
-                    const summaryItems = [];
-
-                    productRows.forEach((row) => {
-                        const qtyInput = row.querySelector('[data-qty-input]');
-                        const qty = Math.max(0, Number(qtyInput.value) || 0);
-                        const price = Number(row.querySelector('[data-product-price]').dataset.productPrice || 0);
-                        const productName = row.querySelector('.font-semibold').textContent.trim();
-                        const productMeta = row.querySelector('.text-xs').textContent.trim();
-
-                        if (qty > 0) {
-                            selectedCount += qty;
-                            subtotal += qty * price;
-                            summaryItems.push({ productName, productMeta, qty, price });
-                        }
-                    });
+                    const summaryItems = Object.values(cart);
 
                     summaryContainer.querySelectorAll('[data-summary-item]').forEach((item) => item.remove());
 
@@ -439,6 +519,9 @@
                         emptySummary.classList.add('hidden');
 
                         summaryItems.forEach((item) => {
+                            selectedCount += Number(item.qty || 0);
+                            subtotal += Number(item.qty || 0) * Number(item.price || 0);
+
                             const wrapper = document.createElement('div');
                             wrapper.dataset.summaryItem = 'true';
                             wrapper.className = 'border-b border-dashed border-slate-200 px-1 pb-3 last:border-b-0';
@@ -478,6 +561,33 @@
                     changeLabel.textContent = formatCurrency(changeAmount);
                 };
 
+                const syncCartFromRow = (row) => {
+                    const qtyInput = row.querySelector('[data-qty-input]');
+                    const priceEl = row.querySelector('[data-product-price]');
+                    const productId = row.dataset.productId;
+                    const qty = Math.max(0, Math.min(Number(row.dataset.productStock || 0), Number(qtyInput?.value) || 0));
+
+                    if (!productId || !qtyInput || !priceEl) {
+                        return;
+                    }
+
+                    qtyInput.value = qty;
+
+                    if (qty > 0) {
+                        cart[productId] = {
+                            productId,
+                            qty,
+                            price: Number(priceEl.dataset.productPrice || 0),
+                            productName: row.dataset.productName || 'Produk',
+                            productMeta: row.dataset.productMeta || 'Produk aktif',
+                        };
+                    } else {
+                        delete cart[productId];
+                    }
+
+                    updateSummary();
+                };
+
                 productRows.forEach((row) => {
                     const qtyInput = row.querySelector('[data-qty-input]');
                     const maxQty = Number(qtyInput.max || 0);
@@ -492,26 +602,26 @@
                     row.querySelector('[data-qty-increase]')?.addEventListener('click', () => {
                         qtyInput.value = Math.min(maxQty, (Number(qtyInput.value) || 0) + 1);
                         syncRowWarning();
-                        updateSummary();
+                        syncCartFromRow(row);
                     });
 
                     row.querySelector('[data-qty-decrease]')?.addEventListener('click', () => {
                         qtyInput.value = Math.max(0, (Number(qtyInput.value) || 0) - 1);
                         syncRowWarning();
-                        updateSummary();
+                        syncCartFromRow(row);
                     });
 
                     row.querySelector('[data-qty-clear]')?.addEventListener('click', () => {
                         qtyInput.value = 0;
                         syncRowWarning();
-                        updateSummary();
+                        syncCartFromRow(row);
                     });
 
                     qtyInput.addEventListener('input', () => {
                         if ((Number(qtyInput.value) || 0) > maxQty) qtyInput.value = maxQty;
                         if ((Number(qtyInput.value) || 0) < 0) qtyInput.value = 0;
                         syncRowWarning();
-                        updateSummary();
+                        syncCartFromRow(row);
                     });
 
                     syncRowWarning();
@@ -531,12 +641,26 @@
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 });
 
-                productSearch?.addEventListener('input', () => {
-                    const keyword = productSearch.value.trim().toLowerCase();
-                    productRows.forEach((row) => {
-                        const haystack = row.dataset.search || '';
-                        row.classList.toggle('hidden', keyword !== '' && !haystack.includes(keyword));
-                    });
+                const submitProductSearch = () => {
+                    const url = new URL(window.location.href);
+                    const keyword = productSearch?.value.trim() || '';
+                    url.searchParams.delete('page');
+
+                    if (keyword === '') {
+                        url.searchParams.delete('search');
+                    } else {
+                        url.searchParams.set('search', keyword);
+                    }
+
+                    window.location.href = url.toString();
+                };
+
+                productSearchSubmit?.addEventListener('click', submitProductSearch);
+                productSearch?.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        submitProductSearch();
+                    }
                 });
 
                 posPageJump?.addEventListener('click', () => {
@@ -547,10 +671,8 @@
                 });
 
                 form?.addEventListener('submit', (event) => {
-                    const hasSelectedItem = productRows.some((row) => {
-                        const qtyInput = row.querySelector('[data-qty-input]');
-                        return (Number(qtyInput?.value) || 0) > 0;
-                    });
+                    syncHiddenInputs();
+                    const hasSelectedItem = Object.values(cart).some((item) => (Number(item?.qty) || 0) > 0);
 
                     if (posItemError) {
                         posItemError.classList.toggle('hidden', hasSelectedItem);
@@ -561,6 +683,8 @@
                     }
                 });
 
+                loadCart();
+                syncVisibleRowsFromCart();
                 updatePaymentButtons();
                 updateSummary();
             })();

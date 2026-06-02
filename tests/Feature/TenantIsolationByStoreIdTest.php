@@ -259,7 +259,7 @@ class TenantIsolationByStoreIdTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_transaction_edit_and_update_reject_other_store_records(): void
+    public function test_transaction_edit_and_update_endpoints_are_not_exposed(): void
     {
         [$ownerA, $ownerB] = $this->ownersWithSameStoreName();
         $cashierB = User::factory()->create([
@@ -282,15 +282,15 @@ class TenantIsolationByStoreIdTest extends TestCase
         ]);
 
         $this->actingAs($ownerA)
-            ->get(route('transactions.edit', $transactionB))
-            ->assertForbidden();
+            ->get("/transactions/{$transactionB->id}/edit")
+            ->assertNotFound();
 
         $this->actingAs($ownerA)
-            ->put(route('transactions.update', $transactionB), [])
-            ->assertForbidden();
+            ->put("/transactions/{$transactionB->id}", [])
+            ->assertMethodNotAllowed();
     }
 
-    public function test_purchase_edit_and_update_reject_other_store_records(): void
+    public function test_purchase_edit_and_update_endpoints_are_not_exposed(): void
     {
         [$ownerA, $ownerB] = $this->ownersWithSameStoreName();
         $gudangA = User::factory()->create([
@@ -322,12 +322,12 @@ class TenantIsolationByStoreIdTest extends TestCase
         ]);
 
         $this->actingAs($gudangA)
-            ->get(route('purchases.edit', $purchaseB))
-            ->assertForbidden();
+            ->get("/purchases/{$purchaseB->id}/edit")
+            ->assertNotFound();
 
         $this->actingAs($gudangA)
-            ->put(route('purchases.update', $purchaseB), [])
-            ->assertForbidden();
+            ->put("/purchases/{$purchaseB->id}", [])
+            ->assertMethodNotAllowed();
     }
 
     public function test_forecast_edit_and_update_reject_other_store_records(): void
