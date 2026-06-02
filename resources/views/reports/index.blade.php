@@ -29,6 +29,12 @@
         $salesSearch = $salesSearch ?? '';
         $purchaseSearch = $purchaseSearch ?? '';
         $stockSearch = $stockSearch ?? '';
+        $activeReportQuery = array_filter([
+            'period' => $period,
+            'sales_search' => $salesSearch,
+            'purchase_search' => $purchaseSearch,
+            'stock_search' => $stockSearch,
+        ], fn ($value) => filled($value));
 
         $paginationWindow = function ($paginator) {
             $lastPage = $paginator->lastPage();
@@ -119,10 +125,10 @@
                         <p class="mt-1 text-sm text-slate-500">Ringkasan omzet penjualan, modal barang terjual, keuntungan, dan margin dari periode aktif.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <a href="{{ route('reports.export', ['section' => 'profit', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
+                        <a href="{{ route('reports.export', array_merge(['section' => 'profit'], $activeReportQuery)) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
                             Export CSV
                         </a>
-                        <a href="{{ route('reports.print', ['section' => 'profit', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                        <a href="{{ route('reports.print', array_merge(['section' => 'profit'], $activeReportQuery)) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
                             Cetak
                         </a>
                     </div>
@@ -200,10 +206,10 @@
                             </div>
                         </form>
                         <div class="flex flex-wrap gap-2">
-                            <a href="{{ route('reports.export', ['section' => 'sales', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
+                            <a href="{{ route('reports.export', array_merge(['section' => 'sales'], $activeReportQuery)) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
                                 Export CSV
                             </a>
-                            <a href="{{ route('reports.print', ['section' => 'sales', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                            <a href="{{ route('reports.print', array_merge(['section' => 'sales'], $activeReportQuery)) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
                                 Cetak
                             </a>
                         </div>
@@ -320,10 +326,10 @@
                             </div>
                         </form>
                         <div class="flex flex-wrap gap-2">
-                            <a href="{{ route('reports.export', ['section' => 'purchases', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
+                            <a href="{{ route('reports.export', array_merge(['section' => 'purchases'], $activeReportQuery)) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
                                 Export CSV
                             </a>
-                            <a href="{{ route('reports.print', ['section' => 'purchases', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                            <a href="{{ route('reports.print', array_merge(['section' => 'purchases'], $activeReportQuery)) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
                                 Cetak
                             </a>
                         </div>
@@ -435,10 +441,10 @@
                         </div>
                     </form>
                     <div class="flex flex-wrap gap-2">
-                        <a href="{{ route('reports.export', ['section' => 'stock', 'period' => $period]) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
+                        <a href="{{ route('reports.export', array_merge(['section' => 'stock'], $activeReportQuery)) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
                             Export CSV
                         </a>
-                        <a href="{{ route('reports.print', ['section' => 'stock', 'period' => $period]) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                        <a href="{{ route('reports.print', array_merge(['section' => 'stock'], $activeReportQuery)) }}" target="_blank" class="inline-flex h-10 items-center rounded-lg bg-[#003441] px-3 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
                             Cetak
                         </a>
                     </div>
