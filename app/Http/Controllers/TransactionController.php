@@ -259,20 +259,6 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function edit(Request $request, Transaction $transaction): View
-    {
-        $this->abortIfTransactionOutsideStore($transaction, $request->user());
-
-        return view('transactions.edit', compact('transaction'));
-    }
-
-    public function update(Request $request, Transaction $transaction): RedirectResponse
-    {
-        $this->abortIfTransactionOutsideStore($transaction, $request->user());
-
-        return redirect()->route('transactions.index');
-    }
-
     public function destroy(Request $request, Transaction $transaction, StockMovementService $stockMovementService): RedirectResponse
     {
         $user = $request->user();

@@ -201,20 +201,6 @@ class PurchaseController extends Controller
         ]);
     }
 
-    public function edit(Request $request, Purchase $purchase): View
-    {
-        $this->abortIfPurchaseOutsideStore($purchase, $request->user());
-
-        return view('purchases.edit', compact('purchase'));
-    }
-
-    public function update(Request $request, Purchase $purchase): RedirectResponse
-    {
-        $this->abortIfPurchaseOutsideStore($purchase, $request->user());
-
-        return redirect()->route('purchases.index');
-    }
-
     public function destroy(Request $request, Purchase $purchase, StockMovementService $stockMovementService): RedirectResponse
     {
         $user = $request->user();

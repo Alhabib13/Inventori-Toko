@@ -88,7 +88,7 @@ Route::middleware('auth')->group(function (): void {
     });
 
     Route::middleware('mode.access:purchase-manage')->group(function (): void {
-        Route::resource('purchases', PurchaseController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
+        Route::resource('purchases', PurchaseController::class)->only(['create', 'store', 'destroy']);
     });
 
     Route::middleware('mode.access:purchase-read')->group(function (): void {
@@ -105,6 +105,6 @@ Route::middleware('auth')->group(function (): void {
     });
 
     Route::middleware('mode.access:owner')->group(function (): void {
-        Route::resource('transactions', TransactionController::class)->only(['edit', 'update', 'destroy']);
+        Route::resource('transactions', TransactionController::class)->only(['destroy']);
     });
 });

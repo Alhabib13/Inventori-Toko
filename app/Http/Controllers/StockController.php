@@ -71,21 +71,6 @@ class StockController extends Controller
         return view('stocks.show', ['stock' => $stock]);
     }
 
-    public function edit(StockMovement $stock): View
-    {
-        return view('stocks.edit', ['stock' => $stock]);
-    }
-
-    public function update(Request $request, StockMovement $stock): RedirectResponse
-    {
-        return redirect()->route('stocks.index');
-    }
-
-    public function destroy(StockMovement $stock): RedirectResponse
-    {
-        return redirect()->route('stocks.index');
-    }
-
     private function stockListingView(bool $showLowStockOnly = false): View
     {
         $search = trim((string) request()->query('search', ''));
