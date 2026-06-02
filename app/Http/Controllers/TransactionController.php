@@ -80,10 +80,19 @@ class TransactionController extends Controller
     public function create(Request $request): View
     {
         $user = $request->user();
+        $search = trim($request->string('search')->toString());
         $activeProductsQuery = Product::query()
             ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
             ->where('is_active', true)
-            ->where('stok', '>', 0);
+            ->where('stok', '>', 0)
+            ->when($search !== '', function (Builder $query) use ($search): void {
+                $query->where(function (Builder $searchQuery) use ($search): void {
+                    $searchQuery
+                        ->where('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('kode_produk', 'like', "%{$search}%")
+                        ->orWhereHas('kategori', fn (Builder $categoryQuery) => $categoryQuery->where('nama_kategori', 'like', "%{$search}%"));
+                });
+            });
 
         $products = (clone $activeProductsQuery)
             ->with('kategori:id,nama_kategori')
@@ -117,6 +126,7 @@ class TransactionController extends Controller
             'products' => $products,
             'posSummary' => $posSummary,
             'storeProfile' => $storeProfile,
+            'search' => $search,
         ]);
     }
 
@@ -131,6 +141,8 @@ class TransactionController extends Controller
             'nominal_bayar' => ['nullable', 'numeric', 'min:0'],
             'metode_pembayaran' => ['nullable', 'string', 'max:50'],
             'catatan' => ['nullable', 'string'],
+            'print_after_save' => ['nullable', 'boolean'],
+            'pos_cart_key' => ['nullable', 'string', 'max:255'],
         ]);
 
         $items = collect($data['items'])
@@ -223,7 +235,9 @@ class TransactionController extends Controller
 
         return redirect()
             ->route('transactions.show', $transaction)
-            ->with('status', 'Transaksi berhasil disimpan.');
+            ->with('status', 'Transaksi berhasil disimpan.')
+            ->with('print_after_save', $request->boolean('print_after_save'))
+            ->with('clear_pos_cart_key', $data['pos_cart_key'] ?? null);
     }
 
     public function show(Request $request, Transaction $transaction): View
@@ -233,9 +247,14 @@ class TransactionController extends Controller
         $this->abortIfTransactionOutsideStore($transaction, $user);
 
         $transaction->load(['kasir', 'detailItem.produk']);
+        $storeProfile = User::query()
+            ->tap(fn ($query) => $this->scopeToUserStore($query, $transaction->kasir))
+            ->where('role', 'owner')
+            ->first(['store_id', 'store_name', 'alamat_toko']);
 
         return view('transactions.show', [
             'transaction' => $transaction,
+            'storeProfile' => $storeProfile,
             'canCancelTransaction' => $user?->role === 'owner' && $transaction->status !== 'dibatalkan',
         ]);
     }

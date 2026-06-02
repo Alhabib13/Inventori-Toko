@@ -36,11 +36,15 @@ class PosSalesTransactionTest extends TestCase
                 ],
                 'nominal_bayar' => 40000,
                 'metode_pembayaran' => 'tunai',
+                'print_after_save' => '1',
+                'pos_cart_key' => 'sitori-pos-cart-test',
             ]);
 
         $transaction = Transaction::query()->first();
 
         $response->assertRedirect(route('transactions.show', $transaction));
+        $response->assertSessionHas('print_after_save', true);
+        $response->assertSessionHas('clear_pos_cart_key', 'sitori-pos-cart-test');
 
         $this->assertDatabaseHas('transactions', [
             'id' => $transaction->id,
@@ -77,6 +81,50 @@ class PosSalesTransactionTest extends TestCase
             'referensi_tipe' => 'transaction',
             'referensi_id' => $transaction->id,
         ]);
+    }
+
+    public function test_pos_save_button_can_trigger_receipt_auto_print_after_transaction_is_saved(): void
+    {
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+        ]);
+        $product = $this->createProduct($kasir->store_name, [
+            'stok' => 4,
+            'harga_jual' => 15000,
+        ]);
+
+        $response = $this->actingAs($kasir)
+            ->post('/transactions', [
+                'items' => [
+                    [
+                        'product_id' => $product->id,
+                        'qty' => 1,
+                    ],
+                ],
+                'nominal_bayar' => 15000,
+                'metode_pembayaran' => 'tunai',
+                'print_after_save' => '1',
+                'pos_cart_key' => 'sitori-pos-cart-auto-print',
+            ]);
+
+        $transaction = Transaction::query()->first();
+
+        $response
+            ->assertRedirect(route('transactions.show', $transaction))
+            ->assertSessionHas('print_after_save', true)
+            ->assertSessionHas('clear_pos_cart_key', 'sitori-pos-cart-auto-print');
+
+        $this->actingAs($kasir)
+            ->withSession([
+                'print_after_save' => true,
+                'clear_pos_cart_key' => 'sitori-pos-cart-auto-print',
+            ])
+            ->get(route('transactions.show', $transaction))
+            ->assertOk()
+            ->assertSee('data-auto-print-receipt', false)
+            ->assertSee('localStorage.removeItem', false)
+            ->assertSee('window.print()', false);
     }
 
     public function test_transaction_fails_when_stock_is_insufficient(): void
@@ -219,6 +267,35 @@ class PosSalesTransactionTest extends TestCase
             ->assertSee('Transaksi Hari Ini')
             ->assertSee('2')
             ->assertSee('1');
+    }
+
+    public function test_pos_product_search_queries_all_store_products_not_only_current_page(): void
+    {
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+        ]);
+
+        for ($index = 1; $index <= 10; $index++) {
+            $this->createProduct($kasir->store_name, [
+                'nama_produk' => 'Produk Halaman Awal '.$index,
+                'stok' => 5,
+            ]);
+        }
+
+        $targetProduct = $this->createProduct($kasir->store_name, [
+            'nama_produk' => 'Kopi Arabika Premium Khusus',
+            'kode_produk' => 'PRD-KOPI-SEARCH',
+            'stok' => 5,
+        ]);
+
+        $this->actingAs($kasir)
+            ->get(route('transactions.pos', ['search' => 'Arabika']))
+            ->assertOk()
+            ->assertSee($targetProduct->nama_produk)
+            ->assertSee('data-pos-cart-key', false)
+            ->assertSee('data-cart-hidden-inputs', false)
+            ->assertDontSee('Produk Halaman Awal 1');
     }
 
     public function test_gudang_cannot_access_pos_routes(): void
@@ -528,6 +605,8 @@ class PosSalesTransactionTest extends TestCase
         $this->actingAs($kasir)
             ->get(route('transactions.show', $transaction))
             ->assertOk()
+            ->assertSee('Print Struk')
+            ->assertSee('Pembayaran: QRIS')
             ->assertSee('Kasir Detail')
             ->assertSee('Qris')
             ->assertSee('Produk Detail')

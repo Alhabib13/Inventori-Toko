@@ -5,6 +5,9 @@
 
 @section('page_actions')
     <div class="flex flex-wrap items-center justify-end gap-3">
+        <button type="button" onclick="window.print()" class="inline-flex h-11 items-center justify-center rounded-lg bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+            Print Struk
+        </button>
         @if ($canCancelTransaction)
             <form method="POST" action="{{ route('transactions.destroy', $transaction) }}" data-confirm="Batalkan transaksi ini dan kembalikan stok produk?" data-confirm-title="Batalkan Transaksi">
                 @csrf
@@ -21,6 +24,153 @@
 @endsection
 
 @section('content')
+    <style>
+        .pos-receipt-print {
+            display: none;
+        }
+
+        @media print {
+            @page {
+                size: 58mm auto;
+                margin: 0;
+            }
+
+            html,
+            body {
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                background: #fff !important;
+            }
+
+            body * {
+                visibility: hidden !important;
+            }
+
+            .pos-receipt-print,
+            .pos-receipt-print * {
+                visibility: visible !important;
+            }
+
+            .pos-receipt-print {
+                position: fixed;
+                left: 50%;
+                top: 0;
+                transform: translateX(-50%);
+                display: block !important;
+                box-sizing: border-box;
+                width: 48mm;
+                max-width: 48mm;
+                padding: 3mm 0 5mm;
+                color: #000;
+                background: #fff;
+                font-family: "Courier New", ui-monospace, monospace;
+                font-size: 10px;
+                line-height: 1.28;
+            }
+
+            .pos-receipt-print .receipt-center {
+                text-align: center;
+            }
+
+            .pos-receipt-print .receipt-title {
+                font-size: 14px;
+                font-weight: 700;
+                line-height: 1.15;
+            }
+
+            .pos-receipt-print .receipt-rule {
+                margin: 6px 0;
+                border-top: 1px dashed #000;
+            }
+
+            .pos-receipt-print .receipt-row {
+                display: flex;
+                justify-content: space-between;
+                gap: 6px;
+            }
+
+            .pos-receipt-print .receipt-item {
+                margin-bottom: 5px;
+            }
+
+            .pos-receipt-print .receipt-item-name {
+                word-break: break-word;
+            }
+
+            .pos-receipt-print .receipt-total {
+                font-size: 12px;
+                font-weight: 700;
+            }
+        }
+    </style>
+
+    <div class="pos-receipt-print" aria-hidden="true">
+        <div class="receipt-center">
+            <div class="receipt-title">{{ $storeProfile?->store_name ?? $transaction->kasir?->store_name ?? 'Sitori POS' }}</div>
+            @if (filled($storeProfile?->alamat_toko))
+                <div>{{ $storeProfile->alamat_toko }}</div>
+            @endif
+        </div>
+
+        <div class="receipt-rule"></div>
+
+        <div>No: {{ $transaction->kode_transaksi }}</div>
+        <div>Tgl: {{ $transaction->tanggal_transaksi?->format('d/m/Y H:i') }}</div>
+        <div>Kasir: {{ $transaction->kasir?->name ?? '-' }}</div>
+        <div>Pembayaran: {{ strtoupper($transaction->metode_pembayaran ?? 'tunai') }}</div>
+
+        <div class="receipt-rule"></div>
+
+        @foreach ($transaction->detailItem as $item)
+            <div class="receipt-item">
+                <div class="receipt-item-name">{{ $item->nama_produk }}</div>
+                <div class="receipt-row">
+                    <span>{{ $item->qty }} x Rp{{ number_format((float) $item->harga, 0, ',', '.') }}</span>
+                    <span>Rp{{ number_format((float) $item->subtotal, 0, ',', '.') }}</span>
+                </div>
+            </div>
+        @endforeach
+
+        <div class="receipt-rule"></div>
+
+        <div class="receipt-row">
+            <span>Subtotal</span>
+            <span>Rp{{ number_format((float) $transaction->subtotal, 0, ',', '.') }}</span>
+        </div>
+        @if ((float) $transaction->diskon > 0)
+            <div class="receipt-row">
+                <span>Diskon</span>
+                <span>Rp{{ number_format((float) $transaction->diskon, 0, ',', '.') }}</span>
+            </div>
+        @endif
+        @if ((float) $transaction->pajak > 0)
+            <div class="receipt-row">
+                <span>Pajak</span>
+                <span>Rp{{ number_format((float) $transaction->pajak, 0, ',', '.') }}</span>
+            </div>
+        @endif
+        <div class="receipt-row receipt-total">
+            <span>Total</span>
+            <span>Rp{{ number_format((float) $transaction->total_bayar, 0, ',', '.') }}</span>
+        </div>
+        <div class="receipt-row">
+            <span>Bayar</span>
+            <span>Rp{{ number_format((float) $transaction->nominal_bayar, 0, ',', '.') }}</span>
+        </div>
+        <div class="receipt-row">
+            <span>Kembali</span>
+            <span>Rp{{ number_format((float) $transaction->kembalian, 0, ',', '.') }}</span>
+        </div>
+
+        <div class="receipt-rule"></div>
+
+        <div class="receipt-center">
+            Terima kasih<br>
+            Barang yang sudah dibeli tidak dapat ditukar.
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-[0.36fr_0.64fr]">
         <section class="rounded-[28px] border border-[#c0c8cb] bg-white shadow-sm">
             <div class="border-b border-[#c0c8cb] px-6 py-5">
@@ -161,4 +311,15 @@
             </div>
         </section>
     </div>
+
+    @if (session('print_after_save'))
+        <script data-auto-print-receipt>
+            window.addEventListener('load', () => {
+                @if (session('clear_pos_cart_key'))
+                    window.localStorage.removeItem(@json(session('clear_pos_cart_key')));
+                @endif
+                window.setTimeout(() => window.print(), 350);
+            });
+        </script>
+    @endif
 @endsection
