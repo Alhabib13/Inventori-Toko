@@ -29,10 +29,10 @@ class ProductController extends Controller
         $user = $request->user();
         $search = trim((string) $request->string('search'));
 
-        $products = Product::query()
+        $productsQuery = Product::query()
             ->with(['kategori', 'supplier']);
 
-        $products = $this->scopeToUserStore($products, $user)
+        $productsQuery = $this->scopeToUserStore($productsQuery, $user)
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($productQuery) use ($search) {
                     $productQuery
@@ -42,13 +42,22 @@ class ProductController extends Controller
                         ->orWhereHas('kategori', fn ($categoryQuery) => $categoryQuery->where('nama_kategori', 'like', "%{$search}%"))
                         ->orWhereHas('supplier', fn ($supplierQuery) => $supplierQuery->where('nama_supplier', 'like', "%{$search}%"));
                 });
-            })
+            });
+
+        $productSummary = [
+            'total' => (clone $productsQuery)->count(),
+            'low_stock' => (clone $productsQuery)->whereColumn('stok', '<=', 'stok_minimum')->count(),
+            'inactive' => (clone $productsQuery)->where('is_active', false)->count(),
+        ];
+
+        $products = (clone $productsQuery)
             ->latest()
             ->paginate(10)
             ->withQueryString();
 
         return view('products.index', [
             'products' => $products,
+            'productSummary' => $productSummary,
             'canManageProducts' => $this->canManageProducts($user?->role, $user?->mode_app),
             'requiresSupplier' => $user?->mode_app !== 'sederhana',
             'search' => $search,

@@ -84,7 +84,9 @@ class TransactionController extends Controller
         $activeProductsQuery = Product::query()
             ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
             ->where('is_active', true)
-            ->where('stok', '>', 0)
+            ->where('stok', '>', 0);
+
+        $filteredProductsQuery = (clone $activeProductsQuery)
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $query->where(function (Builder $searchQuery) use ($search): void {
                     $searchQuery
@@ -94,7 +96,7 @@ class TransactionController extends Controller
                 });
             });
 
-        $products = (clone $activeProductsQuery)
+        $products = $filteredProductsQuery
             ->with('kategori:id,nama_kategori')
             ->select(['id', 'category_id', 'store_id', 'store_name', 'nama_produk', 'kode_produk', 'harga_jual', 'stok', 'stok_minimum', 'satuan'])
             ->orderBy('nama_produk')
@@ -108,6 +110,7 @@ class TransactionController extends Controller
 
         $posSummary = [
             'active_products_count' => (clone $activeProductsQuery)->count(),
+            'search_result_count' => $products->total(),
             'low_stock_count' => Product::query()
                 ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
                 ->where('is_active', true)

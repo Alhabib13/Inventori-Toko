@@ -17,9 +17,7 @@ class CategoryController extends Controller
     {
         $search = trim((string) $request->string('search'));
 
-        $categoriesQuery = Category::query();
-
-        $categories = $this->scopeToUserStore($categoriesQuery, $request->user())
+        $categoriesQuery = $this->scopeToUserStore(Category::query(), $request->user())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($categoryQuery) use ($search) {
                     $categoryQuery
@@ -27,13 +25,22 @@ class CategoryController extends Controller
                         ->orWhere('slug', 'like', "%{$search}%")
                         ->orWhere('deskripsi', 'like', "%{$search}%");
                 });
-            })
+            });
+
+        $categorySummary = [
+            'total' => (clone $categoriesQuery)->count(),
+            'active' => (clone $categoriesQuery)->where('is_active', true)->count(),
+            'inactive' => (clone $categoriesQuery)->where('is_active', false)->count(),
+        ];
+
+        $categories = (clone $categoriesQuery)
             ->latest()
             ->paginate(10)
             ->withQueryString();
 
         return view('categories.index', [
             'categories' => $categories,
+            'categorySummary' => $categorySummary,
             'canManageCategories' => $this->canManageCategories($request->user()?->role, $request->user()?->mode_app),
             'search' => $search,
         ]);

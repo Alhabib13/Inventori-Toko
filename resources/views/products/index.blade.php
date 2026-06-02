@@ -10,8 +10,9 @@
     $currentPage = $products->currentPage();
     $startPage = max(1, min($currentPage - 3, max(1, $lastPage - 6)));
     $endPage = min($lastPage, $startPage + 6);
-    $lowStockCount = $products->getCollection()->filter(fn ($product) => $product->stok <= $product->stok_minimum)->count();
-    $inactiveCount = $products->getCollection()->where('is_active', false)->count();
+    $totalProductCount = $productSummary['total'] ?? $products->total();
+    $lowStockCount = $productSummary['low_stock'] ?? 0;
+    $inactiveCount = $productSummary['inactive'] ?? 0;
 @endphp
 
 @section('page_title', 'Produk')
@@ -73,7 +74,7 @@
         <section class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-5 shadow-sm">
                 <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Produk</p>
-                <p class="mt-2 text-3xl font-bold text-slate-900">{{ $products->total() }}</p>
+                <p class="mt-2 text-3xl font-bold text-slate-900">{{ $totalProductCount }}</p>
                 <p class="mt-1 text-sm text-slate-500">{{ $canManageProducts ? 'Data produk aktif untuk pengelolaan harian.' : 'Data produk untuk monitoring owner.' }}</p>
             </article>
             <article class="rounded-2xl border {{ $lowStockCount > 0 ? 'border-amber-200 bg-amber-50/70' : 'border-[#c0c8cb] bg-white' }} p-5 shadow-sm">

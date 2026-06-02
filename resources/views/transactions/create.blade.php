@@ -21,6 +21,7 @@
         $currentPage = $products->currentPage();
         $startPage = max(1, min($currentPage - 3, max(1, $lastPage - 6)));
         $endPage = min($lastPage, $startPage + 6);
+        $paginationQuery = request()->except('page');
     @endphp
 
     @php
@@ -36,7 +37,7 @@
         @csrf
         <input type="hidden" name="print_after_save" value="1">
         <input type="hidden" name="pos_cart_key" value="{{ $posCartKey }}">
-        <div data-cart-hidden-inputs></div>
+        <div class="hidden" data-cart-hidden-inputs></div>
 
         <section class="flex min-h-[680px] flex-col overflow-hidden rounded-[28px] border border-[#d3dbe0] bg-[#f4f6f7] shadow-sm lg:min-h-[760px]">
             <div class="px-5 py-5">
@@ -86,34 +87,34 @@
                     </div>
 
                     <div class="space-y-3 py-5 font-mono text-sm">
-                            <div class="flex items-center justify-between text-slate-600">
-                                <span>Subtotal</span>
-                                <span class="font-semibold text-slate-900" data-subtotal-label>Rp0</span>
-                            </div>
-                            <div class="flex items-center justify-between text-slate-600">
-                                <span>Diskon</span>
-                                <span class="font-semibold text-slate-900" data-discount-label>Rp0</span>
-                            </div>
-                            <div class="flex items-center justify-between text-slate-600">
-                                <span>Pajak</span>
-                                <span class="font-semibold text-slate-900" data-tax-label>Rp0</span>
-                            </div>
-                            <div class="flex items-center justify-between border-t border-dashed border-slate-300 pt-3">
-                                <span class="font-semibold text-slate-700">Total</span>
-                                <span class="text-3xl font-bold text-[#16a34a]" data-total-label>Rp0</span>
-                            </div>
-                            <div class="flex items-center justify-between text-slate-600">
-                                <span>Bayar</span>
-                                <span class="font-semibold text-slate-900" data-paid-label>Rp0</span>
-                            </div>
-                            <div class="flex items-center justify-between text-slate-600">
-                                <span>Pembayaran</span>
-                                <span class="font-semibold text-slate-900" data-payment-label>{{ old('metode_pembayaran', 'tunai') === 'qris' ? 'QRIS' : 'Tunai' }}</span>
-                            </div>
-                            <div class="flex items-center justify-between text-slate-600">
-                                <span>Kembalian</span>
-                                <span class="font-semibold text-emerald-700" data-change-label>Rp0</span>
-                            </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span>Subtotal</span>
+                            <span class="font-semibold text-slate-900" data-subtotal-label>Rp0</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span>Diskon</span>
+                            <span class="font-semibold text-slate-900" data-discount-label>Rp0</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span>Pajak</span>
+                            <span class="font-semibold text-slate-900" data-tax-label>Rp0</span>
+                        </div>
+                        <div class="flex items-center justify-between border-t border-dashed border-slate-300 pt-3">
+                            <span class="font-semibold text-slate-700">Total</span>
+                            <span class="text-3xl font-bold text-[#16a34a]" data-total-label>Rp0</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span>Bayar</span>
+                            <span class="font-semibold text-slate-900" data-paid-label>Rp0</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span>Pembayaran</span>
+                            <span class="font-semibold text-slate-900" data-payment-label>{{ old('metode_pembayaran', 'tunai') === 'qris' ? 'QRIS' : 'Tunai' }}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span>Kembalian</span>
+                            <span class="font-semibold text-emerald-700" data-change-label>Rp0</span>
+                        </div>
                     </div>
 
                     <div class="mt-5 border-t border-dashed border-slate-300 pt-5 text-center text-xs text-slate-500">
@@ -123,16 +124,6 @@
                 </div>
             </div>
 
-            <div class="border-t border-[#c0c8cb] bg-white px-6 py-5">
-                <div class="mx-auto flex max-w-[360px] flex-col gap-3 sm:flex-row">
-                    <a href="{{ route('transactions.index') }}" class="inline-flex h-12 flex-1 items-center justify-center rounded-xl border border-[#c0c8cb] text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
-                        Kembali
-                    </a>
-                    <button type="submit" data-loading-text="Menyimpan & menyiapkan struk..." class="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[#003441] text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
-                        Simpan & Cetak Struk
-                    </button>
-                </div>
-            </div>
         </section>
 
         <section class="overflow-hidden rounded-[28px] border border-[#c0c8cb] bg-white shadow-sm">
@@ -147,27 +138,6 @@
                     </div>
                 </div>
 
-                <div class="mt-5">
-                    <label for="pos_search" class="sr-only">Cari produk</label>
-                    <div class="flex flex-col gap-3 sm:flex-row">
-                        <div class="relative flex-1">
-                            <svg class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m21 21-4.35-4.35M10.75 18.5a7.75 7.75 0 1 1 0-15.5 7.75 7.75 0 0 1 0 15.5Z" />
-                            </svg>
-                            <input id="pos_search" type="search" value="{{ $search ?? '' }}" placeholder="Cari semua produk aktif..." class="h-12 w-full rounded-2xl border border-[#c0c8cb] bg-white pl-11 pr-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" data-product-search>
-                        </div>
-                        <div class="flex gap-2">
-                            <button type="button" class="inline-flex h-12 items-center justify-center rounded-2xl bg-[#003441] px-4 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]" data-product-search-submit>
-                                Cari
-                            </button>
-                            @if (($search ?? '') !== '')
-                                <a href="{{ route('transactions.pos') }}" class="inline-flex h-12 items-center justify-center rounded-2xl border border-[#c0c8cb] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-[#f3f4f5]">
-                                    Reset
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                </div>
             </div>
 
             @if ($errors->any())
@@ -229,6 +199,39 @@
                                     <input id="transaction_paid_amount" type="number" name="nominal_bayar" min="0" step="0.01" value="{{ old('nominal_bayar', 0) }}" class="h-11 w-full rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" data-paid-input>
                                 </div>
                             </div>
+                            <button type="submit" data-loading-text="Menyimpan & menyiapkan struk..." class="mt-4 inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#003441] text-sm font-semibold text-white transition hover:bg-[#0f4c5c]">
+                                Simpan & Cetak Struk
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4 rounded-2xl border border-[#c0c8cb] bg-[#f9f9fa] p-4">
+                    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Cari Produk</p>
+                            <p class="mt-1 text-sm text-slate-500">
+                                @if (($search ?? '') !== '')
+                                    Menampilkan {{ number_format($posSummary['search_result_count'] ?? $products->total(), 0, ',', '.') }} hasil untuk "{{ $search }}".
+                                @else
+                                    Temukan produk aktif dari seluruh katalog toko sebelum menambah qty ke struk.
+                                @endif
+                            </p>
+                        </div>
+                        <div class="flex w-full flex-col gap-2 sm:flex-row lg:max-w-xl">
+                            <label for="pos_search" class="sr-only">Cari produk</label>
+                            <div class="relative flex-1">
+                                <svg class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m21 21-4.35-4.35M10.75 18.5a7.75 7.75 0 1 1 0-15.5 7.75 7.75 0 0 1 0 15.5Z" />
+                                </svg>
+                                <input id="pos_search" type="search" value="{{ $search ?? '' }}" placeholder="Scan barcode atau cari produk..." class="h-11 w-full rounded-xl border border-[#c0c8cb] bg-white pl-11 pr-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10" data-product-search>
+                            </div>
+                            <button type="button" class="inline-flex h-11 items-center justify-center rounded-xl bg-[#003441] px-5 text-sm font-semibold text-white transition hover:bg-[#0f4c5c]" data-product-search-submit>
+                                Cari
+                            </button>
+                            <a href="{{ route('transactions.pos') }}" class="inline-flex h-11 items-center justify-center rounded-xl border border-[#c0c8cb] bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-white/70">
+                                Reset
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -250,7 +253,6 @@
                                 data-product-name="{{ $product->nama_produk }}"
                                 data-product-meta="{{ $product->kategori?->nama_kategori ?? 'Produk aktif' }} - stok {{ $product->stok }} {{ $product->satuan }}"
                                 data-product-stock="{{ $product->stok }}"
-                                data-search="{{ strtolower($product->nama_produk.' '.$product->kode_produk) }}"
                             >
                                 <div>
                                     <div class="flex items-center gap-4">
@@ -348,7 +350,7 @@
                                         Sebelumnya
                                     </span>
                                 @else
-                                    <a href="{{ $products->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                    <a href="{{ $products->appends($paginationQuery)->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                                         Sebelumnya
                                     </a>
                                 @endif
@@ -359,14 +361,14 @@
                                             {{ $page }}
                                         </span>
                                     @else
-                                        <a href="{{ $products->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                        <a href="{{ $products->appends($paginationQuery)->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                                             {{ $page }}
                                         </a>
                                     @endif
                                 @endfor
 
                                 @if ($products->hasMorePages())
-                                    <a href="{{ $products->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                    <a href="{{ $products->appends($paginationQuery)->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                                         Berikutnya
                                     </a>
                                 @else
@@ -411,18 +413,42 @@
                 const posPageJump = document.querySelector('[data-pos-page-jump]');
                 const cartKey = form?.dataset.posCartKey || 'sitori-pos-cart';
                 let cart = {};
+                let autoSyncPaidAmount = (Number(paidInput?.value) || 0) === 0;
 
                 const loadCart = () => {
                     try {
                         const parsedCart = JSON.parse(window.localStorage.getItem(cartKey) || '{}');
-                        cart = parsedCart && typeof parsedCart === 'object' ? parsedCart : {};
+                        if (!parsedCart || typeof parsedCart !== 'object') {
+                            cart = {};
+                            return;
+                        }
+
+                        if (parsedCart.items && typeof parsedCart.items === 'object') {
+                            cart = parsedCart.items;
+
+                            if (discountInput) discountInput.value = parsedCart.discount ?? discountInput.value ?? 0;
+                            if (taxInput) taxInput.value = parsedCart.tax ?? taxInput.value ?? 0;
+                            if (paidInput) paidInput.value = parsedCart.paidAmount ?? paidInput.value ?? 0;
+                            if (paymentInput) paymentInput.value = parsedCart.paymentMethod || paymentInput.value || 'tunai';
+                            autoSyncPaidAmount = parsedCart.autoSyncPaidAmount !== false;
+                            return;
+                        }
+
+                        cart = parsedCart;
                     } catch (error) {
                         cart = {};
                     }
                 };
 
                 const persistCart = () => {
-                    window.localStorage.setItem(cartKey, JSON.stringify(cart));
+                    window.localStorage.setItem(cartKey, JSON.stringify({
+                        items: cart,
+                        discount: Math.max(0, Number(discountInput?.value) || 0),
+                        tax: Math.max(0, Number(taxInput?.value) || 0),
+                        paidAmount: Math.max(0, Number(paidInput?.value) || 0),
+                        paymentMethod: paymentInput?.value || 'tunai',
+                        autoSyncPaidAmount,
+                    }));
                 };
 
                 const removeInvalidCartItems = () => {
@@ -545,12 +571,14 @@
                     const tax = Math.max(0, Number(taxInput?.value) || 0);
                     const total = Math.max(0, subtotal - discount + tax);
 
-                    if ((Number(paidInput?.value) || 0) === 0) {
+                    if (autoSyncPaidAmount && paidInput) {
                         paidInput.value = total;
                     }
 
                     const paidAmount = Math.max(0, Number(paidInput?.value) || 0);
                     const changeAmount = Math.max(0, paidAmount - total);
+
+                    persistCart();
 
                     selectedCountLabel.textContent = `${selectedCount} item`;
                     subtotalLabel.textContent = formatCurrency(subtotal);
@@ -627,12 +655,17 @@
                     syncRowWarning();
                 });
 
-                [discountInput, taxInput, paidInput].forEach((input) => input?.addEventListener('input', updateSummary));
+                [discountInput, taxInput].forEach((input) => input?.addEventListener('input', updateSummary));
+                paidInput?.addEventListener('input', () => {
+                    autoSyncPaidAmount = false;
+                    updateSummary();
+                });
 
                 paymentButtons.forEach((button) => {
                     button.addEventListener('click', () => {
                         paymentInput.value = button.dataset.paymentValue;
                         updatePaymentButtons();
+                        persistCart();
                     });
                 });
 
@@ -655,13 +688,13 @@
                     window.location.href = url.toString();
                 };
 
-                productSearchSubmit?.addEventListener('click', submitProductSearch);
                 productSearch?.addEventListener('keydown', (event) => {
                     if (event.key === 'Enter') {
                         event.preventDefault();
                         submitProductSearch();
                     }
                 });
+                productSearchSubmit?.addEventListener('click', submitProductSearch);
 
                 posPageJump?.addEventListener('click', () => {
                     const targetPage = Math.max(1, Math.min(Number(posPageInput?.max || 1), Number(posPageInput?.value || 1)));
