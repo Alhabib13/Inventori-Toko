@@ -209,7 +209,13 @@
                     <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Cari Produk</p>
-                            <p class="mt-1 text-sm text-slate-500">Temukan produk aktif sebelum menambah qty ke struk.</p>
+                            <p class="mt-1 text-sm text-slate-500">
+                                @if (($search ?? '') !== '')
+                                    Menampilkan {{ number_format($posSummary['search_result_count'] ?? $products->total(), 0, ',', '.') }} hasil untuk "{{ $search }}".
+                                @else
+                                    Temukan produk aktif dari seluruh katalog toko sebelum menambah qty ke struk.
+                                @endif
+                            </p>
                         </div>
                         <div class="flex w-full flex-col gap-2 sm:flex-row lg:max-w-xl">
                             <label for="pos_search" class="sr-only">Cari produk</label>
@@ -246,7 +252,6 @@
                                 data-product-name="{{ $product->nama_produk }}"
                                 data-product-meta="{{ $product->kategori?->nama_kategori ?? 'Produk aktif' }} - stok {{ $product->stok }} {{ $product->satuan }}"
                                 data-product-stock="{{ $product->stok }}"
-                                data-search="{{ strtolower($product->nama_produk.' '.$product->kode_produk) }}"
                             >
                                 <div>
                                     <div class="flex items-center gap-4">
