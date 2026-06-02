@@ -7,8 +7,9 @@
     $currentPage = $categories->currentPage();
     $startPage = max(1, min($currentPage - 3, max(1, $lastPage - 6)));
     $endPage = min($lastPage, $startPage + 6);
-    $activeCount = $categories->getCollection()->where('is_active', true)->count();
-    $inactiveCount = $categories->getCollection()->where('is_active', false)->count();
+    $totalCategoryCount = $categorySummary['total'] ?? $categories->total();
+    $activeCount = $categorySummary['active'] ?? 0;
+    $inactiveCount = $categorySummary['inactive'] ?? 0;
 @endphp
 
 @section('page_title', 'Kategori')
@@ -40,7 +41,7 @@
         <section class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-5 shadow-sm">
                 <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Kategori</p>
-                <p class="mt-2 text-3xl font-bold text-[#003441]">{{ $categories->total() }}</p>
+                <p class="mt-2 text-3xl font-bold text-[#003441]">{{ $totalCategoryCount }}</p>
                 <p class="mt-1 text-sm text-slate-500">{{ $canManageCategories ? 'Kelola klasifikasi produk dari satu tempat.' : 'Pantau struktur kategori untuk monitoring produk.' }}</p>
             </article>
             <article class="rounded-2xl border border-[#c0c8cb] bg-white p-5 shadow-sm">
