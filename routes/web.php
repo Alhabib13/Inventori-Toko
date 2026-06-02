@@ -14,7 +14,6 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/lupa-kata-sandi', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
-Route::get('/reset-sandi-owner', [AuthController::class, 'showOwnerPasswordResetForm'])->name('password.owner-reset');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');

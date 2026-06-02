@@ -34,11 +34,6 @@ class AuthController extends Controller
         return view('auth.forgot-password');
     }
 
-    public function showOwnerPasswordResetForm(Request $request): View
-    {
-        return $this->showResetPasswordForm($request);
-    }
-
     public function showResetPasswordForm(Request $request): View
     {
         return view('auth.reset-password', [
@@ -122,7 +117,7 @@ class AuthController extends Controller
         }
 
         return redirect()
-            ->route('password.owner-reset', ['email' => $data['email']])
+            ->route('password.owner.reset', ['email' => $data['email']])
             ->with('status', 'Jika email owner ditemukan, kode verifikasi sudah dikirim. Pada local dev, cek log Laravel bila mailer masih menggunakan log.');
     }
 
