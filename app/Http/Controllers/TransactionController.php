@@ -23,8 +23,9 @@ class TransactionController extends Controller
         $dateTo = $request->string('date_to')->toString();
         $search = trim($request->string('search')->toString());
         $cashierSummary = null;
+        $ownerSummary = null;
 
-        $transactions = Transaction::query()
+        $transactionsQuery = Transaction::query()
             ->with('kasir')
             ->when($user?->role === 'kasir', function (Builder $query) use ($user): void {
                 $query->where('user_id', $user->id);
@@ -46,7 +47,18 @@ class TransactionController extends Controller
                             $itemQuery->where('nama_produk', 'like', "%{$search}%");
                         });
                 });
-            })
+            });
+
+        if ($user?->role === 'owner') {
+            $ownerSummary = [
+                'transaction_count' => (clone $transactionsQuery)->count(),
+                'completed_count' => (clone $transactionsQuery)->where('status', 'selesai')->count(),
+                'cancelled_count' => (clone $transactionsQuery)->where('status', 'dibatalkan')->count(),
+                'sales_total' => (float) (clone $transactionsQuery)->where('status', 'selesai')->sum('total_bayar'),
+            ];
+        }
+
+        $transactions = (clone $transactionsQuery)
             ->latest('tanggal_transaksi')
             ->paginate(10)
             ->withQueryString();
@@ -74,6 +86,7 @@ class TransactionController extends Controller
             'search' => $search,
             'isKasir' => $user?->role === 'kasir',
             'cashierSummary' => $cashierSummary,
+            'ownerSummary' => $ownerSummary,
         ]);
     }
 

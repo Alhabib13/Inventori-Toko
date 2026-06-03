@@ -15,10 +15,12 @@
 
 @section('content')
     @php
-        $pageTransactions = $transactions->getCollection();
-        $completedCount = $pageTransactions->where('status', 'selesai')->count();
-        $cancelledCount = $pageTransactions->where('status', 'dibatalkan')->count();
-        $salesTotal = $pageTransactions->sum('total_bayar');
+        $ownerSummary = $ownerSummary ?? [
+            'transaction_count' => $transactions->total(),
+            'completed_count' => 0,
+            'cancelled_count' => 0,
+            'sales_total' => 0,
+        ];
         $lastPage = $transactions->lastPage();
         $currentPage = $transactions->currentPage();
         $startPage = max(1, min($currentPage - 3, max(1, $lastPage - 6)));
@@ -50,19 +52,19 @@
         @else
             <section class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
-                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Transaksi Tampil</p>
-                    <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $pageTransactions->count() }}</h2>
-                    <p class="mt-2 text-sm text-slate-500">Riwayat transaksi pada halaman aktif sesuai filter periode.</p>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Transaksi</p>
+                    <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $ownerSummary['transaction_count'] }}</h2>
+                    <p class="mt-2 text-sm text-slate-500">Seluruh riwayat transaksi yang cocok dengan filter aktif.</p>
                 </article>
                 <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Transaksi Selesai</p>
-                    <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $completedCount }}</h2>
-                    <p class="mt-2 text-sm text-slate-500">Transaksi yang berhasil disimpan dan selesai diproses.</p>
+                    <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ $ownerSummary['completed_count'] }}</h2>
+                    <p class="mt-2 text-sm text-slate-500">Transaksi selesai dari seluruh hasil filter, bukan hanya halaman aktif.</p>
                 </article>
                 <article class="rounded-2xl border border-[#c0c8cb] bg-white p-6 shadow-sm">
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Total Penjualan</p>
-                    <h2 class="mt-2 text-3xl font-bold tracking-tight text-[#003441]">Rp{{ number_format((float) $salesTotal, 0, ',', '.') }}</h2>
-                    <p class="mt-2 text-sm text-slate-500">{{ $cancelledCount }} transaksi dibatalkan pada data yang sedang ditampilkan.</p>
+                    <h2 class="mt-2 text-3xl font-bold tracking-tight text-[#003441]">Rp{{ number_format((float) $ownerSummary['sales_total'], 0, ',', '.') }}</h2>
+                    <p class="mt-2 text-sm text-slate-500">{{ $ownerSummary['cancelled_count'] }} transaksi dibatalkan pada hasil filter aktif.</p>
                 </article>
             </section>
         @endif
