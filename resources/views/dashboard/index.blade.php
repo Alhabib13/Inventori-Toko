@@ -22,21 +22,24 @@
 
 @section('content')
     @php
-        $trendMax = max(1, (int) $salesTrend->max('profit'));
+        $trendProfitMax = max(0, (float) $salesTrend->max('profit'));
+        $trendProfitMin = min(0, (float) $salesTrend->min('profit'));
+        $trendProfitRange = max(1, $trendProfitMax - $trendProfitMin);
+        $chartY = fn ($profit) => 92 - (((float) $profit - $trendProfitMin) / $trendProfitRange * 84);
+        $zeroLineY = $chartY(0);
         $firstPoint = $salesTrend->first();
         $lastPoint = $salesTrend->last();
         $chartPoints = $salesTrend
             ->values()
-            ->map(function ($point, $index) use ($salesTrend, $trendMax) {
+            ->map(function ($point, $index) use ($salesTrend, $chartY) {
                 $width = 100;
-                $height = 100;
                 $x = $salesTrend->count() === 1 ? 50 : ($index * ($width / max(1, $salesTrend->count() - 1)));
-                $y = $height - (($point['profit'] / $trendMax) * 84) - 8;
+                $y = $chartY($point['profit']);
 
                 return round($x, 2).','.round($y, 2);
             })
             ->implode(' ');
-        $chartAreaPoints = '0,92 '.$chartPoints.' 100,92';
+        $chartAreaPoints = '0,'.round($zeroLineY, 2).' '.$chartPoints.' 100,'.round($zeroLineY, 2);
         $forecastAvailable = $forecastHighlights->isNotEmpty();
     @endphp
 
@@ -140,19 +143,25 @@
                             <line x1="0" y1="92" x2="100" y2="92" stroke="#d6dde1" stroke-width="1" />
                             <line x1="0" y1="50" x2="100" y2="50" stroke="#ecf0f2" stroke-width="1" stroke-dasharray="3 3" />
                             <line x1="0" y1="8" x2="100" y2="8" stroke="#ecf0f2" stroke-width="1" stroke-dasharray="3 3" />
-                            <polygon points="{{ $chartAreaPoints }}" fill="#d0e1fb" opacity="0.45" />
-                            <polyline fill="none" stroke="#0f4c5c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="{{ $chartPoints }}" />
+                            <line x1="0" y1="{{ round($zeroLineY, 2) }}" x2="100" y2="{{ round($zeroLineY, 2) }}" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4 3" />
+                            <polygon points="{{ $chartAreaPoints }}" fill="{{ $salesTrendProfitTotal >= 0 ? '#d0e1fb' : '#fee2e2' }}" opacity="0.45" />
+                            <polyline fill="none" stroke="{{ $salesTrendProfitTotal >= 0 ? '#0f4c5c' : '#dc2626' }}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="{{ $chartPoints }}" />
                             @foreach ($salesTrend as $pointIndex => $point)
                                 @php
                                     $x = $salesTrend->count() === 1 ? 50 : ($pointIndex * (100 / max(1, $salesTrend->count() - 1)));
-                                    $y = 100 - (($point['profit'] / $trendMax) * 84) - 8;
+                                    $y = $chartY($point['profit']);
                                 @endphp
-                                <circle cx="{{ round($x, 2) }}" cy="{{ round($y, 2) }}" r="2.2" fill="#003441" />
+                                <circle cx="{{ round($x, 2) }}" cy="{{ round($y, 2) }}" r="2.2" fill="{{ $point['profit'] >= 0 ? '#003441' : '#dc2626' }}" />
                             @endforeach
                         </svg>
                         <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
                             <span>{{ $firstPoint['label'] ?? '-' }}</span>
-                            <span>Puncak laba Rp{{ number_format($trendMax, 0, ',', '.') }}</span>
+                            <span>
+                                Laba tertinggi Rp{{ number_format($trendProfitMax, 0, ',', '.') }}
+                                @if ($trendProfitMin < 0)
+                                    - Rugi terdalam Rp{{ number_format(abs($trendProfitMin), 0, ',', '.') }}
+                                @endif
+                            </span>
                             <span>{{ $lastPoint['label'] ?? '-' }}</span>
                         </div>
                     </div>
