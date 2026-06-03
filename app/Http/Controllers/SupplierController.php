@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\Supplier;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
@@ -127,7 +128,7 @@ class SupplierController extends Controller
         return redirect()->route('suppliers.index')->with('success', 'Supplier berhasil dihapus.');
     }
 
-    public function destroyAll(Request $request): RedirectResponse
+    public function destroyAll(Request $request, ActivityLogService $activityLog): RedirectResponse
     {
         $supplierIds = Supplier::query()
             ->tap(fn ($query) => $this->scopeToUserStore($query, $request->user()))
@@ -149,6 +150,11 @@ class SupplierController extends Controller
         }
 
         Supplier::query()->whereIn('id', $supplierIds)->delete();
+
+        $activityLog->record('supplier.destroy_all', $request->user(), $request, null, null, [
+            'deleted_count' => $supplierIds->count(),
+            'supplier_ids' => $supplierIds->values()->all(),
+        ]);
 
         return redirect()
             ->route('suppliers.index')
