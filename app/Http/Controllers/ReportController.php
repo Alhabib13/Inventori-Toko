@@ -92,68 +92,55 @@ class ReportController extends Controller
         $stockProductsCollection = Product::query()
             ->with(['kategori', 'supplier'])
             ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
+            ->where('is_active', true)
             ->orderBy('nama_produk')
             ->get();
 
         $activeSalesCollection = $salesCollection
             ->reject(fn (Transaction $sale): bool => $sale->status === 'dibatalkan')
             ->values();
-        $salesTotal = (float) $activeSalesCollection->sum('total_bayar');
-        $purchaseTotal = (float) $purchasesCollection->sum('total_bayar');
-        $stockValue = (float) $stockProductsCollection->sum(
+
+        $filteredSalesCollection = $activeSalesCollection->filter(function (Transaction $sale) use ($salesSearch) {
+            return $this->saleMatchesSearch($sale, $salesSearch);
+        })->values();
+
+        $filteredPurchasesCollection = $purchasesCollection->filter(function (Purchase $purchase) use ($purchaseSearch) {
+            return $this->purchaseMatchesSearch($purchase, $purchaseSearch);
+        })->values();
+
+        $filteredStockProductsCollection = $stockProductsCollection->filter(function (Product $product) use ($stockSearch) {
+            return $this->productMatchesSearch($product, $stockSearch);
+        })->values();
+
+        $salesTotal = (float) $filteredSalesCollection->sum('total_bayar');
+        $purchaseTotal = (float) $filteredPurchasesCollection->sum('total_bayar');
+        $stockValue = (float) $filteredStockProductsCollection->sum(
             fn (Product $product) => $product->stok * (float) $product->harga_beli
         );
-        $stockLowCount = $stockProductsCollection->filter(fn (Product $product) => $product->stok <= $product->stok_minimum)->count();
+        $stockLowCount = $filteredStockProductsCollection->filter(fn (Product $product) => $product->stok <= $product->stok_minimum)->count();
         $revenue = $salesTotal;
-        $capital = (float) $activeSalesCollection->sum('modal_barang_terjual');
-        $grossProfit = (float) $activeSalesCollection->sum('keuntungan_penjualan');
+        $capital = (float) $filteredSalesCollection->sum('modal_barang_terjual');
+        $grossProfit = (float) $filteredSalesCollection->sum('keuntungan_penjualan');
         $margin = $revenue > 0 ? ($grossProfit / $revenue) * 100 : 0;
         $canViewSalesAndProfit = $user?->role === 'owner';
         $canViewPurchases = $user?->role === 'owner' || ($user?->role === 'gudang' && $user->mode_app === 'lengkap');
 
         $sales = $this->paginateCollection(
-            $salesCollection->filter(function (Transaction $sale) use ($salesSearch) {
-                if ($salesSearch === '') {
-                    return true;
-                }
-
-                return str_contains(strtolower($sale->kode_transaksi), strtolower($salesSearch))
-                    || str_contains(strtolower($sale->kasir?->name ?? ''), strtolower($salesSearch))
-                    || str_contains(strtolower($sale->status ?? ''), strtolower($salesSearch))
-                    || str_contains(strtolower($sale->metode_pembayaran ?? ''), strtolower($salesSearch));
-            })->values(),
+            $filteredSalesCollection,
             10,
             $request,
             'sales_page'
         );
 
         $purchases = $this->paginateCollection(
-            $purchasesCollection->filter(function (Purchase $purchase) use ($purchaseSearch) {
-                if ($purchaseSearch === '') {
-                    return true;
-                }
-
-                return str_contains(strtolower($purchase->kode_pembelian), strtolower($purchaseSearch))
-                    || str_contains(strtolower($purchase->supplier?->nama_supplier ?? ''), strtolower($purchaseSearch))
-                    || str_contains(strtolower($purchase->pengguna?->name ?? ''), strtolower($purchaseSearch))
-                    || str_contains(strtolower($purchase->status ?? ''), strtolower($purchaseSearch));
-            })->values(),
+            $filteredPurchasesCollection,
             10,
             $request,
             'purchase_page'
         );
 
         $stockProducts = $this->paginateCollection(
-            $stockProductsCollection->filter(function (Product $product) use ($stockSearch) {
-                if ($stockSearch === '') {
-                    return true;
-                }
-
-                return str_contains(strtolower($product->nama_produk), strtolower($stockSearch))
-                    || str_contains(strtolower($product->kode_produk), strtolower($stockSearch))
-                    || str_contains(strtolower($product->kategori?->nama_kategori ?? ''), strtolower($stockSearch))
-                    || str_contains(strtolower($product->supplier?->nama_supplier ?? ''), strtolower($stockSearch));
-            })->values(),
+            $filteredStockProductsCollection,
             10,
             $request,
             'stock_page'
@@ -173,9 +160,9 @@ class ReportController extends Controller
             'sales' => $sales,
             'purchases' => $purchases,
             'stockProducts' => $stockProducts,
-            'salesAll' => $salesCollection,
-            'purchasesAll' => $purchasesCollection,
-            'stockProductsAll' => $stockProductsCollection,
+            'salesAll' => $filteredSalesCollection,
+            'purchasesAll' => $filteredPurchasesCollection,
+            'stockProductsAll' => $filteredStockProductsCollection,
             'salesTotal' => $salesTotal,
             'purchaseTotal' => $purchaseTotal,
             'stockValue' => $stockValue,
@@ -223,9 +210,43 @@ class ReportController extends Controller
 
     private function saleGrossProfit(Transaction $sale): float
     {
-        return (float) $sale->detailItem->sum(function ($item): float {
-            return (int) $item->qty * ((float) $item->harga - (float) ($item->harga_beli ?? $item->produk?->harga_beli ?? 0));
-        });
+        return (float) $sale->total_bayar - $this->saleCost($sale);
+    }
+
+    private function saleMatchesSearch(Transaction $sale, string $salesSearch): bool
+    {
+        if ($salesSearch === '') {
+            return true;
+        }
+
+        return str_contains(strtolower($sale->kode_transaksi), strtolower($salesSearch))
+            || str_contains(strtolower($sale->kasir?->name ?? ''), strtolower($salesSearch))
+            || str_contains(strtolower($sale->status ?? ''), strtolower($salesSearch))
+            || str_contains(strtolower($sale->metode_pembayaran ?? ''), strtolower($salesSearch));
+    }
+
+    private function purchaseMatchesSearch(Purchase $purchase, string $purchaseSearch): bool
+    {
+        if ($purchaseSearch === '') {
+            return true;
+        }
+
+        return str_contains(strtolower($purchase->kode_pembelian), strtolower($purchaseSearch))
+            || str_contains(strtolower($purchase->supplier?->nama_supplier ?? ''), strtolower($purchaseSearch))
+            || str_contains(strtolower($purchase->pengguna?->name ?? ''), strtolower($purchaseSearch))
+            || str_contains(strtolower($purchase->status ?? ''), strtolower($purchaseSearch));
+    }
+
+    private function productMatchesSearch(Product $product, string $stockSearch): bool
+    {
+        if ($stockSearch === '') {
+            return true;
+        }
+
+        return str_contains(strtolower($product->nama_produk), strtolower($stockSearch))
+            || str_contains(strtolower($product->kode_produk), strtolower($stockSearch))
+            || str_contains(strtolower($product->kategori?->nama_kategori ?? ''), strtolower($stockSearch))
+            || str_contains(strtolower($product->supplier?->nama_supplier ?? ''), strtolower($stockSearch));
     }
 
     private function resolvePeriod(Request $request): string

@@ -7,7 +7,6 @@ use App\Models\Purchase;
 use App\Models\SalesForecast;
 use App\Models\Supplier;
 use App\Models\Transaction;
-use App\Models\TransactionItem;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -24,16 +23,15 @@ class DashboardController extends Controller
             $trendPeriod = 7;
         }
 
-        $salesTotal = (float) Transaction::query()
-            ->whereHas('kasir', fn ($query) => $this->scopeToUserStore($query, $user))
-            ->where('status', '!=', 'dibatalkan')
-            ->sum('total_bayar');
-        $grossProfitTotal = $this->grossProfitQuery($user)->sum(DB::raw('transaction_items.qty * (transaction_items.harga - COALESCE(transaction_items.harga_beli, products.harga_beli, 0))'));
+        $validSales = $this->salesForUser($user)->get();
+        $salesTotal = (float) $validSales->sum('total_bayar');
+        $grossProfitTotal = (float) $validSales->sum(fn (Transaction $sale): float => $this->saleGrossProfit($sale));
         $purchaseTotal = (float) Purchase::query()
             ->whereHas('pengguna', fn ($query) => $this->scopeToUserStore($query, $user))
             ->where('status', '!=', 'dibatalkan')
             ->sum('total_bayar');
-        $productScope = $this->scopeToUserStore(Product::query(), $user);
+        $productScope = $this->scopeToUserStore(Product::query(), $user)
+            ->where('is_active', true);
         $stockTotal = (int) (clone $productScope)->sum('stok');
         $productCount = (clone $productScope)->count();
         $stockValue = (float) (clone $productScope)->sum(DB::raw('stok * harga_beli'));
@@ -44,6 +42,7 @@ class DashboardController extends Controller
         $criticalProductsCount = (clone $productScope)->whereColumn('stok', '<=', 'stok_minimum')->count();
         $criticalProducts = Product::query()
             ->tap(fn ($query) => $this->scopeToUserStore($query, $user))
+            ->where('is_active', true)
             ->whereColumn('stok', '<=', 'stok_minimum')
             ->orderByRaw('(stok_minimum - stok) DESC')
             ->take(5)
@@ -53,6 +52,7 @@ class DashboardController extends Controller
             ->with('produk')
             ->whereHas('produk', function ($query) use ($user): void {
                 $this->scopeToUserStore($query, $user);
+                $query->where('is_active', true);
             })
             ->latest()
             ->take(5)
@@ -80,9 +80,10 @@ class DashboardController extends Controller
                         ->whereDate('tanggal_transaksi', $date->toDateString())
                         ->where('status', '!=', 'dibatalkan')
                         ->sum('total_bayar'),
-                    'profit' => (float) $this->grossProfitQuery($user)
+                    'profit' => (float) $this->salesForUser($user)
                         ->whereDate('transactions.tanggal_transaksi', $date->toDateString())
-                        ->sum(DB::raw('transaction_items.qty * (transaction_items.harga - COALESCE(transaction_items.harga_beli, products.harga_beli, 0))')),
+                        ->get()
+                        ->sum(fn (Transaction $sale): float => $this->saleGrossProfit($sale)),
                 ];
             });
         $salesTrendProfitTotal = (float) $salesTrend->sum('profit');
@@ -93,9 +94,10 @@ class DashboardController extends Controller
             ->where('status', '!=', 'dibatalkan');
         $todaySalesCount = (clone $todaySalesScope)->count();
         $todaySalesTotal = (float) (clone $todaySalesScope)->sum('total_bayar');
-        $todayGrossProfit = (float) $this->grossProfitQuery($user)
+        $todayGrossProfit = (float) $this->salesForUser($user)
             ->whereDate('transactions.tanggal_transaksi', now()->toDateString())
-            ->sum(DB::raw('transaction_items.qty * (transaction_items.harga - COALESCE(transaction_items.harga_beli, products.harga_beli, 0))'));
+            ->get()
+            ->sum(fn (Transaction $sale): float => $this->saleGrossProfit($sale));
 
         return view('dashboard.index', [
             'isSimpleMode' => $isSimpleMode,
@@ -125,14 +127,23 @@ class DashboardController extends Controller
         ]);
     }
 
-    private function grossProfitQuery($user)
+    private function salesForUser($user)
     {
-        $query = TransactionItem::query()
-            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
-            ->join('products', 'transaction_items.product_id', '=', 'products.id')
-            ->join('users', 'transactions.user_id', '=', 'users.id')
+        return Transaction::query()
+            ->with('detailItem.produk')
+            ->whereHas('kasir', fn ($query) => $this->scopeToUserStore($query, $user))
             ->where('transactions.status', '!=', 'dibatalkan');
+    }
 
-        return $this->scopeToUserStore($query, $user, 'users.store_id', 'users.store_name');
+    private function saleCost(Transaction $sale): float
+    {
+        return (float) $sale->detailItem->sum(function ($item): float {
+            return (int) $item->qty * (float) ($item->harga_beli ?? $item->produk?->harga_beli ?? 0);
+        });
+    }
+
+    private function saleGrossProfit(Transaction $sale): float
+    {
+        return (float) $sale->total_bayar - $this->saleCost($sale);
     }
 }

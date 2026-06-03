@@ -176,6 +176,44 @@ class PurchaseManagementStockUpdateTest extends TestCase
         $this->assertEquals(0, StockMovement::query()->count());
     }
 
+    public function test_purchase_rejects_duplicate_product_items(): void
+    {
+        $gudang = User::factory()->create([
+            'role' => 'gudang',
+            'mode_app' => 'lengkap',
+        ]);
+        $supplier = $this->createSupplier($gudang->store_name);
+        $product = $this->createProduct($gudang->store_name, ['stok' => 5, 'harga_beli' => 10000]);
+
+        $this->actingAs($gudang)
+            ->from('/purchases/create')
+            ->post('/purchases', [
+                'supplier_id' => $supplier->id,
+                'items' => [
+                    [
+                        'product_id' => $product->id,
+                        'qty' => 2,
+                        'harga_beli' => 11000,
+                    ],
+                    [
+                        'product_id' => $product->id,
+                        'qty' => 3,
+                        'harga_beli' => 12000,
+                    ],
+                ],
+            ])
+            ->assertRedirect('/purchases/create')
+            ->assertSessionHasErrors('items');
+
+        $this->assertDatabaseCount('purchases', 0);
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'stok' => 5,
+            'harga_beli' => 10000,
+        ]);
+        $this->assertDatabaseCount('stock_movements', 0);
+    }
+
     public function test_owner_lengkap_cannot_access_purchase_routes(): void
     {
         $owner = User::factory()->create([

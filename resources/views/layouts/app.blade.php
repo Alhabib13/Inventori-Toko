@@ -182,15 +182,35 @@
         $role = $user?->role;
         $modeApp = $user?->mode_app;
         $storeName = $user?->store_name;
-        $criticalProductsCount = in_array($role, ['owner', 'gudang'], true)
-            ? \App\Models\Product::query()
+        $hasAmbiguousStoreName = filled($storeName)
+            && \App\Models\User::query()
+                ->where('role', 'owner')
                 ->where('store_name', $storeName)
+                ->whereNotNull('store_id')
+                ->distinct('store_id')
+                ->count('store_id') > 1;
+        $criticalProductsQuery = \App\Models\Product::query()
+            ->where('is_active', true)
+            ->when(filled($user?->store_id), function ($query) use ($user, $storeName, $hasAmbiguousStoreName): void {
+                $query->where(function ($tenantQuery) use ($user, $storeName, $hasAmbiguousStoreName): void {
+                    $tenantQuery->where('store_id', $user->store_id);
+
+                    if (! $hasAmbiguousStoreName) {
+                        $tenantQuery->orWhere(function ($legacyQuery) use ($storeName): void {
+                            $legacyQuery
+                                ->whereNull('store_id')
+                                ->where('store_name', $storeName);
+                        });
+                    }
+                });
+            }, fn ($query) => $query->whereRaw('1 = 0'));
+        $criticalProductsCount = in_array($role, ['owner', 'gudang'], true)
+            ? (clone $criticalProductsQuery)
                 ->whereColumn('stok', '<=', 'stok_minimum')
                 ->count()
             : 0;
         $criticalProductsPreview = $criticalProductsCount > 0
-            ? \App\Models\Product::query()
-                ->where('store_name', $storeName)
+            ? (clone $criticalProductsQuery)
                 ->whereColumn('stok', '<=', 'stok_minimum')
                 ->orderByRaw('(stok_minimum - stok) DESC')
                 ->take(5)

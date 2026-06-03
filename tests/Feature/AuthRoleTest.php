@@ -6,6 +6,7 @@ use App\Mail\OwnerPasswordResetCodeMail;
 use App\Mail\OwnerRegistrationVerificationCodeMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -143,7 +144,7 @@ class AuthRoleTest extends TestCase
 
         $this->post(route('password.owner.email'), [
             'email' => $owner->email,
-        ])->assertRedirect(route('password.owner-reset', ['email' => $owner->email]));
+        ])->assertRedirect(route('password.owner.reset', ['email' => $owner->email]));
 
         $resetToken = DB::table('password_reset_tokens')->where('email', $owner->email)->first();
 
@@ -165,13 +166,45 @@ class AuthRoleTest extends TestCase
 
         $this->post(route('password.owner.email'), [
             'email' => $kasir->email,
-        ])->assertRedirect(route('password.owner-reset', ['email' => $kasir->email]));
+        ])->assertRedirect(route('password.owner.reset', ['email' => $kasir->email]));
 
         $this->assertDatabaseMissing('password_reset_tokens', [
             'email' => $kasir->email,
         ]);
 
         Mail::assertNothingSent();
+    }
+
+    public function test_email_code_endpoints_are_rate_limited(): void
+    {
+        Mail::fake();
+
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'email' => 'owner-rate-limit@toko.com',
+        ]);
+
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $this->post(route('password.owner.email'), [
+                'email' => $owner->email,
+            ])->assertRedirect();
+        }
+
+        $this->post(route('password.owner.email'), [
+            'email' => $owner->email,
+        ])->assertTooManyRequests();
+
+        Cache::flush();
+
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $this->post(route('register.owner.send-code'), [
+                'email' => "owner-register-rate-{$attempt}@toko.com",
+            ])->assertRedirect();
+        }
+
+        $this->post(route('register.owner.send-code'), [
+            'email' => 'owner-register-rate-final@toko.com',
+        ])->assertTooManyRequests();
     }
 
     public function test_owner_can_reset_password_with_valid_verification_code(): void

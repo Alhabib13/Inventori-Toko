@@ -103,6 +103,12 @@ class PurchaseController extends Controller
             ]);
         }
 
+        if ($items->pluck('product_id')->count() !== $items->pluck('product_id')->unique()->count()) {
+            throw ValidationException::withMessages([
+                'items' => 'Produk yang sama tidak boleh dimasukkan lebih dari satu baris pembelian.',
+            ]);
+        }
+
         $supplier = Supplier::query()
             ->whereKey($data['supplier_id'])
             ->tap(fn ($query) => $this->scopeToUserStore($query, $request->user()))
