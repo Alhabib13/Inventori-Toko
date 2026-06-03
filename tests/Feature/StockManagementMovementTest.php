@@ -68,6 +68,64 @@ class StockManagementMovementTest extends TestCase
         ]);
     }
 
+    public function test_stock_manager_can_update_product_stock_inline_and_record_movement(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+        ]);
+        $product = $this->createProduct($owner->store_name, [
+            'store_id' => $owner->store_id,
+            'stok' => 4,
+        ]);
+
+        $this->actingAs($owner)
+            ->patch(route('stocks.product-stock.update', $product), [
+                'stok' => 9,
+                'catatan' => 'Koreksi stok opname',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'stok' => 9,
+        ]);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'user_id' => $owner->id,
+            'jenis_pergerakan' => 'masuk',
+            'qty' => 5,
+            'stok_sebelum' => 4,
+            'stok_sesudah' => 9,
+            'referensi_tipe' => 'manual',
+            'catatan' => 'Koreksi stok opname',
+        ]);
+    }
+
+    public function test_cashier_cannot_update_product_stock_inline(): void
+    {
+        $kasir = User::factory()->create([
+            'role' => 'kasir',
+            'mode_app' => 'sederhana',
+        ]);
+        $product = $this->createProduct($kasir->store_name, [
+            'store_id' => $kasir->store_id,
+            'stok' => 4,
+        ]);
+
+        $this->actingAs($kasir)
+            ->patch(route('stocks.product-stock.update', $product), [
+                'stok' => 9,
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'stok' => 4,
+        ]);
+    }
+
     public function test_owner_lengkap_cannot_access_stock_management(): void
     {
         $owner = User::factory()->create([

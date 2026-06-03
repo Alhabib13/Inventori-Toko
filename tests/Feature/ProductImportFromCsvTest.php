@@ -194,4 +194,46 @@ class ProductImportFromCsvTest extends TestCase
             'nama_produk' => 'Stop Kontak',
         ]);
     }
+
+    public function test_import_does_not_reuse_legacy_store_name_data_when_store_name_is_ambiguous(): void
+    {
+        $firstOwner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+            'store_name' => 'Toko Sama',
+        ]);
+        User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+            'store_name' => 'Toko Sama',
+        ]);
+        $legacyCategory = Category::create([
+            'nama_kategori' => 'Sembako',
+            'slug' => 'sembako',
+            'store_id' => null,
+            'store_name' => 'Toko Sama',
+            'is_active' => true,
+        ]);
+
+        $file = UploadedFile::fake()->createWithContent('produk-ambiguous.csv', implode("\n", [
+            'nama_produk,kategori,satuan,harga_beli,harga_jual,stok_awal,stok_minimum',
+            'Beras Aman,Sembako,pcs,10000,12000,3,1',
+        ]));
+
+        $this->actingAs($firstOwner)
+            ->post(route('products.import'), [
+                'import_file' => $file,
+            ])
+            ->assertRedirect(route('products.index'));
+
+        $product = Product::query()->where('nama_produk', 'Beras Aman')->firstOrFail();
+
+        $this->assertNotSame($legacyCategory->id, $product->category_id);
+        $this->assertDatabaseHas('categories', [
+            'id' => $product->category_id,
+            'store_id' => $firstOwner->store_id,
+            'store_name' => 'Toko Sama',
+            'nama_kategori' => 'Sembako',
+        ]);
+    }
 }

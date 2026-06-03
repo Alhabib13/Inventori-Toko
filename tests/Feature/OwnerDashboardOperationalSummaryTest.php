@@ -300,6 +300,78 @@ class OwnerDashboardOperationalSummaryTest extends TestCase
             ->assertDontSee('Rp2.000');
     }
 
+    public function test_dashboard_profit_accounts_for_transaction_discount_and_tax(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $product = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Dashboard Diskon',
+            'harga_beli' => 15000,
+            'harga_jual' => 20000,
+            'stok' => 10,
+        ]);
+
+        $transaction = Transaction::create([
+            'kode_transaksi' => 'TRX-DASH-DISCOUNT',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now(),
+            'total_item' => 2,
+            'subtotal' => 40000,
+            'diskon' => 7000,
+            'pajak' => 2000,
+            'total_bayar' => 35000,
+            'nominal_bayar' => 35000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+        $transaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 2,
+            'harga' => 20000,
+            'harga_beli' => 15000,
+            'subtotal' => 40000,
+        ]);
+
+        $this->actingAs($owner)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee('Estimasi Keuntungan')
+            ->assertSee('Rp5.000')
+            ->assertDontSee('Rp10.000');
+    }
+
+    public function test_dashboard_stock_kpis_exclude_inactive_products(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Aktif Dashboard',
+            'stok' => 2,
+            'stok_minimum' => 5,
+            'harga_beli' => 10000,
+            'is_active' => true,
+        ]);
+        $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Nonaktif Dashboard',
+            'stok' => 99,
+            'stok_minimum' => 100,
+            'harga_beli' => 999000,
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($owner)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee('Produk Aktif Dashboard')
+            ->assertDontSee('Produk Nonaktif Dashboard')
+            ->assertDontSee('Rp98.901.000');
+    }
+
     private function createProduct(string $storeName, array $attributes = []): Product
     {
         $category = Category::create([

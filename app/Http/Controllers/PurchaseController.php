@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\Supplier;
+use App\Services\ActivityLogService;
 use App\Services\StockMovementService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -100,6 +101,12 @@ class PurchaseController extends Controller
         if ($items->isEmpty()) {
             throw ValidationException::withMessages([
                 'items' => 'Minimal satu item pembelian harus memiliki qty lebih dari 0.',
+            ]);
+        }
+
+        if ($items->pluck('product_id')->count() !== $items->pluck('product_id')->unique()->count()) {
+            throw ValidationException::withMessages([
+                'items' => 'Produk yang sama tidak boleh dimasukkan lebih dari satu baris pembelian.',
             ]);
         }
 
@@ -201,7 +208,7 @@ class PurchaseController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, Purchase $purchase, StockMovementService $stockMovementService): RedirectResponse
+    public function destroy(Request $request, Purchase $purchase, StockMovementService $stockMovementService, ActivityLogService $activityLog): RedirectResponse
     {
         $user = $request->user();
 
@@ -257,6 +264,11 @@ class PurchaseController extends Controller
                 ->withErrors($exception->errors())
                 ->withInput();
         }
+
+        $activityLog->record('purchase.cancel', $user, $request, Purchase::class, $purchase->id, [
+            'kode_pembelian' => $purchase->kode_pembelian,
+            'total_bayar' => (float) $purchase->total_bayar,
+        ]);
 
         return redirect()
             ->route('purchases.show', $purchase)

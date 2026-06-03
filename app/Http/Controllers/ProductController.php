@@ -8,6 +8,7 @@ use App\Models\PurchaseItem;
 use App\Models\SalesForecast;
 use App\Models\StockMovement;
 use App\Models\Supplier;
+use App\Services\ActivityLogService;
 use App\Services\ProductImportService;
 use App\Services\StockMovementService;
 use Illuminate\Support\Facades\DB;
@@ -64,7 +65,7 @@ class ProductController extends Controller
         ]);
     }
 
-    public function import(Request $request): RedirectResponse
+    public function import(Request $request, ActivityLogService $activityLog): RedirectResponse
     {
         $validated = $request->validate([
             'import_file' => ['required', 'file', 'mimes:csv,txt', 'max:51200'],
@@ -83,6 +84,12 @@ class ProductController extends Controller
         if ($result['skipped'] > 0) {
             $statusMessage .= " {$result['skipped']} baris duplikat dilewati.";
         }
+
+        $activityLog->record('product.import', $request->user(), $request, null, null, [
+            'imported' => $result['imported'],
+            'skipped' => $result['skipped'],
+            'file_name' => $validated['import_file']->getClientOriginalName(),
+        ]);
 
         return redirect()
             ->route('products.index')
@@ -216,7 +223,7 @@ class ProductController extends Controller
             ->with('status', 'Produk berhasil dihapus.');
     }
 
-    public function destroyAll(): RedirectResponse
+    public function destroyAll(ActivityLogService $activityLog): RedirectResponse
     {
         abort_unless($this->canManageProducts(request()->user()?->role, request()->user()?->mode_app), 403);
 
@@ -242,6 +249,11 @@ class ProductController extends Controller
         StockMovement::query()->whereIn('product_id', $productIds)->delete();
         SalesForecast::query()->whereIn('product_id', $productIds)->delete();
         Product::query()->whereIn('id', $productIds)->delete();
+
+        $activityLog->record('product.destroy_all', request()->user(), request(), null, null, [
+            'deleted_count' => $productIds->count(),
+            'product_ids' => $productIds->values()->all(),
+        ]);
 
         return redirect()
             ->route('products.index')

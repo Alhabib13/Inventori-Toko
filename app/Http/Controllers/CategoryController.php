@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -113,7 +114,7 @@ class CategoryController extends Controller
         return redirect()->route('categories.index')->with('success', 'Kategori berhasil dihapus.');
     }
 
-    public function destroyAll(Request $request): RedirectResponse
+    public function destroyAll(Request $request, ActivityLogService $activityLog): RedirectResponse
     {
         abort_unless($this->canManageCategories($request->user()?->role, $request->user()?->mode_app), 403);
 
@@ -134,6 +135,11 @@ class CategoryController extends Controller
         }
 
         DB::table('categories')->whereIn('id', $categoryIds)->delete();
+
+        $activityLog->record('category.destroy_all', $request->user(), $request, null, null, [
+            'deleted_count' => $categoryIds->count(),
+            'category_ids' => $categoryIds->values()->all(),
+        ]);
 
         return redirect()
             ->route('categories.index')

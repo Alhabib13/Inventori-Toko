@@ -412,15 +412,32 @@ class ProductImportService
         if (filled($user->store_id)) {
             return $query->where(function ($tenantQuery) use ($user): void {
                 $tenantQuery
-                    ->where('store_id', $user->store_id)
-                    ->orWhere(function ($legacyQuery) use ($user): void {
+                    ->where('store_id', $user->store_id);
+
+                if (! $this->hasAmbiguousStoreName($user)) {
+                    $tenantQuery->orWhere(function ($legacyQuery) use ($user): void {
                         $legacyQuery
                             ->whereNull('store_id')
                             ->where('store_name', $user->store_name);
                     });
+                }
             });
         }
 
-        return $query->where('store_name', $user->store_name);
+        return $query->whereRaw('1 = 0');
+    }
+
+    private function hasAmbiguousStoreName(User $user): bool
+    {
+        if (blank($user->store_name)) {
+            return true;
+        }
+
+        return User::query()
+            ->where('role', 'owner')
+            ->where('store_name', $user->store_name)
+            ->whereNotNull('store_id')
+            ->distinct('store_id')
+            ->count('store_id') > 1;
     }
 }

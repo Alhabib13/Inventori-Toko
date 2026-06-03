@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use App\Services\StockMovementService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -275,7 +276,7 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, Transaction $transaction, StockMovementService $stockMovementService): RedirectResponse
+    public function destroy(Request $request, Transaction $transaction, StockMovementService $stockMovementService, ActivityLogService $activityLog): RedirectResponse
     {
         $user = $request->user();
 
@@ -313,6 +314,12 @@ class TransactionController extends Controller
                 'status' => 'dibatalkan',
             ]);
         });
+
+        $activityLog->record('transaction.cancel', $user, $request, Transaction::class, $transaction->id, [
+            'kode_transaksi' => $transaction->kode_transaksi,
+            'total_bayar' => (float) $transaction->total_bayar,
+            'total_item' => $transaction->total_item,
+        ]);
 
         return redirect()
             ->route('transactions.show', $transaction)

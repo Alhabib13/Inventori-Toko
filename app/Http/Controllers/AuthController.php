@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\OwnerPasswordResetCodeMail;
 use App\Mail\OwnerRegistrationVerificationCodeMail;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -57,7 +58,7 @@ class AuthController extends Controller
         return view('auth.select-mode');
     }
 
-    public function login(Request $request): RedirectResponse
+    public function login(Request $request, ActivityLogService $activityLog): RedirectResponse
     {
         $dataLogin = $request->validate([
             'username' => ['required', 'string'],
@@ -83,6 +84,8 @@ class AuthController extends Controller
         }
 
         $request->session()->regenerate();
+
+        $activityLog->record('auth.login', Auth::user(), $request);
 
         return $this->redirectToRoleHome();
     }
@@ -147,7 +150,7 @@ class AuthController extends Controller
             ->with('status', 'Kode verifikasi registrasi sudah dikirim ke email owner. Pada local dev, cek log Laravel bila mailer masih menggunakan log.');
     }
 
-    public function registerOwner(Request $request): RedirectResponse
+    public function registerOwner(Request $request, ActivityLogService $activityLog): RedirectResponse
     {
         $data = $request->validate([
             'store_name' => ['required', 'string', 'max:255'],
@@ -199,10 +202,15 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
+        $activityLog->record('owner.register', $user, $request, User::class, $user->id, [
+            'username' => $user->username,
+            'email' => $user->email,
+        ]);
+
         return $this->redirectToRoleHome();
     }
 
-    public function registerUser(Request $request): RedirectResponse
+    public function registerUser(Request $request, ActivityLogService $activityLog): RedirectResponse
     {
         $allowedRoles = $this->allowedUserRolesForMode($request->user()?->mode_app);
 
@@ -227,7 +235,12 @@ class AuthController extends Controller
         $data['mode_app'] = $request->user()?->mode_app;
         $data['is_active'] = true;
 
-        User::create($data);
+        $newUser = User::create($data);
+
+        $activityLog->record('user.create', $request->user(), $request, User::class, $newUser->id, [
+            'created_user_role' => $newUser->role,
+            'created_username' => $newUser->username,
+        ]);
 
         return redirect()
             ->route('users.index')

@@ -286,6 +286,176 @@ class ReportAccessAndContentTest extends TestCase
         $this->assertStringNotContainsString('38000', $profitCsv);
     }
 
+    public function test_profit_report_accounts_for_transaction_discount_and_tax(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $product = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Diskon Profit',
+            'stok' => 10,
+            'harga_beli' => 15000,
+            'harga_jual' => 20000,
+        ]);
+
+        $transaction = Transaction::create([
+            'kode_transaksi' => 'TRX-DISCOUNT-PROFIT',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now()->subDay(),
+            'total_item' => 2,
+            'subtotal' => 40000,
+            'diskon' => 7000,
+            'pajak' => 2000,
+            'total_bayar' => 35000,
+            'nominal_bayar' => 35000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+        $transaction->detailItem()->create([
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'qty' => 2,
+            'harga' => 20000,
+            'harga_beli' => 15000,
+            'subtotal' => 40000,
+        ]);
+
+        $this->actingAs($owner)
+            ->get('/reports?period=30_hari')
+            ->assertOk()
+            ->assertSee('TRX-DISCOUNT-PROFIT')
+            ->assertSee('Rp35.000')
+            ->assertSee('Rp30.000')
+            ->assertSee('Rp5.000')
+            ->assertDontSee('Rp10.000');
+
+        $profitCsv = $this->actingAs($owner)
+            ->get('/reports/export/profit?period=30_hari')
+            ->assertOk()
+            ->streamedContent();
+        $this->assertStringContainsString('35000', $profitCsv);
+        $this->assertStringContainsString('30000', $profitCsv);
+        $this->assertStringContainsString('5000', $profitCsv);
+        $this->assertStringNotContainsString('10000', $profitCsv);
+    }
+
+    public function test_report_exports_and_prints_follow_search_filters(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $matchingProduct = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Filter Cocok',
+            'kode_produk' => 'PRD-FILTER-MATCH',
+            'stok' => 5,
+        ]);
+        $otherProduct = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Filter Lain',
+            'kode_produk' => 'PRD-FILTER-OTHER',
+            'stok' => 7,
+        ]);
+        $supplier = Supplier::findOrFail($matchingProduct->supplier_id);
+
+        Transaction::create([
+            'kode_transaksi' => 'TRX-FILTER-MATCH',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now()->subDay(),
+            'total_item' => 1,
+            'subtotal' => 20000,
+            'total_bayar' => 20000,
+            'nominal_bayar' => 20000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+        Transaction::create([
+            'kode_transaksi' => 'TRX-FILTER-OTHER',
+            'user_id' => $owner->id,
+            'tanggal_transaksi' => now()->subDay(),
+            'total_item' => 1,
+            'subtotal' => 20000,
+            'total_bayar' => 20000,
+            'nominal_bayar' => 20000,
+            'kembalian' => 0,
+            'status' => 'selesai',
+        ]);
+
+        Purchase::create([
+            'kode_pembelian' => 'PO-FILTER-MATCH',
+            'supplier_id' => $supplier->id,
+            'user_id' => $owner->id,
+            'tanggal_pembelian' => now()->subDay(),
+            'subtotal' => 30000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 30000,
+            'status' => 'selesai',
+        ]);
+        Purchase::create([
+            'kode_pembelian' => 'PO-FILTER-OTHER',
+            'supplier_id' => $supplier->id,
+            'user_id' => $owner->id,
+            'tanggal_pembelian' => now()->subDay(),
+            'subtotal' => 30000,
+            'diskon' => 0,
+            'ongkir' => 0,
+            'total_bayar' => 30000,
+            'status' => 'selesai',
+        ]);
+
+        $salesCsv = $this->actingAs($owner)
+            ->get('/reports/export/sales?period=30_hari&sales_search=MATCH')
+            ->assertOk()
+            ->streamedContent();
+        $this->assertStringContainsString('TRX-FILTER-MATCH', $salesCsv);
+        $this->assertStringNotContainsString('TRX-FILTER-OTHER', $salesCsv);
+
+        $purchasePrint = $this->actingAs($owner)
+            ->get('/reports/print/purchases?period=30_hari&purchase_search=MATCH')
+            ->assertOk();
+        $purchasePrint->assertSee('PO-FILTER-MATCH');
+        $purchasePrint->assertDontSee('PO-FILTER-OTHER');
+
+        $stockCsv = $this->actingAs($owner)
+            ->get('/reports/export/stock?period=30_hari&stock_search=Cocok')
+            ->assertOk()
+            ->streamedContent();
+        $this->assertStringContainsString($matchingProduct->kode_produk, $stockCsv);
+        $this->assertStringNotContainsString($otherProduct->kode_produk, $stockCsv);
+    }
+
+    public function test_stock_report_excludes_inactive_products(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'lengkap',
+        ]);
+        $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Aktif Laporan',
+            'stok' => 3,
+            'is_active' => true,
+        ]);
+        $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Nonaktif Laporan',
+            'stok' => 99,
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($owner)
+            ->get('/reports?period=30_hari')
+            ->assertOk()
+            ->assertSee('Produk Aktif Laporan')
+            ->assertDontSee('Produk Nonaktif Laporan');
+
+        $stockCsv = $this->actingAs($owner)
+            ->get('/reports/export/stock?period=30_hari')
+            ->assertOk()
+            ->streamedContent();
+        $this->assertStringContainsString('Produk Aktif Laporan', $stockCsv);
+        $this->assertStringNotContainsString('Produk Nonaktif Laporan', $stockCsv);
+    }
+
     public function test_owner_can_export_and_print_main_reports(): void
     {
         $owner = User::factory()->create([

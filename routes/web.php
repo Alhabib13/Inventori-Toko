@@ -18,9 +18,9 @@ Route::get('/lupa-kata-sandi', [AuthController::class, 'showForgotPasswordForm']
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.process');
-    Route::post('/register/send-code', [AuthController::class, 'sendOwnerRegistrationCode'])->name('register.owner.send-code');
+    Route::post('/register/send-code', [AuthController::class, 'sendOwnerRegistrationCode'])->middleware('throttle:3,2')->name('register.owner.send-code');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('password.owner.request');
-    Route::post('/forgot-password', [AuthController::class, 'sendPasswordResetCode'])->name('password.owner.email');
+    Route::post('/forgot-password', [AuthController::class, 'sendPasswordResetCode'])->middleware('throttle:3,2')->name('password.owner.email');
     Route::get('/reset-password', [AuthController::class, 'showResetPasswordForm'])->name('password.owner.reset');
     Route::post('/reset-password', [AuthController::class, 'resetPasswordWithCode'])->name('password.owner.update');
     Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
@@ -83,6 +83,7 @@ Route::middleware('auth')->group(function (): void {
     });
 
     Route::middleware('mode.access:stock-manage')->group(function (): void {
+        Route::patch('/stok/{product}/update-stock', [StockController::class, 'updateProductStock'])->name('stocks.product-stock.update');
         Route::resource('stocks', StockController::class)->only(['index', 'create', 'store', 'show']);
     });
 
