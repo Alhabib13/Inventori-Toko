@@ -240,7 +240,7 @@
                         <div>Action</div>
                     </div>
 
-                    <div class="max-h-[560px] overflow-y-auto" data-product-list>
+                    <div class="max-h-[560px] overflow-y-auto">
                         @forelse ($products as $index => $product)
                             <div
                                 class="grid grid-cols-1 gap-4 border-b border-slate-200 px-4 py-4 transition hover:bg-slate-50 last:border-b-0 sm:grid-cols-[1.7fr_0.7fr_0.8fr_0.5fr] sm:px-5"

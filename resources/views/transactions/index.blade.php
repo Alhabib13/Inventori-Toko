@@ -144,11 +144,9 @@
                                     <a href="{{ route('transactions.show', $transaction) }}" class="font-semibold text-slate-900">
                                         {{ $transaction->kode_transaksi }}
                                     </a>
-                                    <p class="mt-1 text-xs text-slate-500">ID transaksi penjualan</p>
                                 </td>
                                 <td class="py-3 pr-4">
                                     <p class="font-medium text-slate-900">{{ $transaction->kasir?->name ?? '-' }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $isKasir ? 'Kasir aktif' : 'Pencatat transaksi' }}</p>
                                 </td>
                                 <td class="py-3 pr-4">
                                     <p class="font-medium text-slate-900">{{ $transaction->tanggal_transaksi?->format('d/m/Y') }}</p>
@@ -156,11 +154,9 @@
                                 </td>
                                 <td class="py-3 pr-4">
                                     <p class="font-medium text-slate-900">{{ $transaction->total_item }} item</p>
-                                    <p class="mt-1 text-xs text-slate-500">Produk terjual pada transaksi ini</p>
                                 </td>
                                 <td class="py-3 pr-4">
                                     <p class="font-semibold text-[#003441]">Rp{{ number_format((float) $transaction->total_bayar, 0, ',', '.') }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">Subtotal akhir transaksi</p>
                                 </td>
                                 <td class="py-3 pr-4">
                                     <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
