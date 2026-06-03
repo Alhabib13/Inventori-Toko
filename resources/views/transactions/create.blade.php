@@ -53,14 +53,10 @@
                         </p>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3 border-b border-dashed border-slate-300 py-4 text-xs text-slate-500">
+                    <div class="border-b border-dashed border-slate-300 py-4 text-xs text-slate-500">
                         <div>
                             <p class="font-semibold uppercase tracking-[0.16em] text-slate-400">Kode</p>
                             <p class="mt-1 font-mono text-sm text-slate-700">Otomatis</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-semibold uppercase tracking-[0.16em] text-slate-400">Terminal</p>
-                            <p class="mt-1 font-mono text-sm text-slate-700">Aktif</p>
                         </div>
                     </div>
 
@@ -244,7 +240,7 @@
                         <div>Action</div>
                     </div>
 
-                    <div class="max-h-[560px] overflow-y-auto" data-product-list>
+                    <div class="max-h-[560px] overflow-y-auto">
                         @forelse ($products as $index => $product)
                             <div
                                 class="grid grid-cols-1 gap-4 border-b border-slate-200 px-4 py-4 transition hover:bg-slate-50 last:border-b-0 sm:grid-cols-[1.7fr_0.7fr_0.8fr_0.5fr] sm:px-5"
@@ -407,7 +403,6 @@
                 const paymentLabel = document.querySelector('[data-payment-label]');
                 const paymentInput = document.querySelector('[data-payment-input]');
                 const paymentButtons = Array.from(document.querySelectorAll('[data-payment-option]'));
-                const receiptEditButton = document.querySelector('[data-receipt-edit]');
                 const posItemError = document.querySelector('[data-pos-item-error]');
                 const posPageInput = document.querySelector('[data-pos-page-input]');
                 const posPageJump = document.querySelector('[data-pos-page-jump]');
@@ -550,16 +545,39 @@
 
                             const wrapper = document.createElement('div');
                             wrapper.dataset.summaryItem = 'true';
-                            wrapper.className = 'border-b border-dashed border-slate-200 px-1 pb-3 last:border-b-0';
+                            wrapper.className = 'rounded-2xl border border-slate-200 bg-slate-50/70 px-3 py-3';
                             wrapper.innerHTML = `
                                 <div class="grid grid-cols-[1fr_auto] items-start gap-4">
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-semibold text-slate-900">${item.productName}</p>
-                                        <p class="mt-1 text-[11px] text-slate-500">${item.qty} x ${formatCurrency(item.price)}</p>
+                                        <p class="mt-1 text-[11px] text-slate-500">${formatCurrency(item.price)}</p>
                                     </div>
                                     <div class="text-right">
                                         <p class="text-sm font-semibold text-slate-900">${formatCurrency(item.qty * item.price)}</p>
                                         <p class="mt-1 text-[11px] text-slate-400">${item.productMeta}</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3 flex items-center justify-between gap-3">
+                                    <label class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400" for="receipt-qty-${item.productId}">Qty</label>
+                                    <div class="flex items-center gap-2">
+                                        <input
+                                            id="receipt-qty-${item.productId}"
+                                            type="number"
+                                            min="0"
+                                            max="${item.stock ?? ''}"
+                                            value="${item.qty}"
+                                            class="pos-quantity-input h-9 w-20 rounded-lg border border-slate-200 bg-white px-3 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10"
+                                            data-summary-qty
+                                            data-summary-product-id="${item.productId}"
+                                        >
+                                        <button
+                                            type="button"
+                                            class="inline-flex h-9 items-center rounded-lg border border-red-100 bg-white px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                                            data-summary-remove
+                                            data-summary-product-id="${item.productId}"
+                                        >
+                                            Hapus
+                                        </button>
                                     </div>
                                 </div>
                             `;
@@ -608,6 +626,7 @@
                             price: Number(priceEl.dataset.productPrice || 0),
                             productName: row.dataset.productName || 'Produk',
                             productMeta: row.dataset.productMeta || 'Produk aktif',
+                            stock: Number(row.dataset.productStock || 0),
                         };
                     } else {
                         delete cart[productId];
@@ -669,9 +688,43 @@
                     });
                 });
 
-                receiptEditButton?.addEventListener('click', () => {
-                    productSearch?.focus();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                summaryContainer?.addEventListener('input', (event) => {
+                    const target = event.target;
+                    if (!(target instanceof HTMLInputElement) || !target.matches('[data-summary-qty]')) {
+                        return;
+                    }
+
+                    const productId = target.dataset.summaryProductId;
+                    const item = cart[productId];
+                    if (!item) {
+                        return;
+                    }
+
+                    const maxQty = item.stock === undefined || item.stock === null || item.stock === ''
+                        ? Number.POSITIVE_INFINITY
+                        : Number(item.stock);
+                    const qty = Math.max(0, Math.min(maxQty, Number(target.value) || 0));
+                    target.value = qty;
+
+                    if (qty > 0) {
+                        cart[productId].qty = qty;
+                    } else {
+                        delete cart[productId];
+                    }
+
+                    syncVisibleRowsFromCart();
+                    updateSummary();
+                });
+
+                summaryContainer?.addEventListener('click', (event) => {
+                    const target = event.target;
+                    if (!(target instanceof HTMLElement) || !target.matches('[data-summary-remove]')) {
+                        return;
+                    }
+
+                    delete cart[target.dataset.summaryProductId];
+                    syncVisibleRowsFromCart();
+                    updateSummary();
                 });
 
                 const submitProductSearch = () => {

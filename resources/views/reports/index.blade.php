@@ -35,6 +35,12 @@
             'purchase_search' => $purchaseSearch,
             'stock_search' => $stockSearch,
         ], fn ($value) => filled($value));
+        $activeFilterBadges = array_filter([
+            'Periode: '.ucfirst(str_replace('_', ' ', $periodLabel)),
+            $salesSearch !== '' ? 'Penjualan: '.$salesSearch : null,
+            $purchaseSearch !== '' ? 'Pembelian: '.$purchaseSearch : null,
+            $stockSearch !== '' ? 'Stok: '.$stockSearch : null,
+        ]);
 
         $paginationWindow = function ($paginator) {
             $lastPage = $paginator->lastPage();
@@ -62,6 +68,23 @@
                             ? 'Gudang hanya melihat bagian laporan yang relevan dengan stok dan pembelian, sehingga evaluasi operasional harian tetap fokus.'
                             : 'Owner melihat ringkasan utama di bagian atas, lalu tabel penjualan, pembelian, stok, dan laba rugi sederhana pada satu halaman yang tetap rapi saat data banyak atau kosong.' }}
                     </p>
+                    <div class="mt-5 rounded-2xl border border-[#d7dfe3] bg-[#f9f9fa] p-4">
+                        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div>
+                                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Filter Aktif</p>
+                                <div class="mt-3 flex flex-wrap gap-2">
+                                    @foreach ($activeFilterBadges as $badge)
+                                        <span class="inline-flex rounded-full border border-[#003441]/15 bg-white px-3 py-1 text-xs font-semibold text-[#003441]">
+                                            {{ $badge }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <p class="max-w-md text-sm leading-6 text-slate-500">
+                                Tombol export dan cetak memakai periode serta pencarian aktif, jadi hasil file mengikuti data yang sedang tampil.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -125,6 +148,9 @@
                         <p class="mt-1 text-sm text-slate-500">Ringkasan omzet penjualan, modal barang terjual, keuntungan, dan margin dari periode aktif.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
+                        <span class="flex basis-full items-center text-xs font-semibold text-slate-500 md:basis-auto">
+                            Mengikuti filter aktif
+                        </span>
                         <a href="{{ route('reports.export', array_merge(['section' => 'profit'], $activeReportQuery)) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
                             Export CSV
                         </a>
@@ -206,6 +232,9 @@
                             </div>
                         </form>
                         <div class="flex flex-wrap gap-2">
+                            <span class="flex basis-full items-center text-xs font-semibold text-slate-500 sm:basis-auto">
+                                Mengikuti filter aktif
+                            </span>
                             <a href="{{ route('reports.export', array_merge(['section' => 'sales'], $activeReportQuery)) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
                                 Export CSV
                             </a>
@@ -326,6 +355,9 @@
                             </div>
                         </form>
                         <div class="flex flex-wrap gap-2">
+                            <span class="flex basis-full items-center text-xs font-semibold text-slate-500 sm:basis-auto">
+                                Mengikuti filter aktif
+                            </span>
                             <a href="{{ route('reports.export', array_merge(['section' => 'purchases'], $activeReportQuery)) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
                                 Export CSV
                             </a>
@@ -441,6 +473,9 @@
                         </div>
                     </form>
                     <div class="flex flex-wrap gap-2">
+                        <span class="flex basis-full items-center text-xs font-semibold text-slate-500 sm:basis-auto">
+                            Mengikuti filter aktif
+                        </span>
                         <a href="{{ route('reports.export', array_merge(['section' => 'stock'], $activeReportQuery)) }}" class="inline-flex h-10 items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-sm font-semibold text-[#003441] transition hover:bg-[#003441]/5">
                             Export CSV
                         </a>
