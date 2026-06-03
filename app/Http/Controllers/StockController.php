@@ -71,6 +71,52 @@ class StockController extends Controller
         return view('stocks.show', ['stock' => $stock]);
     }
 
+    public function updateProductStock(Request $request, Product $product, StockMovementService $stockMovementService): RedirectResponse
+    {
+        abort_unless($this->canManageStock($request->user()?->role, $request->user()?->mode_app), 403);
+
+        if (! $this->modelBelongsToUserStore($product, $request->user())) {
+            abort(403, 'Anda tidak memiliki akses ke produk ini.');
+        }
+
+        $data = $request->validate([
+            'stok' => ['required', 'integer', 'min:0'],
+            'catatan' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $targetStock = (int) $data['stok'];
+        $currentStock = (int) $product->stok;
+
+        if ($targetStock === $currentStock) {
+            return back()->with('status', 'Stok tidak berubah.');
+        }
+
+        $qty = abs($targetStock - $currentStock);
+        $note = filled($data['catatan'] ?? null)
+            ? $data['catatan']
+            : 'Edit stok langsung dari halaman stok.';
+
+        if ($targetStock > $currentStock) {
+            $stockMovementService->recordIncoming(
+                product: $product,
+                qty: $qty,
+                user: $request->user(),
+                note: $note,
+                referenceType: 'manual',
+            );
+        } else {
+            $stockMovementService->recordOutgoing(
+                product: $product,
+                qty: $qty,
+                user: $request->user(),
+                note: $note,
+                referenceType: 'manual',
+            );
+        }
+
+        return back()->with('status', 'Stok produk berhasil diperbarui.');
+    }
+
     private function stockListingView(bool $showLowStockOnly = false): View
     {
         $search = trim((string) request()->query('search', ''));

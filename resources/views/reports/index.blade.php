@@ -9,6 +9,9 @@
 
 @section('page_actions')
     <form method="GET" class="flex flex-wrap items-center gap-3">
+        @if (($salesSearch ?? '') !== '')<input type="hidden" name="sales_search" value="{{ $salesSearch }}">@endif
+        @if (($purchaseSearch ?? '') !== '')<input type="hidden" name="purchase_search" value="{{ $purchaseSearch }}">@endif
+        @if (($stockSearch ?? '') !== '')<input type="hidden" name="stock_search" value="{{ $stockSearch }}">@endif
         <div class="space-y-2">
             <label for="report_period" class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Periode</label>
             <select id="report_period" name="period" class="h-11 rounded-lg border border-[#c0c8cb] bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#003441] focus:ring-2 focus:ring-[#003441]/10">
@@ -41,6 +44,10 @@
             $purchaseSearch !== '' ? 'Pembelian: '.$purchaseSearch : null,
             $stockSearch !== '' ? 'Stok: '.$stockSearch : null,
         ]);
+        $reportPageUrl = fn (string $pageName, int $page) => route('reports.index', array_merge($activeReportQuery, [$pageName => $page]));
+        $salesPageUrl = fn (int $page) => $reportPageUrl('sales_page', $page);
+        $purchasePageUrl = fn (int $page) => $reportPageUrl('purchase_page', $page);
+        $stockPageUrl = fn (int $page) => $reportPageUrl('stock_page', $page);
 
         $paginationWindow = function ($paginator) {
             $lastPage = $paginator->lastPage();
@@ -306,17 +313,17 @@
                                 @if ($sales->onFirstPage())
                                     <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Sebelumnya</span>
                                 @else
-                                    <a href="{{ $sales->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Sebelumnya</a>
+                                    <a href="{{ $salesPageUrl($sales->currentPage() - 1) }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Sebelumnya</a>
                                 @endif
                                 @for ($page = $salesStartPage; $page <= $salesEndPage; $page++)
                                     @if ($page === $sales->currentPage())
                                         <span class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-[#0f4c5c] bg-[#003441] px-3 text-sm font-semibold text-white">{{ $page }}</span>
                                     @else
-                                        <a href="{{ $sales->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ $page }}</a>
+                                        <a href="{{ $salesPageUrl($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ $page }}</a>
                                     @endif
                                 @endfor
                                 @if ($sales->hasMorePages())
-                                    <a href="{{ $sales->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Berikutnya</a>
+                                    <a href="{{ $salesPageUrl($sales->currentPage() + 1) }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Berikutnya</a>
                                 @else
                                     <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Berikutnya</span>
                                 @endif
@@ -425,17 +432,17 @@
                                 @if ($purchases->onFirstPage())
                                     <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Sebelumnya</span>
                                 @else
-                                    <a href="{{ $purchases->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Sebelumnya</a>
+                                    <a href="{{ $purchasePageUrl($purchases->currentPage() - 1) }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Sebelumnya</a>
                                 @endif
                                 @for ($page = $purchaseStartPage; $page <= $purchaseEndPage; $page++)
                                     @if ($page === $purchases->currentPage())
                                         <span class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-[#0f4c5c] bg-[#003441] px-3 text-sm font-semibold text-white">{{ $page }}</span>
                                     @else
-                                        <a href="{{ $purchases->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ $page }}</a>
+                                        <a href="{{ $purchasePageUrl($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ $page }}</a>
                                     @endif
                                 @endfor
                                 @if ($purchases->hasMorePages())
-                                    <a href="{{ $purchases->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Berikutnya</a>
+                                    <a href="{{ $purchasePageUrl($purchases->currentPage() + 1) }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Berikutnya</a>
                                 @else
                                     <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Berikutnya</span>
                                 @endif
@@ -550,17 +557,17 @@
                             @if ($stockProducts->onFirstPage())
                                 <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Sebelumnya</span>
                             @else
-                                <a href="{{ $stockProducts->previousPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Sebelumnya</a>
+                                <a href="{{ $stockPageUrl($stockProducts->currentPage() - 1) }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Sebelumnya</a>
                             @endif
                             @for ($page = $stockStartPage; $page <= $stockEndPage; $page++)
                                 @if ($page === $stockProducts->currentPage())
                                     <span class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-[#0f4c5c] bg-[#003441] px-3 text-sm font-semibold text-white">{{ $page }}</span>
                                 @else
-                                    <a href="{{ $stockProducts->url($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ $page }}</a>
+                                    <a href="{{ $stockPageUrl($page) }}" class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ $page }}</a>
                                 @endif
                             @endfor
                             @if ($stockProducts->hasMorePages())
-                                <a href="{{ $stockProducts->nextPageUrl() }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Berikutnya</a>
+                                <a href="{{ $stockPageUrl($stockProducts->currentPage() + 1) }}" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Berikutnya</a>
                             @else
                                 <span class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-400">Berikutnya</span>
                             @endif

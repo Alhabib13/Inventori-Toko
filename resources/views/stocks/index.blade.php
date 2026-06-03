@@ -85,7 +85,7 @@
                     @endif
                 </div>
                 <div class="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[22rem]">
-                    <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.role-home') }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <label for="stocks-search" class="sr-only">Cari stok</label>
                         <div class="relative flex-1">
                             <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
@@ -107,7 +107,7 @@
                                 Cari
                             </button>
                             @if ($search !== '')
-                                <a href="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.index') }}" class="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                                <a href="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.role-home') }}" class="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
                                     Reset
                                 </a>
                             @endif
@@ -127,6 +127,9 @@
                             <th class="px-6 py-3">Stok Saat Ini</th>
                             <th class="px-6 py-3">Stok Minimum</th>
                             <th class="px-6 py-3">Status</th>
+                            @if ($canManageStock)
+                                <th class="px-6 py-3">Aksi</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200">
@@ -153,10 +156,35 @@
                                         {{ $product->stok <= $product->stok_minimum ? 'Kritis' : 'Aman' }}
                                     </span>
                                 </td>
+                                @if ($canManageStock)
+                                    <td class="px-6 py-4 align-top">
+                                        <details class="group" data-stock-editor>
+                                            <summary class="inline-flex h-9 cursor-pointer list-none items-center rounded-lg border border-[#003441]/20 bg-white px-3 text-xs font-bold text-[#003441] transition hover:bg-[#003441]/5 [&::-webkit-details-marker]:hidden">
+                                                Edit Stok
+                                            </summary>
+                                            <form method="POST" action="{{ route('stocks.product-stock.update', $product) }}" class="mt-2 flex w-40 items-center gap-2 rounded-xl border border-slate-200 bg-[#f9f9fa] p-2 shadow-sm">
+                                                @csrf
+                                                @method('PATCH')
+                                                <label for="stok-{{ $product->id }}" class="sr-only">Jumlah stok {{ $product->nama_produk }}</label>
+                                                <input
+                                                    id="stok-{{ $product->id }}"
+                                                    type="number"
+                                                    name="stok"
+                                                    min="0"
+                                                    value="{{ old('stok', $product->stok) }}"
+                                                    class="h-9 w-20 rounded-lg border border-slate-200 bg-white px-2 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0f4c5c] focus:ring-2 focus:ring-[#d0e1fb]"
+                                                >
+                                                <button type="submit" class="inline-flex h-9 items-center justify-center rounded-lg bg-[#003441] px-3 text-xs font-semibold text-white transition hover:bg-[#0f4c5c]">
+                                                    Simpan
+                                                </button>
+                                            </form>
+                                        </details>
+                                    </td>
+                                @endif
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $isSimpleMode || $isCashier ? '5' : '6' }}" class="px-6 py-0">
+                                <td colspan="{{ ($isSimpleMode || $isCashier ? 5 : 6) + ($canManageStock ? 1 : 0) }}" class="px-6 py-0">
                                     <div class="mx-auto my-8 max-w-xl rounded-2xl border border-dashed border-slate-300 bg-[#f9f9fa] px-6 py-10 text-center">
                                         <p class="text-base font-semibold text-slate-900">{{ $showLowStockOnly ? 'Tidak ada produk dengan stok menipis.' : 'Belum ada data stok produk.' }}</p>
                                         <p class="mt-2 text-sm leading-6 text-slate-500">{{ $showLowStockOnly ? 'Semua produk saat ini masih berada di atas batas minimum.' : 'Produk akan muncul di sini setelah data inventori dan pergerakan stok mulai tercatat.' }}</p>
@@ -182,7 +210,7 @@
 
                 @if ($lastPage > 1)
                     <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                        <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.index') }}" class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                        <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.role-home') }}" class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
                             @if ($search !== '')
                                 <input type="hidden" name="search" value="{{ $search }}">
                             @endif
@@ -247,7 +275,7 @@
                         <p class="mt-1 text-sm text-slate-500">{{ $isSimpleMode ? 'Riwayat perubahan stok masuk dan keluar yang mudah dipantau owner.' : 'Riwayat perubahan stok untuk kontrol yang lebih detail terhadap barang masuk dan keluar.' }}</p>
                     </div>
                     <div class="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[22rem]">
-                        <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.role-home') }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
                             @if ($search !== '')
                                 <input type="hidden" name="search" value="{{ $search }}">
                             @endif
@@ -347,7 +375,7 @@
 
                     @if ($movementLastPage > 1)
                         <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                            <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.index') }}" class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                            <form method="GET" action="{{ $showLowStockOnly ? route('stocks.notifications') : route('stocks.role-home') }}" class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
                                 @if ($search !== '')
                                     <input type="hidden" name="search" value="{{ $search }}">
                                 @endif
@@ -408,4 +436,26 @@
             </section>
         @endunless
     </div>
+
+    @if ($canManageStock)
+        <script>
+            document.addEventListener('click', function (event) {
+                document.querySelectorAll('[data-stock-editor][open]').forEach(function (editor) {
+                    if (!editor.contains(event.target)) {
+                        editor.removeAttribute('open');
+                    }
+                });
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key !== 'Escape') {
+                    return;
+                }
+
+                document.querySelectorAll('[data-stock-editor][open]').forEach(function (editor) {
+                    editor.removeAttribute('open');
+                });
+            });
+        </script>
+    @endif
 @endsection

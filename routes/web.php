@@ -83,6 +83,7 @@ Route::middleware('auth')->group(function (): void {
     });
 
     Route::middleware('mode.access:stock-manage')->group(function (): void {
+        Route::patch('/stok/{product}/update-stock', [StockController::class, 'updateProductStock'])->name('stocks.product-stock.update');
         Route::resource('stocks', StockController::class)->only(['index', 'create', 'store', 'show']);
     });
 
