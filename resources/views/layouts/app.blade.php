@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $judulHalaman ?? 'Sitori' }}</title>
+    <link rel="icon" href="{{ asset('logo.png') }}?v=2" type="image/png">
+    <link rel="apple-touch-icon" href="{{ asset('logo.png') }}?v=2">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script>
         (() => {
@@ -361,10 +363,8 @@
             <div class="border-b border-[#c0c8cb] px-6 py-5" data-sidebar-header>
                 <div class="flex items-center justify-between gap-3" data-sidebar-brand>
                     <div class="flex items-center gap-3" data-sidebar-brand-leading>
-                        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-white">
-                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m4.75 7.75 7.25-3 7.25 3M4.75 7.75 12 11l7.25-3M4.75 7.75v8.5L12 19.5l7.25-3.25v-8.5M12 11v8.5" />
-                            </svg>
+                        <div class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/18 bg-white shadow-sm">
+                            <img src="{{ asset('logo.png') }}" alt="Logo Sitori" class="h-9 w-9 object-contain">
                         </div>
                         <div data-sidebar-brand-copy>
                             <p class="text-2xl font-extrabold tracking-tight text-white">Sitori</p>

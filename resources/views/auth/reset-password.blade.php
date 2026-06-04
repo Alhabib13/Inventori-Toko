@@ -89,7 +89,7 @@
                         <span data-code-send-label>Kirim Kode</span>
                     </button>
                 </div>
-                <p class="text-xs text-slate-500">Kode bisa dikirim ulang setelah jeda 2 menit untuk mencegah spam.</p>
+                <p class="text-xs text-slate-500" data-code-send-feedback>Kode bisa dikirim ulang setelah jeda 2 menit untuk mencegah spam.</p>
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
@@ -173,9 +173,29 @@
             if (!sendButton) return;
 
             const label = sendButton.querySelector('[data-code-send-label]');
+            const form = sendButton.closest('form');
+            const feedback = document.querySelector('[data-code-send-feedback]');
             const cooldownSeconds = Number(sendButton.dataset.cooldownSeconds || 120);
             const storageKey = 'owner-reset-code-cooldown-until';
             let timerId = null;
+
+            const getEmailInput = () => document.getElementById('owner_email');
+
+            const emailIsFilled = () => {
+                const emailInput = getEmailInput();
+
+                return emailInput instanceof HTMLInputElement && emailInput.value.trim() !== '';
+            };
+
+            const renderSending = () => {
+                sendButton.disabled = true;
+                sendButton.setAttribute('aria-busy', 'true');
+                if (label) label.textContent = sendButton.dataset.loadingText || 'Mengirim...';
+                if (feedback) {
+                    feedback.textContent = 'Mengirim kode reset ke email owner...';
+                    feedback.className = 'text-xs font-semibold text-[#0b4a5a]';
+                }
+            };
 
             const render = () => {
                 const cooldownUntil = Number(sessionStorage.getItem(storageKey) || 0);
@@ -183,6 +203,7 @@
 
                 if (remaining <= 0) {
                     sendButton.disabled = false;
+                    sendButton.removeAttribute('aria-busy');
                     if (label) label.textContent = 'Kirim Kode';
                     sessionStorage.removeItem(storageKey);
                     if (timerId) {
@@ -204,13 +225,70 @@
                 }
             };
 
-            sendButton.addEventListener('click', () => {
-                const emailInput = document.getElementById('owner_email');
-                if (!(emailInput instanceof HTMLInputElement) || emailInput.value.trim() === '') {
+            const resetButton = () => {
+                sessionStorage.removeItem(storageKey);
+                sendButton.disabled = false;
+                sendButton.removeAttribute('aria-busy');
+                if (label) label.textContent = 'Kirim Kode';
+                if (timerId) {
+                    clearInterval(timerId);
+                    timerId = null;
+                }
+            };
+
+            const sendCode = async () => {
+                if (!form) return;
+
+                const response = await fetch(sendButton.formAction, {
+                    method: sendButton.formMethod || 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (!response.ok) {
+                    let message = 'Kode belum bisa dikirim. Periksa email owner lalu coba lagi.';
+
+                    if (response.status === 429) {
+                        message = 'Terlalu sering mengirim kode. Tunggu sebentar lalu coba lagi.';
+                    } else {
+                        try {
+                            const data = await response.json();
+                            message = data.message || Object.values(data.errors || {})?.flat()?.[0] || message;
+                        } catch (error) {
+                            //
+                        }
+                    }
+
+                    resetButton();
+                    if (feedback) {
+                        feedback.textContent = message;
+                        feedback.className = 'text-xs font-semibold text-red-600';
+                    }
+
                     return;
                 }
 
                 startCooldown();
+                if (feedback) {
+                    feedback.textContent = 'Kode reset sudah dikirim. Cek inbox atau folder spam email owner.';
+                    feedback.className = 'text-xs font-semibold text-emerald-700';
+                }
+            };
+
+            sendButton.addEventListener('click', async (event) => {
+                if (!emailIsFilled()) {
+                    event.preventDefault();
+                    getEmailInput()?.reportValidity();
+
+                    return;
+                }
+
+                event.preventDefault();
+                renderSending();
+                await sendCode();
             });
 
             render();
