@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $judulHalaman ?? 'Masuk' }} - Sitori</title>
+    <link rel="icon" href="{{ asset('logo.png') }}?v=2" type="image/png">
+    <link rel="apple-touch-icon" href="{{ asset('logo.png') }}?v=2">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         [data-confirm-dialog] {
@@ -94,6 +96,9 @@
     <main class="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6" data-auth-main>
         <div class="@yield('auth_container_class', 'w-full max-w-[28rem]')">
             <div class="mb-8 flex flex-col items-center text-center">
+                <div class="mb-3 flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                    <img src="{{ asset('logo.png') }}" alt="Logo Sitori" class="h-16 w-16 object-contain">
+                </div>
                 <h1 class="font-extrabold tracking-tight text-[#123b4a]" style="font-size: clamp(3.6rem, 7vw, 4.75rem); line-height: 1;">
                     Sitori
                 </h1>

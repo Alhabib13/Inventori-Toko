@@ -146,7 +146,7 @@
                         data-loading-text="Mengirim..."
                         data-code-send-button
                         data-cooldown-seconds="120"
-                        class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md border border-[#0b4a5a] px-4 text-sm font-bold text-[#0b4a5a] transition hover:bg-[#0b4a5a]/5"
+                        class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md border border-[#0b4a5a] px-4 text-sm font-bold text-[#0b4a5a] transition hover:bg-[#0b4a5a]/5 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z" />
@@ -154,7 +154,7 @@
                         <span data-code-send-label>Kirim Kode</span>
                     </button>
                 </div>
-                <p class="text-xs text-slate-500">Kirim kode ke email owner dulu, lalu masukkan 6 digit verifikasi untuk menyelesaikan registrasi.</p>
+                <p class="text-xs text-slate-500" data-code-send-feedback>Kirim kode ke email owner dulu, lalu masukkan 6 digit verifikasi untuk menyelesaikan registrasi.</p>
             </div>
 
             <div class="space-y-1.5">
@@ -246,9 +246,29 @@
             if (!sendButton) return;
 
             const label = sendButton.querySelector('[data-code-send-label]');
+            const form = sendButton.closest('form');
+            const feedback = document.querySelector('[data-code-send-feedback]');
             const cooldownSeconds = Number(sendButton.dataset.cooldownSeconds || 120);
             const storageKey = 'owner-register-code-cooldown-until';
             let timerId = null;
+
+            const getEmailInput = () => document.getElementById('email');
+
+            const emailIsFilled = () => {
+                const emailInput = getEmailInput();
+
+                return emailInput instanceof HTMLInputElement && emailInput.value.trim() !== '';
+            };
+
+            const renderSending = () => {
+                sendButton.disabled = true;
+                sendButton.setAttribute('aria-busy', 'true');
+                if (label) label.textContent = sendButton.dataset.loadingText || 'Mengirim...';
+                if (feedback) {
+                    feedback.textContent = 'Mengirim kode verifikasi ke email owner...';
+                    feedback.className = 'text-xs font-semibold text-[#0b4a5a]';
+                }
+            };
 
             const render = () => {
                 const cooldownUntil = Number(sessionStorage.getItem(storageKey) || 0);
@@ -256,6 +276,7 @@
 
                 if (remaining <= 0) {
                     sendButton.disabled = false;
+                    sendButton.removeAttribute('aria-busy');
                     if (label) label.textContent = 'Kirim Kode';
                     sessionStorage.removeItem(storageKey);
                     if (timerId) {
@@ -277,13 +298,70 @@
                 }
             };
 
-            sendButton.addEventListener('click', () => {
-                const emailInput = document.getElementById('email');
-                if (!(emailInput instanceof HTMLInputElement) || emailInput.value.trim() === '') {
+            const resetButton = () => {
+                sessionStorage.removeItem(storageKey);
+                sendButton.disabled = false;
+                sendButton.removeAttribute('aria-busy');
+                if (label) label.textContent = 'Kirim Kode';
+                if (timerId) {
+                    clearInterval(timerId);
+                    timerId = null;
+                }
+            };
+
+            const sendCode = async () => {
+                if (!form) return;
+
+                const response = await fetch(sendButton.formAction, {
+                    method: sendButton.formMethod || 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (!response.ok) {
+                    let message = 'Kode belum bisa dikirim. Periksa email owner lalu coba lagi.';
+
+                    if (response.status === 429) {
+                        message = 'Terlalu sering mengirim kode. Tunggu sebentar lalu coba lagi.';
+                    } else {
+                        try {
+                            const data = await response.json();
+                            message = data.message || Object.values(data.errors || {})?.flat()?.[0] || message;
+                        } catch (error) {
+                            //
+                        }
+                    }
+
+                    resetButton();
+                    if (feedback) {
+                        feedback.textContent = message;
+                        feedback.className = 'text-xs font-semibold text-red-600';
+                    }
+
                     return;
                 }
 
                 startCooldown();
+                if (feedback) {
+                    feedback.textContent = 'Kode verifikasi sudah dikirim. Cek inbox atau folder spam email owner.';
+                    feedback.className = 'text-xs font-semibold text-emerald-700';
+                }
+            };
+
+            sendButton.addEventListener('click', async (event) => {
+                if (!emailIsFilled()) {
+                    event.preventDefault();
+                    getEmailInput()?.reportValidity();
+
+                    return;
+                }
+
+                event.preventDefault();
+                renderSending();
+                await sendCode();
             });
 
             render();
