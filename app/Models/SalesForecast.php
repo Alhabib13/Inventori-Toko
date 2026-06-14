@@ -20,6 +20,7 @@ class SalesForecast extends Model
         'prediksi_stok',
         'stok_aktual',
         'selisih_prediksi',
+        'series_snapshot',
         'catatan',
     ];
 
@@ -33,6 +34,7 @@ class SalesForecast extends Model
             'prediksi_stok' => 'integer',
             'stok_aktual' => 'integer',
             'selisih_prediksi' => 'integer',
+            'series_snapshot' => 'array',
         ];
     }
 

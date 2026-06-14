@@ -9,6 +9,7 @@ use App\Models\Supplier;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -93,6 +94,80 @@ class SalesForecastMovingAverageTest extends TestCase
         $this->assertSame(3, $forecast->selisih_prediksi);
     }
 
+    public function test_moving_average_includes_sales_on_local_month_end_boundary(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 6, 15, 10, 0, 0, 'Asia/Jakarta'));
+
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+        ]);
+        $product = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Batas Bulan',
+            'stok' => 0,
+            'satuan' => 'pcs',
+        ]);
+
+        $this->createTransactionWithItem($owner, $product, Carbon::create(2026, 4, 30, 23, 30, 0, 'Asia/Jakarta'), 9);
+        $this->createTransactionWithItem($owner, $product, Carbon::create(2026, 5, 31, 23, 30, 0, 'Asia/Jakarta'), 6);
+        $this->createTransactionWithItem($owner, $product, Carbon::create(2026, 6, 30, 23, 30, 0, 'Asia/Jakarta'), 3);
+
+        $response = $this->actingAs($owner)->post('/forecasts', [
+            'product_id' => $product->id,
+            'periode_akhir' => '2026-06-30',
+            'panjang_jendela' => 3,
+            'catatan' => '',
+        ]);
+
+        $forecast = SalesForecast::query()->first();
+
+        $response
+            ->assertRedirect(route('forecasts.show', $forecast))
+            ->assertSessionHasNoErrors();
+
+        $this->assertNotNull($forecast);
+        $this->assertSame(6.00, (float) $forecast->nilai_moving_average);
+        $this->assertSame(6, $forecast->prediksi_stok);
+        $this->assertSame(6, $forecast->selisih_prediksi);
+    }
+
+    public function test_moving_average_groups_sales_by_local_month_not_utc_month(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 6, 15, 10, 0, 0, 'Asia/Jakarta'));
+
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+        ]);
+        $product = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Awal Bulan Lokal',
+            'stok' => 0,
+            'satuan' => 'pcs',
+        ]);
+
+        $this->createTransactionWithItem($owner, $product, Carbon::create(2026, 4, 15, 12, 0, 0, 'Asia/Jakarta'), 9);
+        $this->createTransactionWithItem($owner, $product, Carbon::create(2026, 5, 1, 0, 30, 0, 'Asia/Jakarta'), 6);
+        $this->createTransactionWithItem($owner, $product, Carbon::create(2026, 6, 15, 12, 0, 0, 'Asia/Jakarta'), 3);
+
+        $response = $this->actingAs($owner)->post('/forecasts', [
+            'product_id' => $product->id,
+            'periode_akhir' => '2026-06-30',
+            'panjang_jendela' => 3,
+            'catatan' => '',
+        ]);
+
+        $forecast = SalesForecast::query()->first();
+
+        $response
+            ->assertRedirect(route('forecasts.show', $forecast))
+            ->assertSessionHasNoErrors();
+
+        $this->assertNotNull($forecast);
+        $this->assertSame(6.00, (float) $forecast->nilai_moving_average);
+        $this->assertSame(6, $forecast->prediksi_stok);
+        $this->assertSame(6, $forecast->selisih_prediksi);
+    }
+
     public function test_gudang_lengkap_can_view_sales_forecast_list(): void
     {
         $gudang = User::factory()->create([
@@ -120,6 +195,47 @@ class SalesForecastMovingAverageTest extends TestCase
             ->assertSee('Produk Gudang Forecast')
             ->assertSee('8')
             ->assertSee('5');
+    }
+
+    public function test_forecast_detail_uses_saved_series_snapshot_instead_of_live_recalculation(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 6, 15, 10, 0, 0, 'Asia/Jakarta'));
+
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'mode_app' => 'sederhana',
+        ]);
+        $product = $this->createProduct($owner->store_name, [
+            'nama_produk' => 'Produk Snapshot Forecast',
+            'stok' => 2,
+            'satuan' => 'pcs',
+        ]);
+
+        $this->createTransactionWithItem($owner, $product, Carbon::create(2026, 4, 15, 12, 0, 0, 'Asia/Jakarta'), 4);
+        $this->createTransactionWithItem($owner, $product, Carbon::create(2026, 5, 15, 12, 0, 0, 'Asia/Jakarta'), 5);
+        $this->createTransactionWithItem($owner, $product, Carbon::create(2026, 6, 15, 12, 0, 0, 'Asia/Jakarta'), 6);
+
+        $this->actingAs($owner)->post('/forecasts', [
+            'product_id' => $product->id,
+            'periode_akhir' => '2026-06-30',
+            'panjang_jendela' => 3,
+            'catatan' => '',
+        ])->assertSessionHasNoErrors();
+
+        $forecast = SalesForecast::query()->firstOrFail();
+
+        $this->createTransactionWithItem($owner, $product, Carbon::create(2026, 5, 20, 12, 0, 0, 'Asia/Jakarta'), 50);
+
+        $this->assertCount(3, $forecast->series_snapshot);
+        $this->assertSame([4, 5, 6], collect($forecast->series_snapshot)->pluck('qty')->all());
+
+        $this->actingAs($owner)
+            ->get(route('forecasts.show', $forecast))
+            ->assertOk()
+            ->assertSee('4 pcs')
+            ->assertSee('5 pcs')
+            ->assertSee('6 pcs')
+            ->assertDontSee('55 pcs');
     }
 
     public function test_owner_lengkap_can_only_view_sales_forecast_list(): void

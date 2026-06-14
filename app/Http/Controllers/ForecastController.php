@@ -120,11 +120,15 @@ class ForecastController extends Controller
     {
         $this->abortIfForecastOutsideStore($forecast, request()->user());
         $forecast->load('produk');
-        $series = $this->salesForecastService->buildForecast(
-            $forecast->produk,
-            $forecast->periode_akhir->copy(),
-            (int) $forecast->panjang_jendela,
-        )['series'];
+        $series = collect($forecast->series_snapshot);
+
+        if ($series->isEmpty()) {
+            $series = $this->salesForecastService->buildForecast(
+                $forecast->produk,
+                $forecast->periode_akhir->copy(),
+                (int) $forecast->panjang_jendela,
+            )['series'];
+        }
 
         return view('forecasts.show', [
             'forecast' => $forecast,
