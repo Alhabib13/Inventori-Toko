@@ -15,6 +15,8 @@ class SalesForecastService
         $windowMonths = max(1, min($windowMonths, 12));
         $periodEnd = $periodEnd->copy()->endOfMonth();
         $periodStart = $periodEnd->copy()->subMonths($windowMonths - 1)->startOfMonth();
+        $periodStartUtc = $periodStart->copy()->utc();
+        $periodEndUtc = $periodEnd->copy()->utc();
         $months = collect(range(0, $windowMonths - 1))
             ->map(fn (int $offset) => $periodStart->copy()->addMonths($offset)->startOfMonth());
 
@@ -23,11 +25,13 @@ class SalesForecastService
             ->join('transactions', 'transactions.id', '=', 'transaction_items.transaction_id')
             ->where('transaction_items.product_id', $product->id)
             ->where('transactions.status', 'selesai')
-            ->whereBetween('transactions.tanggal_transaksi', [$periodStart, $periodEnd])
+            ->whereBetween('transactions.tanggal_transaksi', [$periodStartUtc, $periodEndUtc])
             ->get();
 
         $monthlySales = $transactionItems
-            ->groupBy(fn (TransactionItem $item) => Carbon::parse($item->getAttribute('tanggal_transaksi'))->format('Y-m-01'))
+            ->groupBy(fn (TransactionItem $item) => Carbon::parse($item->getAttribute('tanggal_transaksi'), 'UTC')
+                ->setTimezone(config('app.timezone'))
+                ->format('Y-m-01'))
             ->map(fn (Collection $items): int => (int) $items->sum('qty'));
 
         $series = $months->map(function (Carbon $month) use ($monthlySales): int {
@@ -67,6 +71,7 @@ class SalesForecastService
             'prediksi_stok' => $forecast['prediksi_stok'],
             'stok_aktual' => $forecast['stok_aktual'],
             'selisih_prediksi' => $forecast['selisih_prediksi'],
+            'series_snapshot' => $forecast['series']->values()->all(),
             'catatan' => filled($note) ? $note : $forecast['catatan_default'],
         ]);
     }
@@ -85,6 +90,7 @@ class SalesForecastService
             'prediksi_stok' => $payload['prediksi_stok'],
             'stok_aktual' => $payload['stok_aktual'],
             'selisih_prediksi' => $payload['selisih_prediksi'],
+            'series_snapshot' => $payload['series']->values()->all(),
             'catatan' => filled($note) ? $note : $payload['catatan_default'],
         ]);
 

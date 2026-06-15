@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use App\Services\StockMovementService;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class TransactionController extends Controller
         $search = trim($request->string('search')->toString());
         $cashierSummary = null;
         $ownerSummary = null;
+        $dateRange = $this->resolveLocalDateRangeToUtc($dateFrom, $dateTo);
 
         $transactionsQuery = Transaction::query()
             ->with('kasir')
@@ -34,11 +36,8 @@ class TransactionController extends Controller
             ->when($user?->role === 'owner', function (Builder $query) use ($user): void {
                 $query->whereHas('kasir', fn (Builder $kasirQuery) => $this->scopeToUserStore($kasirQuery, $user));
             })
-            ->when($dateFrom !== '', function (Builder $query) use ($dateFrom): void {
-                $query->whereDate('tanggal_transaksi', '>=', $dateFrom);
-            })
-            ->when($dateTo !== '', function (Builder $query) use ($dateTo): void {
-                $query->whereDate('tanggal_transaksi', '<=', $dateTo);
+            ->when($dateRange !== null, function (Builder $query) use ($dateRange): void {
+                $query->whereBetween('tanggal_transaksi', [$dateRange['start'], $dateRange['end']]);
             })
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $query->where(function (Builder $searchQuery) use ($search): void {
@@ -65,9 +64,10 @@ class TransactionController extends Controller
             ->withQueryString();
 
         if ($user?->role === 'kasir') {
+            $todayRange = $this->resolveLocalDateRangeToUtc(now()->toDateString(), now()->toDateString());
             $todayTransactionsQuery = Transaction::query()
                 ->where('user_id', $user->id)
-                ->whereDate('tanggal_transaksi', now()->toDateString());
+                ->whereBetween('tanggal_transaksi', [$todayRange['start'], $todayRange['end']]);
 
             $activeTodayTransactionsQuery = (clone $todayTransactionsQuery)
                 ->where('status', '!=', 'dibatalkan');
@@ -133,7 +133,9 @@ class TransactionController extends Controller
             'today_transaction_count' => $user?->role === 'kasir'
                 ? Transaction::query()
                     ->where('user_id', $user->id)
-                    ->whereDate('tanggal_transaksi', now()->toDateString())
+                    ->whereBetween('tanggal_transaksi', [
+                        ...array_values($this->resolveLocalDateRangeToUtc(now()->toDateString(), now()->toDateString())),
+                    ])
                     ->where('status', '!=', 'dibatalkan')
                     ->count()
                 : 0,
@@ -344,5 +346,29 @@ class TransactionController extends Controller
         if ($user?->role === 'owner' && ! $this->modelBelongsToUserStore($transaction->kasir, $user)) {
             abort(403, 'Anda tidak memiliki akses ke transaksi ini.');
         }
+    }
+
+    private function resolveLocalDateRangeToUtc(string $dateFrom, string $dateTo): ?array
+    {
+        if ($dateFrom === '' && $dateTo === '') {
+            return null;
+        }
+
+        $timezone = config('app.timezone');
+        $start = $dateFrom !== ''
+            ? Carbon::parse($dateFrom, $timezone)->startOfDay()
+            : Carbon::create(1970, 1, 1, 0, 0, 0, $timezone);
+        $end = $dateTo !== ''
+            ? Carbon::parse($dateTo, $timezone)->endOfDay()
+            : Carbon::now($timezone)->endOfDay();
+
+        if ($start->greaterThan($end)) {
+            [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
+        }
+
+        return [
+            'start' => $start->utc()->format('Y-m-d H:i:s'),
+            'end' => $end->utc()->format('Y-m-d H:i:s'),
+        ];
     }
 }
